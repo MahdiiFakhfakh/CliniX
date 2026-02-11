@@ -15,148 +15,36 @@ const Prescriptions = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Mock data for prescriptions
-  const mockPrescriptions = [
-    {
-      id: "RX1001",
-      patient: { name: "John Doe", id: "PAT1001" },
-      doctor: { name: "Dr. Robert Smith" },
-      date: "2024-03-15",
-      medications: [
-        {
-          name: "Lisinopril",
-          dosage: "10mg",
-          frequency: "Once daily",
-          duration: "30 days",
-        },
-        {
-          name: "Metformin",
-          dosage: "500mg",
-          frequency: "Twice daily",
-          duration: "30 days",
-        },
-      ],
-      status: "active",
-      refills: 2,
-      pharmacy: "City Pharmacy",
-    },
-    {
-      id: "RX1002",
-      patient: { name: "Jane Smith", id: "PAT1002" },
-      doctor: { name: "Dr. Sarah Johnson" },
-      date: "2024-03-14",
-      medications: [
-        {
-          name: "Albuterol",
-          dosage: "2 puffs",
-          frequency: "As needed",
-          duration: "90 days",
-        },
-      ],
-      status: "active",
-      refills: 1,
-      pharmacy: "Health Plus Pharmacy",
-    },
-    {
-      id: "RX1003",
-      patient: { name: "Robert Johnson", id: "PAT1003" },
-      doctor: { name: "Dr. Michael Wilson" },
-      date: "2024-03-13",
-      medications: [
-        {
-          name: "Ibuprofen",
-          dosage: "400mg",
-          frequency: "Every 6 hours",
-          duration: "7 days",
-        },
-        {
-          name: "Acetaminophen",
-          dosage: "500mg",
-          frequency: "Every 8 hours",
-          duration: "7 days",
-        },
-      ],
-      status: "completed",
-      refills: 0,
-      pharmacy: "Main Street Pharmacy",
-    },
-    {
-      id: "RX1004",
-      patient: { name: "Emily Wilson", id: "PAT1004" },
-      doctor: { name: "Dr. Emily Davis" },
-      date: "2024-03-12",
-      medications: [
-        {
-          name: "Sumatriptan",
-          dosage: "50mg",
-          frequency: "As needed",
-          duration: "30 days",
-        },
-      ],
-      status: "active",
-      refills: 3,
-      pharmacy: "Wellness Pharmacy",
-    },
-    {
-      id: "RX1005",
-      patient: { name: "Michael Brown", id: "PAT1005" },
-      doctor: { name: "Dr. James Brown" },
-      date: "2024-03-11",
-      medications: [
-        {
-          name: "Atorvastatin",
-          dosage: "20mg",
-          frequency: "Once daily",
-          duration: "90 days",
-        },
-        {
-          name: "Aspirin",
-          dosage: "81mg",
-          frequency: "Once daily",
-          duration: "90 days",
-        },
-      ],
-      status: "expired",
-      refills: 0,
-      pharmacy: "Care Pharmacy",
-    },
-    {
-      id: "RX1006",
-      patient: { name: "Sarah Davis", id: "PAT1006" },
-      doctor: { name: "Dr. Lisa Taylor" },
-      date: "2024-03-10",
-      medications: [
-        {
-          name: "Sertraline",
-          dosage: "50mg",
-          frequency: "Once daily",
-          duration: "30 days",
-        },
-      ],
-      status: "active",
-      refills: 5,
-      pharmacy: "Mental Wellness Pharmacy",
-    },
-  ];
-
+  // Fetch prescriptions from backend
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setPrescriptions(mockPrescriptions);
-      setLoading(false);
-    }, 1000);
+    const fetchPrescriptions = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:5000/api/prescriptions", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setPrescriptions(data); // Ensure backend returns array of prescriptions
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to fetch prescriptions");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPrescriptions();
   }, []);
 
-  const filteredPrescriptions = prescriptions.filter((prescription) => {
+  // Filter prescriptions
+  const filteredPrescriptions = prescriptions.filter((rx) => {
     const matchesSearch =
-      prescription.patient.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      prescription.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prescription.doctor.name.toLowerCase().includes(searchTerm.toLowerCase());
+      rx.patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rx.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rx.doctor.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" || prescription.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || rx.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -213,33 +101,29 @@ const Prescriptions = () => {
       {/* Filters */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
         <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
-          <div className="flex-1">
-            <div className="relative">
-              <HiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search by patient, doctor, or prescription ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+          <div className="flex-1 relative">
+            <HiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search by patient, doctor, or prescription ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <HiFilter className="text-gray-400 w-5 h-5" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="expired">Expired</option>
-                <option value="pending">Pending</option>
-              </select>
-            </div>
+          <div className="flex items-center space-x-2">
+            <HiFilter className="text-gray-400 w-5 h-5" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="expired">Expired</option>
+              <option value="pending">Pending</option>
+            </select>
           </div>
         </div>
       </div>
@@ -273,7 +157,7 @@ const Prescriptions = () => {
         </div>
       </div>
 
-      {/* Prescriptions List */}
+      {/* Prescriptions Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -297,6 +181,13 @@ const Prescriptions = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
+              {filteredPrescriptions.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="text-center py-4 text-gray-500">
+                    No prescriptions found.
+                  </td>
+                </tr>
+              )}
               {filteredPrescriptions.map((prescription) => (
                 <tr key={prescription.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
@@ -306,7 +197,7 @@ const Prescriptions = () => {
                       </div>
                       <div className="flex items-center text-sm text-gray-500 mt-1">
                         <HiClock className="w-4 h-4 mr-2 text-gray-400" />
-                        {prescription.date}
+                        {new Date(prescription.date).toLocaleDateString()}
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
                         Pharmacy: {prescription.pharmacy}
@@ -317,9 +208,16 @@ const Prescriptions = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {prescription.medications.map((med, index) => (
-                        <div key={index} className="bg-gray-50 p-2 rounded">
+                        <div
+                          key={index}
+                          className={`p-2 rounded ${
+                            index < prescription.medications.length - 1
+                              ? "border-b border-gray-200"
+                              : ""
+                          }`}
+                        >
                           <div className="text-sm font-medium text-gray-900">
                             {med.name}
                           </div>
@@ -344,7 +242,10 @@ const Prescriptions = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[prescription.status]}`}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        statusColors[prescription.status] ||
+                        "bg-gray-100 text-gray-800"
+                      }`}
                     >
                       {prescription.status.charAt(0).toUpperCase() +
                         prescription.status.slice(1)}

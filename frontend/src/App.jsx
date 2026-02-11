@@ -16,7 +16,6 @@ import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
 import Doctors from "./pages/Doctors";
 import Appointments from "./pages/Appointments";
-import MedicalRecords from "./pages/MedicalRecords";
 import Prescriptions from "./pages/Prescriptions"; // Add this import
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
@@ -40,9 +39,7 @@ function App() {
               <Route path="patients" element={<Patients />} />
               <Route path="doctors" element={<Doctors />} />
               <Route path="appointments" element={<Appointments />} />
-              <Route path="medical-records" element={<MedicalRecords />} />
               <Route path="prescriptions" element={<Prescriptions />} />{" "}
-              {/* Add this route */}
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<Settings />} />
             </Route>

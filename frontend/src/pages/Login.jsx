@@ -16,7 +16,6 @@ const Login = () => {
     setError("");
 
     try {
-      // Try to login with backend
       const response = await axios.post(
         "http://localhost:5000/api/auth/login",
         {
@@ -25,45 +24,28 @@ const Login = () => {
         },
       );
 
-      if (response.data.success) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
+      // Backend must return user object with role and a token
+      const { success, user, token, error } = response.data;
 
-        toast.success("Login successful!");
-        navigate("/dashboard");
+      if (success) {
+        if (user.role !== "admin") {
+          setError("Access denied: Only admins can login");
+          toast.error("Access denied: Only admins can login");
+        } else {
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(user));
+
+          toast.success("Login successful!");
+          navigate("/dashboard");
+        }
       } else {
-        setError(response.data.error || "Login failed");
-        toast.error(response.data.error || "Login failed");
+        setError(error || "Login failed");
+        toast.error(error || "Login failed");
       }
     } catch (err) {
-      // If backend fails, use mock login
-      console.log("Backend not available, using mock login");
-
-      // Mock login for development
-      if (email === "admin@clinix.com" && password === "password123") {
-        const mockUser = {
-          token: "mock-jwt-token-" + Date.now(),
-          user: {
-            id: "mock-user-id",
-            email: email,
-            role: "admin",
-            profile: {
-              fullName: "Admin User",
-              department: "management",
-              phone: "+1 (555) 123-4567",
-            },
-          },
-        };
-
-        localStorage.setItem("token", mockUser.token);
-        localStorage.setItem("user", JSON.stringify(mockUser.user));
-
-        toast.success("Development login successful!");
-        navigate("/dashboard");
-      } else {
-        setError("Invalid credentials. Use admin@clinix.com / password123");
-        toast.error("Invalid credentials. Use admin@clinix.com / password123");
-      }
+      console.error("Login error:", err);
+      setError("Server error. Please try again later.");
+      toast.error("Server error. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -221,7 +203,7 @@ const Login = () => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            © 2024 CliniX Health Management System. All rights reserved.
+            © 2026 CliniX Health Management System. All rights reserved.
           </p>
           <p className="text-xs text-gray-400 mt-1">
             Version 1.0.0 | Development Mode

@@ -45,35 +45,41 @@ const seedDatabase = async () => {
 
     console.log("🌱 Seeding database...");
 
-    // 1. Create Admin User
+    // --------------------
+    // 1. Admin User
+    // --------------------
+    const adminPassword = process.env.ADMIN_PASSWORD || "password123";
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@clinix.com";
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(
-      process.env.ADMIN_PASSWORD || "password123",
-      salt,
-    );
+    const hashedAdminPassword = await bcrypt.hash(adminPassword, salt);
 
     const adminUser = await User.create({
-      email: process.env.ADMIN_EMAIL || "admin@clinix.com",
-      password: hashedPassword,
+      name: "Admin User",
+      email: adminEmail,
+      password: hashedAdminPassword,
       role: "admin",
       isActive: true,
       lastLogin: new Date(),
     });
 
-    const adminProfile = await Admin.create({
+    await Admin.create({
       user: adminUser._id,
       firstName: "Admin",
       lastName: "User",
       fullName: "Admin User",
-      phone: "+1 (555) 123-4567",
+      phone: "16515114567",
       department: "management",
     });
 
-    console.log("👑 Admin created:", adminUser.email);
+    console.log("👑 Admin created:", adminEmail);
 
-    // 2. Create Sample Doctors
-    const doctors = await Doctor.insertMany([
+    // --------------------
+    // 2. Doctors
+    // --------------------
+    const doctorData = [
       {
+        name: "Robert Smith",
+        email: "dr.smith@clinix.com",
         doctorId: "DOC1001",
         firstName: "Robert",
         lastName: "Smith",
@@ -84,8 +90,7 @@ const seedDatabase = async () => {
         experience: 15,
         hospital: "City General Hospital",
         department: "Cardiology",
-        phone: "+1 (555) 234-5678",
-        email: "dr.smith@clinix.com",
+        phone: "16515114567",
         consultationFee: 200,
         availability: [
           {
@@ -125,6 +130,8 @@ const seedDatabase = async () => {
         status: "available",
       },
       {
+        name: "Sarah Johnson",
+        email: "dr.johnson@clinix.com",
         doctorId: "DOC1002",
         firstName: "Sarah",
         lastName: "Johnson",
@@ -135,8 +142,7 @@ const seedDatabase = async () => {
         experience: 10,
         hospital: "Children's Medical Center",
         department: "Pediatrics",
-        phone: "+1 (555) 345-6789",
-        email: "dr.johnson@clinix.com",
+        phone: "16515114567",
         consultationFee: 150,
         availability: [
           {
@@ -175,13 +181,40 @@ const seedDatabase = async () => {
         ratings: { average: 4.9, totalReviews: 89 },
         status: "available",
       },
-    ]);
+    ];
+
+    // Create User accounts for doctors
+    const doctorUsers = await Promise.all(
+      doctorData.map(async (doc) => {
+        const hashedPassword = await bcrypt.hash("password123", 10);
+        return User.create({
+          name: doc.name,
+          email: doc.email,
+          password: hashedPassword,
+          role: "doctor",
+          isActive: true,
+          lastLogin: new Date(),
+        });
+      }),
+    );
+
+    // Create Doctor profiles
+    const doctors = await Doctor.insertMany(
+      doctorData.map((doc, i) => ({
+        ...doc,
+        user: doctorUsers[i]._id,
+      })),
+    );
 
     console.log(`👨‍⚕️ ${doctors.length} doctors created`);
 
-    // 3. Create Sample Patients
-    const patients = await Patient.insertMany([
+    // --------------------
+    // 3. Patients
+    // --------------------
+    const patientData = [
       {
+        name: "John Doe",
+        email: "john.doe@example.com",
         patientId: "PAT1001",
         firstName: "John",
         lastName: "Doe",
@@ -189,48 +222,13 @@ const seedDatabase = async () => {
         dateOfBirth: new Date("1985-06-15"),
         gender: "male",
         bloodGroup: "O+",
-        address: {
-          street: "123 Main Street",
-          city: "New York",
-          state: "NY",
-          country: "USA",
-          zipCode: "10001",
-        },
-        phone: "+1 (555) 456-7890",
-        email: "john.doe@example.com",
-        emergencyContact: {
-          name: "Mary Doe",
-          relationship: "Spouse",
-          phone: "+1 (555) 456-7891",
-        },
-        height: 180,
-        weight: 75,
-        allergies: [
-          {
-            name: "Penicillin",
-            severity: "severe",
-            notes: "Causes anaphylaxis",
-          },
-        ],
-        chronicConditions: [
-          {
-            name: "Hypertension",
-            diagnosedDate: new Date("2020-03-10"),
-            status: "active",
-            treatment: "Lisinopril 10mg daily",
-          },
-        ],
-        insurance: {
-          provider: "Blue Cross",
-          policyNumber: "BC123456789",
-          expiryDate: new Date("2024-12-31"),
-        },
+        phone: "16515114567",
         primaryDoctor: doctors[0]._id,
-        lastVisit: new Date("2024-03-15"),
-        nextAppointment: new Date("2024-04-15"),
         status: "active",
       },
       {
+        name: "Jane Smith",
+        email: "jane.smith@example.com",
         patientId: "PAT1002",
         firstName: "Jane",
         lastName: "Smith",
@@ -238,39 +236,38 @@ const seedDatabase = async () => {
         dateOfBirth: new Date("1992-11-22"),
         gender: "female",
         bloodGroup: "A+",
-        address: {
-          street: "456 Oak Avenue",
-          city: "Los Angeles",
-          state: "CA",
-          country: "USA",
-          zipCode: "90001",
-        },
-        phone: "+1 (555) 567-8901",
-        email: "jane.smith@example.com",
-        emergencyContact: {
-          name: "James Smith",
-          relationship: "Husband",
-          phone: "+1 (555) 567-8902",
-        },
-        height: 165,
-        weight: 58,
-        allergies: [],
-        chronicConditions: [],
-        insurance: {
-          provider: "Aetna",
-          policyNumber: "AE987654321",
-          expiryDate: new Date("2024-11-30"),
-        },
+        phone: "16515114567",
         primaryDoctor: doctors[1]._id,
-        lastVisit: new Date("2024-03-10"),
-        nextAppointment: new Date("2024-04-10"),
         status: "active",
       },
-    ]);
+    ];
+
+    const patientUsers = await Promise.all(
+      patientData.map(async (p) => {
+        const hashedPassword = await bcrypt.hash("password123", 10);
+        return User.create({
+          name: p.name,
+          email: p.email,
+          password: hashedPassword,
+          role: "patient",
+          isActive: true,
+          lastLogin: new Date(),
+        });
+      }),
+    );
+
+    const patients = await Patient.insertMany(
+      patientData.map((p, i) => ({
+        ...p,
+        user: patientUsers[i]._id,
+      })),
+    );
 
     console.log(`👤 ${patients.length} patients created`);
 
-    // 4. Create Sample Appointments
+    // --------------------
+    // 4. Appointments
+    // --------------------
     const appointments = await Appointment.insertMany([
       {
         appointmentId: "APT1001",
@@ -280,14 +277,10 @@ const seedDatabase = async () => {
         time: "10:30",
         duration: 30,
         type: "consultation",
-        reason: "Routine checkup and blood pressure review",
-        symptoms: ["Headache", "Fatigue"],
+        reason: "Routine checkup",
         status: "completed",
         fee: 200,
         paymentStatus: "paid",
-        notes: "Patient showed improvement",
-        diagnosis: "Hypertension under control",
-        followUpDate: new Date("2024-06-15"),
       },
       {
         appointmentId: "APT1002",
@@ -301,7 +294,6 @@ const seedDatabase = async () => {
         status: "scheduled",
         fee: 150,
         paymentStatus: "pending",
-        notes: "First visit, need vaccination records",
       },
     ]);
 
@@ -311,12 +303,11 @@ const seedDatabase = async () => {
     console.log("✅ DATABASE SEEDING COMPLETE!");
     console.log("========================================");
     console.log("Database:", process.env.MONGO_URI);
-    console.log(
-      "Admin Login:",
-      process.env.ADMIN_EMAIL,
-      "/",
-      process.env.ADMIN_PASSWORD,
-    );
+    console.log("Admin Login:", adminEmail, "/", adminPassword);
+    console.log("Doctor Login: dr.smith@clinix.com / password123");
+    console.log("Doctor Login: dr.johnson@clinix.com / password123");
+    console.log("Patient Login: john.doe@example.com / password123");
+    console.log("Patient Login: jane.smith@example.com / password123");
     console.log("========================================");
 
     process.exit(0);

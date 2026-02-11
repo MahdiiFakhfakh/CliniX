@@ -1,36 +1,21 @@
 const express = require("express");
 const router = express.Router();
-const {
-  getAllPatients,
-  getPatient,
-  createPatient,
-  updatePatient,
-  deletePatient,
-  updatePatientStatus,
-  getPatientStats,
-} = require("../controllers/patientController");
+const Patient = require("../models/Patient");
 
-// All routes require authentication (you'll add middleware later)
-
-// GET /api/patients
-router.get("/", getAllPatients);
-
-// GET /api/patients/stats
-router.get("/stats", getPatientStats);
-
-// GET /api/patients/:id
-router.get("/:id", getPatient);
-
-// POST /api/patients
-router.post("/", createPatient);
-
-// PUT /api/patients/:id
-router.put("/:id", updatePatient);
-
-// DELETE /api/patients/:id
-router.delete("/:id", deletePatient);
-
-// PUT /api/patients/:id/status
-router.put("/:id/status", updatePatientStatus);
+// GET all patients
+router.get("/", async (req, res) => {
+  try {
+    const patients = await Patient.find();
+    res.status(200).json({
+      success: true,
+      data: patients,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch patients",
+    });
+  }
+});
 
 module.exports = router;

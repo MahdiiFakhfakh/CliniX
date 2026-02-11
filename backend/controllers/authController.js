@@ -1,124 +1,49 @@
 const User = require("../models/User");
-const Admin = require("../models/Admin");
-const Patient = require("../models/Patient");
-const Doctor = require("../models/Doctor");
-const { generateToken } = require("../utils/jwtUtils");
+const jwt = require("jsonwebtoken");
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
-const register = async (req, res) => {
-  try {
-    const { email, password, role, firstName, lastName, phone } = req.body;
-
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        error: "User already exists",
-      });
-    }
-
-    // Create user
-    const user = await User.create({
-      email,
-      password,
-      role,
-    });
-
-    // Create role-specific profile
-    let profile;
-    if (role === "admin") {
-      profile = await Admin.create({
-        user: user._id,
-        firstName,
-        lastName,
-        fullName: `${firstName} ${lastName}`,
-        phone,
-      });
-    } else if (role === "patient") {
-      profile = await Patient.create({
-        user: user._id,
-        firstName,
-        lastName,
-        fullName: `${firstName} ${lastName}`,
-        phone,
-      });
-    } else if (role === "doctor") {
-      profile = await Doctor.create({
-        user: user._id,
-        firstName,
-        lastName,
-        fullName: `${firstName} ${lastName}`,
-        phone,
-      });
-    }
-
-    // Generate token
-    const token = generateToken(user._id, user.role);
-
-    res.status(201).json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-        profile,
-      },
-    });
-  } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
+// Generate JWT
+const generateToken = (id, role) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE || "1h",
+  });
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
-const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+// @desc Login user (admin only)
+// @route POST /api/auth/login
+exports.login = async (req, res) => {
+  const { email, password } = req.body;
 
-    // Check for user
-    const user = await User.findOne({ email }).select("+password");
+  try {
+    // 1️⃣ Find the user by email
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid credentials",
-      });
+      return res
+        .status(401)
+        .json({ success: false, error: "Invalid credentials" });
     }
 
-    // Check password (using the method from User model)
-    const isPasswordMatch = await user.comparePassword(password);
-    if (!isPasswordMatch) {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid credentials",
-      });
+    // 2️⃣ Check password (assuming User model has matchPassword method)
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Invalid credentials" });
     }
 
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Get user profile
-    let profile;
-    if (user.role === "admin") {
-      profile = await Admin.findOne({ user: user._id });
-    } else if (user.role === "patient") {
-      profile = await Patient.findOne({ user: user._id });
-    } else if (user.role === "doctor") {
-      profile = await Doctor.findOne({ user: user._id });
+    // 3️⃣ Check admin role
+    if (user.role !== "admin") {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          error: "Access denied: Only admins can login",
+        });
     }
 
-    // Generate token
+    // 4️⃣ Generate token
     const token = generateToken(user._id, user.role);
 
+    // 5️⃣ Send response
     res.json({
       success: true,
       token,
@@ -126,39 +51,15 @@ const login = async (req, res) => {
         id: user._id,
         email: user.email,
         role: user.role,
-        profile,
+        profile: {
+          fullName: user.name,
+          department: user.department || "",
+          phone: user.phone || "",
+        },
       },
     });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
   }
-};
-
-// @desc    Get current user
-// @route   GET /api/auth/me
-// @access  Private
-const getMe = async (req, res) => {
-  try {
-    // This would be implemented with auth middleware
-    res.json({
-      success: true,
-      message: "Get current user endpoint",
-    });
-  } catch (error) {
-    console.error("Get me error:", error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-module.exports = {
-  register,
-  login,
-  getMe,
 };

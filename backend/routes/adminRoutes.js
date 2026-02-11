@@ -1,47 +1,77 @@
 const express = require("express");
 const router = express.Router();
-const { protect, authorize } = require("../middlewares/authMiddleware");
-const {
-  getDashboardStats,
-  getAllPatients,
-  getAllDoctors,
-  getAllAppointments,
-  getSystemAnalytics,
-  manageUser,
-  sendNotification,
-  getActivityLogs,
-  backupDatabase,
-  getSystemSettings,
-  updateSystemSettings,
-} = require("../controllers/adminController");
 
-// All admin routes require authentication and admin role
-router.use(protect);
-router.use(authorize("admin"));
+const Patient = require("../models/Patient");
+const Doctor = require("../models/Doctor");
+const Appointment = require("../models/Appointment");
 
-// Dashboard
-router.get("/dashboard/stats", getDashboardStats);
-router.get("/analytics", getSystemAnalytics);
+// -----------------------------
+// GET Dashboard Stats
+// -----------------------------
+router.get("/dashboard/stats", async (req, res) => {
+  try {
+    const totalPatients = await Patient.countDocuments();
+    const totalDoctors = await Doctor.countDocuments();
+    const totalAppointments = await Appointment.countDocuments();
 
-// Patient Management
-router.get("/patients", getAllPatients);
+    // Today's appointments
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-// Doctor Management
-router.get("/doctors", getAllDoctors);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
 
-// Appointment Management
-router.get("/appointments", getAllAppointments);
+    const todayAppointments = await Appointment.countDocuments({
+      date: { $gte: today, $lt: tomorrow },
+    });
 
-// User Management
-router.put("/users/:id/status", manageUser);
+    // Recent appointments (last 5)
+    const recentAppointments = await Appointment.find()
+      .populate("patient")
+      .populate("doctor")
+      .sort({ createdAt: -1 })
+      .limit(5);
 
-// Notifications
-router.post("/notifications/send", sendNotification);
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalPatients,
+        totalDoctors,
+        totalAppointments,
+        todayAppointments,
+      },
+      recentAppointments,
+    });
+  } catch (error) {
+    console.error("Dashboard error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch dashboard stats",
+    });
+  }
+});
 
-// System Management
-router.get("/activity-logs", getActivityLogs);
-router.post("/backup", backupDatabase);
-router.get("/settings", getSystemSettings);
-router.put("/settings", updateSystemSettings);
+// -----------------------------
+// GET All Appointments
+// -----------------------------
+router.get("/appointments", async (req, res) => {
+  try {
+    const appointments = await Appointment.find()
+      .populate("patient", "firstName lastName patientId")
+      .populate("doctor", "firstName lastName specialization")
+      .sort({ date: -1 }); // newest first
+
+    res.status(200).json({
+      success: true,
+      appointments,
+    });
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch appointments",
+    });
+  }
+});
 
 module.exports = router;
