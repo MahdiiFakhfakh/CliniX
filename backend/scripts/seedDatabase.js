@@ -56,7 +56,7 @@ const seedDatabase = async () => {
     const adminUser = await User.create({
       name: "Admin User",
       email: adminEmail,
-      password: hashedAdminPassword,
+      password: adminPassword,
       role: "admin",
       isActive: true,
       lastLogin: new Date(),
