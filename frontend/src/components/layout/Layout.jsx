@@ -16,7 +16,9 @@ const Layout = () => {
       <div className="flex">
         <Sidebar isOpen={isSidebarOpen} />
         <main
-          className={`flex-1 p-4 lg:p-6 transition-all duration-300 ${!isSidebarOpen ? "lg:ml-0" : ""}`}
+          className={`flex-1 p-4 lg:p-6 transition-all duration-300 ${
+            !isSidebarOpen ? "lg:ml-0" : ""
+          }`}
         >
           <div className="max-w-7xl mx-auto">
             <Outlet />

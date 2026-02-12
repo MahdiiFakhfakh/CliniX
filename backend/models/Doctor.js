@@ -99,6 +99,19 @@ const doctorSchema = new mongoose.Schema({
       default: 0,
     },
   },
+  patients: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Patient",
+    },
+  ],
+
+  appointments: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Appointment",
+    },
+  ],
   status: {
     type: String,
     enum: ["available", "on_leave", "unavailable"],

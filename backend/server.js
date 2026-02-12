@@ -19,12 +19,6 @@ app.use(morgan("dev"));
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/doctors", require("./routes/doctorRoutes"));
-app.use("/api/patients", require("./routes/patientRoutes"));
-app.use("/api/appointments", require("./routes/appointmentRoutes"));
-app.use("/api/prescriptions", require("./routes/prescriptionRoutes"));
-app.use("/api/settings", require("./routes/settingsRoutes"));
-app.use("/api/admin/analytics", require("./routes/adminAnalyticsRoutes"));
 
 // Start server
 const PORT = process.env.PORT || 5000;

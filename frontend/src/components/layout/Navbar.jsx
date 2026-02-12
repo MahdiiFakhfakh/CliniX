@@ -1,17 +1,30 @@
 import React, { useState, useEffect } from "react";
-import { HiBell, HiSearch, HiLogout, HiMenu, HiX } from "react-icons/hi";
+import {
+  HiBell,
+  HiLogout,
+  HiMenu,
+  HiX,
+  HiUser,
+  HiChevronDown,
+} from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Fetch user from localStorage on mount
+  // Load user from localStorage
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (storedUser) setUser(storedUser);
+    const loadUser = () => {
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      setUser(storedUser);
+    };
+
+    loadUser();
+    window.addEventListener("storage", loadUser);
+    return () => window.removeEventListener("storage", loadUser);
   }, []);
 
   const handleLogout = () => {
@@ -21,94 +34,122 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
     navigate("/login");
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      toast.success(`Searching for: ${searchQuery}`);
-      // TODO: Implement search API call
-    }
+  const handleProfileClick = () => {
+    navigate("/dashboard/settings");
+    setShowProfileMenu(false);
   };
 
+  if (!user) return null;
+
+  const displayName =
+    user.fullName || user.firstName
+      ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+      : user.email || "Admin";
+
+  const initials = (
+    user.firstName?.charAt(0) ||
+    user.email?.charAt(0) ||
+    "A"
+  ).toUpperCase();
+
   return (
-    <nav className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm sticky top-0 z-10">
+    <nav className="bg-white border-b border-gray-200 px-4 py-2.5 shadow-sm sticky top-0 z-20">
       <div className="flex items-center justify-between">
-        {/* Left side - Menu toggle and Search */}
-        <div className="flex items-center flex-1">
+        {/* Left: Menu Toggle (Mobile) */}
+        <div className="flex items-center">
           <button
             onClick={onMenuToggle}
-            className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 mr-3"
+            className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 mr-3 transition-colors"
+            aria-label="Toggle menu"
           >
             {isSidebarOpen ? (
-              <HiX className="w-6 h-6" />
+              <HiX className="w-5 h-5" />
             ) : (
-              <HiMenu className="w-6 h-6" />
+              <HiMenu className="w-5 h-5" />
             )}
           </button>
-
-          <div className="flex-1 max-w-xl">
-            <form onSubmit={handleSearch} className="relative">
-              <HiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search patients, doctors, appointments..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </form>
-          </div>
         </div>
 
-        {/* Right side - Icons & User */}
-        <div className="flex items-center space-x-3 ml-4">
+        {/* Center: Logo or Title (optional) */}
+        <div className="flex-1 flex justify-center lg:justify-start">
+          <span className="text-lg font-semibold text-gray-800 lg:hidden">
+            CliniX
+          </span>
+        </div>
+
+        {/* Right: Notifications + Profile + Logout */}
+        <div className="flex items-center space-x-2">
+          {/* Notifications */}
           <button
             onClick={() => toast.success("No new notifications")}
             className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Notifications"
           >
-            <HiBell className="w-6 h-6" />
+            <HiBell className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
 
-          {user && (
-            <div className="relative group">
-              <button className="flex items-center space-x-3 p-1 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="text-right hidden md:block">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user.profile?.fullName || user.email}
-                  </p>
-                  <p className="text-xs text-gray-500 capitalize">
-                    {user.role}
-                  </p>
-                </div>
-                <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <span className="font-semibold text-white text-sm">
-                    {user.email?.charAt(0)?.toUpperCase() || "U"}
-                  </span>
-                </div>
-              </button>
+          {/* Profile dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-medium">
+                {initials}
+              </div>
+              <div className="hidden md:block text-left">
+                <p className="text-sm font-medium text-gray-900">
+                  {displayName}
+                </p>
+                <p className="text-xs text-gray-500 capitalize">
+                  {user.role || "Admin"}
+                </p>
+              </div>
+              <HiChevronDown className="w-4 h-4 text-gray-500 hidden md:block" />
+            </button>
 
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-                <div className="p-4 border-b border-gray-100">
-                  <p className="font-medium text-gray-900">
-                    {user.profile?.fullName || user.email}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">{user.email}</p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Role: {user.role}
-                  </p>
-                </div>
-                <div className="p-2">
+            {/* Dropdown menu */}
+            {showProfileMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setShowProfileMenu(false)}
+                ></div>
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-40">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">
+                      {displayName}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={handleProfileClick}
+                    className="w-full flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <HiUser className="w-4 h-4 mr-3 text-gray-500" />
+                    Profile & Settings
+                  </button>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    className="w-full flex items-center px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <HiLogout className="w-4 h-4 mr-2" />
+                    <HiLogout className="w-4 h-4 mr-3" />
                     Logout
                   </button>
                 </div>
-              </div>
-            </div>
-          )}
+              </>
+            )}
+          </div>
+
+          {/* Logout button (visible on small screens) */}
+          <button
+            onClick={handleLogout}
+            className="md:hidden p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            aria-label="Logout"
+          >
+            <HiLogout className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </nav>
