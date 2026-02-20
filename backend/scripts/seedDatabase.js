@@ -85,7 +85,7 @@ const seedDatabase = async () => {
       firstName: "Admin",
       lastName: "User",
       fullName: "Admin User",
-      phone: generatePhoneNumber(), // ✅ Fixed: digits only
+      phone: generatePhoneNumber(),
       department: "management",
     });
 
@@ -336,7 +336,7 @@ const seedDatabase = async () => {
         experience: spec.exp,
         hospital: hospitals[Math.floor(Math.random() * hospitals.length)],
         department: spec.dept,
-        phone: generatePhoneNumber(), // ✅ Fixed: digits only
+        phone: generatePhoneNumber(),
         email,
         consultationFee: spec.fee + Math.floor(Math.random() * 50),
         availability,
@@ -499,14 +499,14 @@ const seedDatabase = async () => {
           country: "USA",
           zipCode: `${Math.floor(Math.random() * 90000 + 10000)}`,
         },
-        phone: generatePhoneNumber(), // ✅ Fixed: digits only (e.g., 1234567890)
+        phone: generatePhoneNumber(),
         email,
         emergencyContact: {
           name: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
           relationship: ["Spouse", "Parent", "Child", "Sibling", "Friend"][
             Math.floor(Math.random() * 5)
           ],
-          phone: generatePhoneNumber(), // ✅ Fixed: digits only
+          phone: generatePhoneNumber(),
         },
         height: Math.floor(Math.random() * 50 + 150),
         weight: Math.floor(Math.random() * 50 + 60),
@@ -520,8 +520,8 @@ const seedDatabase = async () => {
         chronicConditions: randomConditions.map((name) => ({
           name,
           diagnosedDate: randomDate(
-            new Date(2015, 0, 1),
-            new Date(2023, 11, 31),
+            new Date(2020, 0, 1), // Updated from 2015 to 2020
+            new Date(2025, 11, 31), // Updated from 2023 to 2025
           ),
           status: ["active", "in remission", "resolved"][
             Math.floor(Math.random() * 3)
@@ -538,11 +538,11 @@ const seedDatabase = async () => {
             "Kaiser",
           ][Math.floor(Math.random() * 6)],
           policyNumber: `POL${Math.floor(Math.random() * 90000000 + 10000000)}`,
-          expiryDate: new Date(2025, 11, 31),
+          expiryDate: new Date(2027, 11, 31), // Updated from 2025 to 2027
         },
         primaryDoctor: primaryDoctor._id,
-        lastVisit: randomDate(new Date(2024, 0, 1), new Date()),
-        nextAppointment: randomDate(new Date(), new Date(2024, 5, 30)),
+        lastVisit: randomDate(new Date(2026, 0, 1), new Date()), // Updated from 2024 to 2026
+        nextAppointment: randomDate(new Date(), new Date(2026, 5, 30)), // Updated from 2024 to 2026
         status: Math.random() > 0.1 ? "active" : "inactive",
         notes:
           Math.random() > 0.7 ? "Patient requires follow-up in 3 months" : "",
@@ -606,9 +606,9 @@ const seedDatabase = async () => {
 
     const appointments = [];
 
-    // Generate appointments from Jan 2024 to Jun 2024
-    const startDate = new Date(2024, 0, 1);
-    const endDate = new Date(2024, 5, 30);
+    // Generate appointments from Jan 2026 to Jun 2026
+    const startDate = new Date(2026, 0, 1); // Updated from 2024 to 2026
+    const endDate = new Date(2026, 5, 30); // Updated from 2024 to 2026
 
     for (let i = 0; i < 175; i++) {
       const patient = patients[Math.floor(Math.random() * patients.length)];
