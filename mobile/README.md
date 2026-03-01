@@ -1,6 +1,8 @@
 # CliniX Mobile
 
-Expo Router + TypeScript mobile app for Patients, Doctors, and Nurses, with role-based navigation, offline-friendly data, messaging, and Clinix AI chat.
+Expo Router + JavaScript mobile app for Patients, Doctors, and Nurses, with role-based navigation, offline-friendly data, messaging, and Clinix AI chat.
+
+This project is configured for native platforms only (`ios`, `android`).
 
 ## Deliverables Included
 
@@ -14,7 +16,7 @@ Expo Router + TypeScript mobile app for Patients, Doctors, and Nurses, with role
 
 ## Tech Stack
 
-- React Native (Expo) + TypeScript (`strict: true`)
+- React Native (Expo) + JavaScript
 - Expo Router
 - TanStack React Query + persisted cache
 - Zustand (auth/preferences/toasts)
@@ -48,12 +50,6 @@ copy .env.example .env
 
 ```bash
 npm run start
-```
-
-4. Type check:
-
-```bash
-npm run typecheck
 ```
 
 ## Environment Variables
@@ -106,8 +102,7 @@ Additional internal folders used for scale:
 
 ## Quality Rules Applied
 
-- Strict TypeScript enabled
-- No `any` used in app source
+- Consistent project conventions across app source
 - Reusable shared components
 - Consistent medical UI theme
 - Scalable feature-first architecture with role-specific routing
