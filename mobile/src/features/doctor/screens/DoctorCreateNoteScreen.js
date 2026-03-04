@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod';
 import { colors, radius, spacing, typography } from '@/src/core/theme/tokens';
-import { useDraftClinicalTextMutation } from '@/src/features/ai/hooks/useDraftClinicalTextMutation';
 import { useCreateConsultationNoteMutation } from '@/src/features/doctor/hooks/useCreateConsultationNoteMutation';
 import { Card } from '@/src/shared/components/Card';
 import { FormTextField } from '@/src/shared/components/FormTextField';

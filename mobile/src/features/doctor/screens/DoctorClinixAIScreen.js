@@ -1,5 +1,12 @@
 import React from 'react';
-import { ClinixAIChatScreen } from '@/src/features/ai/screens/ClinixAIChatScreen';
+import ClinixAIChatScreen from '../../ai/screens/ChatbotScreen.js';
+
 export function DoctorClinixAIScreen() {
-    return (<ClinixAIChatScreen role="doctor" title="CliniX AI Assistant" subtitle="Draft note and prescription text faster, then verify before finalizing."/>);
+  return (
+    <ClinixAIChatScreen
+      role="doctor"
+      title="CliniX AI Assistant"
+      subtitle="Draft note and prescription text faster, then verify before finalizing."
+    />
+  );
 }

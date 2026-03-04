@@ -20,6 +20,7 @@ import Prescriptions from "./pages/Prescriptions"; // Add this import
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 
+
 // Create a client
 const queryClient = new QueryClient();
 
