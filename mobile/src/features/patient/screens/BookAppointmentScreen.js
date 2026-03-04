@@ -1,234 +1,461 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { z } from 'zod';
-import { colors, radius, spacing, typography } from '@/src/core/theme/tokens';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { fonts } from '@/src/core/theme/tokens';
 import { useBookAppointmentMutation } from '@/src/features/appointments/hooks/useBookAppointmentMutation';
-import { Card } from '@/src/shared/components/Card';
-import { FormTextField } from '@/src/shared/components/FormTextField';
-import { PrimaryButton } from '@/src/shared/components/PrimaryButton';
-import { Screen } from '@/src/shared/components/Screen';
-import { scheduleLocalNotification } from '@/src/services/notifications/notificationsService';
-import { usePreferencesStore } from '@/src/store/preferencesStore';
-const specialtyDoctors = {
-    Cardiology: ['Dr. Kareem Adel', 'Dr. Salma Farouk'],
-    Dermatology: ['Dr. Lina Maher', 'Dr. Omar Fahmy'],
-    Orthopedics: ['Dr. Tamer Hassan', 'Dr. Nouran Ali'],
-    Pediatrics: ['Dr. Rania Khaled', 'Dr. Youssef Said'],
+import AppIcon from '@/src/shared/components/AppIcon';
+
+const palette = {
+    background: '#F3F4F8',
+    surface: '#FFFFFF',
+    primary: '#1D4ED8',
+    primaryPressed: '#1E40AF',
+    text: '#111827',
+    muted: '#6B7280',
+    border: '#E5E7EB',
+    softChip: '#EDE9FE',
+    warning: '#EF4444',
+    ratingBg: '#FEF3C7',
 };
-const timeSlots = ['09:00 AM', '10:30 AM', '12:00 PM', '02:00 PM', '03:30 PM'];
-const bookingSchema = z.object({
-    specialty: z.string().min(2, 'Select a specialty'),
-    doctorName: z.string().min(3, 'Select a doctor'),
-    date: z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
-        message: 'Use ISO date format',
-    }),
-    time: z.string().min(3, 'Select a time slot'),
-    reason: z.string().min(5, 'Please add a short reason'),
-});
+
+const FILTER_OPTIONS = ['All Doctors', 'Available Today', 'Cardiology', 'Dermatology', 'Pediatrics', 'Neurology'];
+
+const DOCTOR_LIST = [
+    {
+        id: 'doc-sarah',
+        name: 'Dr. Sarah Jenkins',
+        specialty: 'Cardiologist',
+        years: 12,
+        reviews: 120,
+        rating: 4.9,
+        available: true,
+        tone: '#6DB7B8',
+    },
+    {
+        id: 'doc-marcus',
+        name: 'Dr. Marcus Chen',
+        specialty: 'Dermatologist',
+        years: 8,
+        reviews: 85,
+        rating: 4.7,
+        available: true,
+        tone: '#7CA7BC',
+    },
+    {
+        id: 'doc-elena',
+        name: 'Dr. Elena Rodriguez',
+        specialty: 'Pediatrician',
+        years: 15,
+        reviews: 210,
+        rating: 4.8,
+        available: true,
+        tone: '#8EAFBF',
+    },
+    {
+        id: 'doc-james',
+        name: 'Dr. James Wilson',
+        specialty: 'Neurologist',
+        years: 9,
+        reviews: 64,
+        rating: 4.5,
+        available: false,
+        nextAvailable: 'Monday',
+        tone: '#95AFBA',
+    },
+];
+
+const toDepartment = (specialty) => {
+    if (specialty.includes('Cardio')) {
+        return 'Cardiology';
+    }
+    if (specialty.includes('Derm')) {
+        return 'Dermatology';
+    }
+    if (specialty.includes('Pedia')) {
+        return 'Pediatrics';
+    }
+    if (specialty.includes('Neuro')) {
+        return 'Neurology';
+    }
+    return 'General Medicine';
+};
+
 export function BookAppointmentScreen() {
     const router = useRouter();
-    const notificationsEnabled = usePreferencesStore((state) => state.notificationsEnabled);
-    const mutation = useBookAppointmentMutation();
-    const [step, setStep] = useState(1);
-    const { control, handleSubmit, setValue, watch, trigger } = useForm({
-        resolver: zodResolver(bookingSchema),
-        defaultValues: {
-            specialty: '',
-            doctorName: '',
-            date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-            time: '',
-            reason: 'Follow-up checkup',
-        },
-    });
-    const selectedSpecialty = watch('specialty');
-    const selectedDoctor = watch('doctorName');
-    const selectedDate = watch('date');
-    const selectedTime = watch('time');
-    const reason = watch('reason');
-    const doctors = useMemo(() => specialtyDoctors[selectedSpecialty] ?? [], [selectedSpecialty]);
-    const goNext = async () => {
-        if (step === 1) {
-            const valid = await trigger('specialty');
-            if (valid) {
-                setStep(2);
-            }
+    const bookMutation = useBookAppointmentMutation();
+
+    const [activeFilter, setActiveFilter] = useState('All Doctors');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredDoctors = useMemo(() => {
+        const search = searchQuery.trim().toLowerCase();
+        return DOCTOR_LIST.filter((doctor) => {
+            const byFilter =
+                activeFilter === 'All Doctors' ||
+                (activeFilter === 'Available Today' && doctor.available) ||
+                doctor.specialty.includes(activeFilter.replace('All Doctors', '').trim());
+            const bySearch =
+                !search ||
+                doctor.name.toLowerCase().includes(search) ||
+                doctor.specialty.toLowerCase().includes(search);
+            return byFilter && bySearch;
+        });
+    }, [activeFilter, searchQuery]);
+
+    const handleBook = async (doctor) => {
+        if (!doctor.available) {
             return;
         }
-        if (step === 2) {
-            const valid = await trigger('doctorName');
-            if (valid) {
-                setStep(3);
-            }
-            return;
-        }
-        if (step === 3) {
-            const valid = await trigger(['date', 'time', 'reason']);
-            if (valid) {
-                setStep(4);
-            }
-        }
-    };
-    const goBack = () => {
-        if (step > 1) {
-            setStep((prev) => (prev - 1));
-        }
-    };
-    const onConfirm = handleSubmit(async (values) => {
+
+        const bookingDate = new Date(Date.now() + 48 * 60 * 60 * 1000);
+        bookingDate.setHours(10, 30, 0, 0);
+
         try {
-            await mutation.mutateAsync({
-                department: values.specialty,
-                doctorName: values.doctorName,
-                date: values.date,
-                time: values.time,
-                reason: values.reason,
+            await bookMutation.mutateAsync({
+                department: toDepartment(doctor.specialty),
+                doctorName: doctor.name,
+                date: bookingDate.toISOString(),
+                time: '10:30 AM',
+                reason: 'Routine follow-up consultation',
             });
-            if (notificationsEnabled) {
-                await scheduleLocalNotification({
-                    title: 'Appointment Confirmed',
-                    body: `${values.specialty} with ${values.doctorName} at ${values.time}`,
-                    secondsFromNow: 8,
-                });
-            }
-            Alert.alert('Appointment booked', 'Your appointment has been confirmed.');
+            Alert.alert('Appointment booked', `You booked with ${doctor.name}.`);
             router.replace('/(app)/(patient)/appointments');
+        } catch {
+            Alert.alert('Booking failed', 'Please try again.');
         }
-        catch {
-            // Error toasts are shown globally by query mutation cache.
-        }
-    });
-    return (<Screen title="Book Appointment" subtitle="Step-by-step flow: specialty, doctor, date/time, then confirm.">
-      <Card>
-        <Text style={styles.stepLabel}>Step {step} of 4</Text>
+    };
 
-        {step === 1 ? (<View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Specialty</Text>
-            <Controller control={control} name="specialty" render={({ fieldState: { error } }) => (<>
-                  <View style={styles.optionGrid}>
-                    {Object.keys(specialtyDoctors).map((specialty) => {
-                    const active = specialty === selectedSpecialty;
-                    return (<Pressable key={specialty} onPress={() => {
-                            setValue('specialty', specialty, { shouldValidate: true });
-                            setValue('doctorName', '', { shouldValidate: false });
-                        }} style={[styles.optionChip, active && styles.optionChipActive]}>
-                          <Text style={[styles.optionText, active && styles.optionTextActive]}>{specialty}</Text>
-                        </Pressable>);
-                })}
-                  </View>
-                  {error?.message ? <Text style={styles.error}>{error.message}</Text> : null}
-                </>)}/>
-          </View>) : null}
+    return (
+        <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+            <View style={styles.container}>
+                <View style={styles.headerRow}>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back"
+                        onPress={() => router.back()}
+                        style={styles.backLink}
+                    >
+                        <AppIcon color={palette.primary} name="chevron-back" size={24} />
+                        <Text style={styles.backText}>Back</Text>
+                    </Pressable>
+                    <Text style={styles.headerTitle}>Choose Doctor</Text>
+                    <View style={styles.headerSpacer} />
+                </View>
 
-        {step === 2 ? (<View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Doctor</Text>
-            <Controller control={control} name="doctorName" render={({ fieldState: { error } }) => (<>
-                  <View style={styles.optionGrid}>
-                    {doctors.map((doctor) => {
-                    const active = doctor === selectedDoctor;
-                    return (<Pressable key={doctor} onPress={() => setValue('doctorName', doctor, { shouldValidate: true })} style={[styles.optionChip, active && styles.optionChipActive]}>
-                          <Text style={[styles.optionText, active && styles.optionTextActive]}>{doctor}</Text>
-                        </Pressable>);
-                })}
-                  </View>
-                  {error?.message ? <Text style={styles.error}>{error.message}</Text> : null}
-                </>)}/>
-          </View>) : null}
+                <View style={styles.searchRow}>
+                    <AppIcon color="#6B7280" name="search" size={26} />
+                    <TextInput
+                        accessibilityLabel="Search doctors"
+                        autoCapitalize="none"
+                        onChangeText={setSearchQuery}
+                        placeholder="Search by name or specialty"
+                        placeholderTextColor="#6B7280"
+                        style={styles.searchInput}
+                        value={searchQuery}
+                    />
+                </View>
 
-        {step === 3 ? (<View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Date & Time</Text>
-            <FormTextField control={control} name="date" label="Date" placeholder="2026-03-01T10:00:00.000Z"/>
+                <View style={styles.filterWrap}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                        {FILTER_OPTIONS.map((filter) => {
+                            const active = activeFilter === filter;
+                            return (
+                                <Pressable
+                                    key={filter}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Filter ${filter}`}
+                                    onPress={() => setActiveFilter(filter)}
+                                    style={[styles.filterChip, active && styles.filterChipActive]}
+                                >
+                                    <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                                        {filter}
+                                    </Text>
+                                </Pressable>
+                            );
+                        })}
+                    </ScrollView>
+                </View>
 
-            <Controller control={control} name="time" render={({ fieldState: { error } }) => (<>
-                  <Text style={styles.inputLabel}>Time Slot</Text>
-                  <View style={styles.optionGrid}>
-                    {timeSlots.map((slot) => {
-                    const active = slot === selectedTime;
-                    return (<Pressable key={slot} onPress={() => setValue('time', slot, { shouldValidate: true })} style={[styles.optionChip, active && styles.optionChipActive]}>
-                          <Text style={[styles.optionText, active && styles.optionTextActive]}>{slot}</Text>
-                        </Pressable>);
-                })}
-                  </View>
-                  {error?.message ? <Text style={styles.error}>{error.message}</Text> : null}
-                </>)}/>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <Text style={styles.foundText}>Found {filteredDoctors.length} Doctors</Text>
 
-            <FormTextField control={control} name="reason" label="Reason" placeholder="Why are you visiting?"/>
-          </View>) : null}
+                    {filteredDoctors.map((doctor) => (
+                        <View key={doctor.id} style={styles.card}>
+                            <View style={styles.cardTopRow}>
+                                <View style={[styles.avatar, { backgroundColor: doctor.tone }]}>
+                                    <AppIcon color="#FFFFFF" name="person" size={32} />
+                                </View>
 
-        {step === 4 ? (<View style={styles.section}>
-            <Text style={styles.sectionTitle}>Confirm Appointment</Text>
-            <Text style={styles.summaryLine}>Specialty: {selectedSpecialty}</Text>
-            <Text style={styles.summaryLine}>Doctor: {selectedDoctor}</Text>
-            <Text style={styles.summaryLine}>Date: {new Date(selectedDate).toDateString()}</Text>
-            <Text style={styles.summaryLine}>Time: {selectedTime}</Text>
-            <Text style={styles.summaryLine}>Reason: {reason}</Text>
-          </View>) : null}
-      </Card>
+                                <View style={styles.cardTextWrap}>
+                                    <Text style={styles.doctorName}>{doctor.name}</Text>
+                                    <Text style={styles.specialtyText}>{doctor.specialty}</Text>
+                                    <Text style={styles.metaText}>
+                                        {doctor.years} years experience • {doctor.reviews} reviews
+                                    </Text>
+                                    {!doctor.available ? (
+                                        <Text style={styles.unavailableText}>
+                                            Next available: {doctor.nextAvailable}
+                                        </Text>
+                                    ) : null}
+                                </View>
 
-      <View style={styles.actionsRow}>
-        {step > 1 ? <PrimaryButton label="Back" onPress={goBack}/> : null}
-        {step < 4 ? (<PrimaryButton label="Next" onPress={goNext}/>) : (<PrimaryButton label={mutation.isPending ? 'Confirming...' : 'Confirm Appointment'} loading={mutation.isPending} onPress={onConfirm}/>)}
-      </View>
-    </Screen>);
+                                <View style={styles.ratingChip}>
+                                    <AppIcon color="#EAB308" name="star" size={16} />
+                                    <Text style={styles.ratingText}>{doctor.rating}</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.buttonRow}>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`View ${doctor.name} profile`}
+                                    onPress={() => {}}
+                                    style={styles.secondaryButton}
+                                >
+                                    <Text style={styles.secondaryButtonText}>View Profile</Text>
+                                </Pressable>
+
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Book with ${doctor.name}`}
+                                    onPress={() => handleBook(doctor)}
+                                    disabled={!doctor.available || bookMutation.isPending}
+                                    style={({ pressed }) => [
+                                        styles.primaryButton,
+                                        (!doctor.available || bookMutation.isPending) && styles.primaryButtonDisabled,
+                                        pressed &&
+                                            doctor.available &&
+                                            !bookMutation.isPending && { backgroundColor: palette.primaryPressed },
+                                    ]}
+                                >
+                                    <Text style={styles.primaryButtonText}>Book Appointment</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    ))}
+                </ScrollView>
+            </View>
+        </SafeAreaView>
+    );
 }
+
 const styles = StyleSheet.create({
-    stepLabel: {
-        color: colors.primary,
-        fontSize: typography.caption,
-        fontWeight: '700',
-        marginBottom: spacing.sm,
+    safeArea: {
+        flex: 1,
+        backgroundColor: palette.background,
     },
-    section: {
-        gap: spacing.sm,
+    container: {
+        flex: 1,
+        backgroundColor: palette.background,
     },
-    sectionTitle: {
-        color: colors.text,
-        fontSize: typography.heading,
-        fontWeight: '700',
-    },
-    optionGrid: {
-        gap: spacing.sm,
-    },
-    optionChip: {
+    headerRow: {
+        height: 76,
+        paddingHorizontal: 16,
+        flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.primarySoft,
-        borderColor: colors.border,
-        borderRadius: radius.sm,
-        borderWidth: 1,
-        minHeight: 46,
-        justifyContent: 'center',
-        paddingHorizontal: spacing.sm,
+        justifyContent: 'space-between',
     },
-    optionChipActive: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
+    backLink: {
+        width: 94,
+        height: 44,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    optionText: {
-        color: colors.primary,
-        fontSize: typography.body,
+    backText: {
+        color: palette.primary,
+        fontSize: 18,
+        lineHeight: 22,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    headerTitle: {
+        color: palette.text,
+        fontSize: 22,
+        lineHeight: 28,
+        fontFamily: fonts.bodyBold,
         fontWeight: '700',
-        textAlign: 'center',
     },
-    optionTextActive: {
-        color: colors.surface,
+    headerSpacer: {
+        width: 94,
+        height: 44,
     },
-    inputLabel: {
-        color: colors.text,
-        fontSize: typography.body,
+    searchRow: {
+        marginHorizontal: 24,
+        height: 70,
+        borderRadius: 16,
+        backgroundColor: '#E5E7EB',
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: 10,
+        color: palette.text,
+        fontSize: 18,
+        lineHeight: 22,
+        fontFamily: fonts.bodyRegular,
+    },
+    filterWrap: {
+        marginTop: 16,
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderTopColor: palette.border,
+        borderBottomColor: palette.border,
+        paddingVertical: 10,
+    },
+    filterRow: {
+        paddingHorizontal: 24,
+        gap: 12,
+    },
+    filterChip: {
+        height: 54,
+        borderRadius: 26,
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 26,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    filterChipActive: {
+        backgroundColor: palette.primary,
+        borderColor: palette.primary,
+    },
+    filterChipText: {
+        color: palette.text,
+        fontSize: 16,
+        lineHeight: 20,
+        fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
-    summaryLine: {
-        color: colors.text,
-        fontSize: typography.body,
+    filterChipTextActive: {
+        color: '#FFFFFF',
+    },
+    scrollContent: {
+        paddingHorizontal: 24,
+        paddingTop: 10,
+        paddingBottom: 90,
+        gap: 12,
+    },
+    foundText: {
+        color: palette.muted,
+        fontSize: 18,
         lineHeight: 24,
+        fontFamily: fonts.bodyMedium,
     },
-    error: {
-        color: colors.danger,
-        fontSize: typography.caption,
+    card: {
+        marginTop: 8,
+        backgroundColor: palette.surface,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: palette.border,
+        padding: 14,
+    },
+    cardTopRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    avatar: {
+        width: 88,
+        height: 88,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    cardTextWrap: {
+        flex: 1,
+    },
+    doctorName: {
+        color: palette.text,
+        fontSize: 22,
+        lineHeight: 28,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    specialtyText: {
+        marginTop: 2,
+        color: palette.primary,
+        fontSize: 17,
+        lineHeight: 22,
+        fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
-    actionsRow: {
-        gap: spacing.sm,
+    metaText: {
+        marginTop: 4,
+        color: palette.muted,
+        fontSize: 14,
+        lineHeight: 18,
+        fontFamily: fonts.bodyRegular,
+    },
+    unavailableText: {
+        marginTop: 2,
+        color: palette.warning,
+        fontSize: 14,
+        lineHeight: 18,
+        fontFamily: fonts.bodyMedium,
+    },
+    ratingChip: {
+        backgroundColor: palette.ratingBg,
+        borderRadius: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    ratingText: {
+        color: palette.text,
+        fontSize: 16,
+        lineHeight: 20,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    buttonRow: {
+        marginTop: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    secondaryButton: {
+        flex: 1,
+        height: 52,
+        borderRadius: 12,
+        backgroundColor: palette.softChip,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    secondaryButtonText: {
+        color: palette.primary,
+        fontSize: 17,
+        lineHeight: 22,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    primaryButton: {
+        flex: 1,
+        height: 52,
+        borderRadius: 12,
+        backgroundColor: palette.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#1D4ED8',
+        shadowOpacity: 0.24,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 4,
+    },
+    primaryButtonDisabled: {
+        backgroundColor: '#6366F1',
+        opacity: 0.55,
+    },
+    primaryButtonText: {
+        color: '#FFFFFF',
+        fontSize: 17,
+        lineHeight: 22,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
     },
 });

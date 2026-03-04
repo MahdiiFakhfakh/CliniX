@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, radius, spacing, textStyles, typography } from '@/src/core/theme/tokens';
 export function LoadingView({ label = 'Loading...', skeletonRows = 3, showSpinner = true, }) {
     const pulse = useRef(new Animated.Value(0.45)).current;
     useEffect(() => {
@@ -50,6 +50,8 @@ const styles = StyleSheet.create({
     label: {
         color: colors.textMuted,
         fontSize: typography.body,
+        fontFamily: textStyles.body.fontFamily,
+        lineHeight: textStyles.body.lineHeight,
         marginTop: spacing.sm,
     },
     skeletonWrap: {

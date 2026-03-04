@@ -169,7 +169,7 @@ export function ClinixAIChatScreen({ role, title, subtitle }) {
               <Text style={styles.toggleTitle}>Use patient context</Text>
               <Text style={styles.toggleHint}>Include patient summary/context to improve draft relevance.</Text>
             </View>
-            <Switch accessibilityLabel="Use patient context" value={usePatientContext} onValueChange={setUsePatientContext} thumbColor={usePatientContext ? colors.primary : '#B5C8E3'} trackColor={{ false: '#D9E5F6', true: '#C6D9FF' }}/>
+            <Switch accessibilityLabel="Use patient context" value={usePatientContext} onValueChange={setUsePatientContext} thumbColor={usePatientContext ? colors.primary : colors.disabled} trackColor={{ false: colors.border, true: colors.primarySoft }}/>
           </View>
 
           {usePatientContext ? (<Controller control={control} name="patientContext" render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (<View style={styles.inputField}>
@@ -235,9 +235,9 @@ const styles = StyleSheet.create({
         lineHeight: 22,
     },
     cautionTag: {
-        backgroundColor: '#FFF5DD',
+        backgroundColor: colors.warningSoft,
         borderRadius: radius.sm,
-        color: '#8A6100',
+        color: colors.warningText,
         fontSize: typography.caption,
         fontWeight: '600',
         marginTop: spacing.sm,
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     },
     userBubble: {
         alignSelf: 'flex-end',
-        backgroundColor: '#E8F0FF',
+        backgroundColor: colors.primarySoft,
     },
     aiBubble: {
         alignSelf: 'flex-start',

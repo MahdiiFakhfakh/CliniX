@@ -55,15 +55,15 @@ export function ProfileScreen({ subtitle }) {
             <FormTextField control={control} name="phone" label="Phone" placeholder="Phone number"/>
             <FormTextField control={control} name="department" label="Department" placeholder="Department"/>
             <PrimaryButton label={isSubmitting ? 'Saving...' : 'Save Profile'} loading={isSubmitting} onPress={onSave}/>
-            <PrimaryButton label="Cancel" onPress={() => {
+            <PrimaryButton label="Cancel" variant="outline" onPress={() => {
                 reset(defaults);
                 setIsEditing(false);
             }}/>
           </View>
         </Card>) : (<View style={styles.actions}>
           <PrimaryButton label="Edit Profile" onPress={() => setIsEditing(true)}/>
-          <PrimaryButton label="Open Settings" onPress={() => router.push('/(app)/settings')}/>
-          <PrimaryButton label="View Notifications" onPress={() => router.push('/(app)/notifications')}/>
+          <PrimaryButton label="Open Settings" variant="secondary" onPress={() => router.push('/(app)/settings')}/>
+          <PrimaryButton label="View Notifications" variant="outline" onPress={() => router.push('/(app)/notifications')}/>
         </View>)}
 
       <View style={styles.helpBox}>
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
         gap: spacing.sm,
     },
     helpBox: {
-        backgroundColor: '#EFF5FF',
+        backgroundColor: colors.infoSoft,
         borderColor: colors.border,
         borderRadius: radius.md,
         borderWidth: 1,

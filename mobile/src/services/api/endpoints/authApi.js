@@ -29,20 +29,23 @@ const mapBackendSession = (response, fallbackRole) => {
     };
 };
 export async function login(payload) {
+    const requestData = {
+        email: payload.email,
+        password: payload.password,
+    };
+    if (payload.role) {
+        requestData.role = payload.role;
+    }
     try {
         const backendResponse = await apiRequest({
             method: 'POST',
             url: '/auth/login',
-            data: {
-                email: payload.email,
-                password: payload.password,
-                role: payload.role,
-            },
+            data: requestData,
         });
         if (!backendResponse.success || !backendResponse.token) {
             throw new ApiClientError('Invalid login response from API');
         }
-        return mapBackendSession(backendResponse, payload.role);
+        return mapBackendSession(backendResponse, payload.role ?? 'patient');
     }
     catch (error) {
         if (!config.enableMockFallback) {

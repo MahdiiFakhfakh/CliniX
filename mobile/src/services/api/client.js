@@ -32,10 +32,13 @@ apiClient.interceptors.request.use((requestConfig) => {
 });
 apiClient.interceptors.response.use((response) => response, (error) => {
     const statusCode = error.response?.status;
-    const message = error.response?.data?.message ??
+    const fallbackMessage = error.response?.data?.message ??
         error.response?.data?.error ??
         error.message ??
         'Unexpected network error';
+    const message = statusCode
+        ? fallbackMessage
+        : `Network error. Unable to reach API at ${config.apiBaseUrl}`;
     if (statusCode === 401 && onUnauthorized) {
         onUnauthorized();
     }

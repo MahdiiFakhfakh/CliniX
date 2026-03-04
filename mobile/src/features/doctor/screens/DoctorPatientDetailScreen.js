@@ -1,213 +1,460 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, typography } from '@/src/core/theme/tokens';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { fonts } from '@/src/core/theme/tokens';
 import { useDoctorPatientDetailQuery } from '@/src/features/doctor/hooks/useDoctorPatientDetailQuery';
-import { Card } from '@/src/shared/components/Card';
-import { EmptyState } from '@/src/shared/components/EmptyState';
 import { LoadingView } from '@/src/shared/components/LoadingView';
-import { PrimaryButton } from '@/src/shared/components/PrimaryButton';
-import { Screen } from '@/src/shared/components/Screen';
+import AppIcon from '@/src/shared/components/AppIcon';
+
+const palette = {
+    background: '#F3F4F8',
+    surface: '#FFFFFF',
+    primary: '#1D4ED8',
+    text: '#111827',
+    muted: '#6B7280',
+    border: '#E5E7EB',
+    segmentBg: '#E5E7EB',
+    danger: '#DC2626',
+};
+
 const tabs = ['History', 'Notes', 'Prescriptions', 'Results', 'Vitals'];
+
+const formatDate = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return 'N/A';
+    }
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    }).format(date);
+};
+
 export function DoctorPatientDetailScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const patientId = params.patientId ?? '';
+    const patientId = typeof params.patientId === 'string' ? params.patientId : '';
     const detailQuery = useDoctorPatientDetailQuery(patientId);
     const [activeTab, setActiveTab] = useState('History');
-    const handleRefresh = () => {
-        void detailQuery.refetch();
-    };
+
     if (!patientId) {
-        return (<Screen title="Patient Details" subtitle="Missing patient id.">
-        <EmptyState title="Invalid route" subtitle="Open this screen from patient list."/>
-      </Screen>);
+        return (
+            <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+                <View style={styles.centered}>
+                    <Text style={styles.centerTitle}>Invalid route</Text>
+                    <Text style={styles.centerText}>Open this screen from the patient list.</Text>
+                </View>
+            </SafeAreaView>
+        );
     }
+
     if (detailQuery.isLoading) {
-        return (<Screen title="Patient Details" subtitle="Loading patient details..." scroll={false}>
-        <LoadingView />
-      </Screen>);
+        return (
+            <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+                <LoadingView label="Loading patient profile..." />
+            </SafeAreaView>
+        );
     }
-    if (!detailQuery.data) {
-        return (<Screen title="Patient Details" subtitle="Unable to load patient details." refreshing={detailQuery.isRefetching} onRefresh={handleRefresh}>
-        <EmptyState title="No data" subtitle="Please try again."/>
-      </Screen>);
-    }
+
     const detail = detailQuery.data;
-    const tabContent = useMemo(() => {
+
+    if (!detail) {
+        return (
+            <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+                <View style={styles.centered}>
+                    <Text style={styles.centerTitle}>Patient not found</Text>
+                    <Text style={styles.centerText}>Please refresh and try again.</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    const content = useMemo(() => {
         if (activeTab === 'History') {
-            return (<View style={styles.itemsList}>
-          {detail.history.length === 0 ? (<Text style={styles.emptyText}>No history entries.</Text>) : (detail.history.map((entry) => (<View key={entry} style={styles.itemBlock}>
-                <Text style={styles.line}>- {entry}</Text>
-              </View>)))}
-        </View>);
+            return (detail.history ?? []).map((entry, index) => ({
+                id: `history-${index}`,
+                title: `Clinical Note ${index + 1}`,
+                body: entry,
+                meta: '',
+            }));
         }
+
         if (activeTab === 'Notes') {
-            return (<View style={styles.itemsList}>
-          {detail.notes.length === 0 ? (<Text style={styles.emptyText}>No consultation notes.</Text>) : (detail.notes.map((note) => (<View key={note.id} style={styles.itemBlock}>
-                <Text style={styles.itemTitle}>SOAP Note - {new Date(note.createdAt).toLocaleDateString()}</Text>
-                <Text style={styles.line}>S: {note.subjective}</Text>
-                <Text style={styles.line}>O: {note.objective}</Text>
-                <Text style={styles.line}>A: {note.assessment}</Text>
-                <Text style={styles.line}>P: {note.plan}</Text>
-              </View>)))}
-        </View>);
+            return (detail.notes ?? []).map((note) => ({
+                id: note.id,
+                title: `SOAP ${formatDate(note.createdAt)}`,
+                body: `S: ${note.subjective}\nO: ${note.objective}\nA: ${note.assessment}\nP: ${note.plan}`,
+                meta: '',
+            }));
         }
+
         if (activeTab === 'Prescriptions') {
-            return (<View style={styles.itemsList}>
-          {detail.prescriptions.length === 0 ? (<Text style={styles.emptyText}>No prescriptions found.</Text>) : (detail.prescriptions.map((item) => (<View key={item.id} style={styles.itemBlock}>
-                <Text style={styles.itemTitle}>{item.medication}</Text>
-                <Text style={styles.line}>{item.dosage} - {item.frequency} - {item.duration}</Text>
-                <Text style={styles.meta}>Status: {item.status.toUpperCase()}</Text>
-                <Text style={styles.meta}>Instructions: {item.instructions}</Text>
-              </View>)))}
-        </View>);
+            return (detail.prescriptions ?? []).map((item) => ({
+                id: item.id,
+                title: item.medication,
+                body: `${item.dosage}  |  ${item.frequency}  |  ${item.duration}`,
+                meta: `Status: ${item.status}`,
+            }));
         }
+
         if (activeTab === 'Results') {
-            return (<View style={styles.itemsList}>
-          {detail.results.length === 0 ? (<Text style={styles.emptyText}>No results found.</Text>) : (detail.results.map((result) => (<View key={result.id} style={styles.itemBlock}>
-                <Text style={styles.itemTitle}>{result.name}</Text>
-                <Text style={styles.meta}>{result.kind.toUpperCase()} - {result.status.toUpperCase()}</Text>
-                <Text style={styles.line}>{result.summary}</Text>
-              </View>)))}
-        </View>);
+            return (detail.results ?? []).map((result) => ({
+                id: result.id,
+                title: result.name,
+                body: result.summary,
+                meta: `${result.kind}  |  ${result.status}`,
+            }));
         }
-        return (<View style={styles.itemsList}>
-        {detail.vitals.length === 0 ? (<Text style={styles.emptyText}>No vitals records.</Text>) : (detail.vitals.map((vital) => (<View key={vital.id} style={styles.itemBlock}>
-              <Text style={styles.itemTitle}>{vital.label}</Text>
-              <Text style={styles.line}>{vital.value}</Text>
-              <Text style={styles.meta}>{new Date(vital.recordedAt).toLocaleString()}</Text>
-            </View>)))}
-      </View>);
+
+        return (detail.vitals ?? []).map((vital) => ({
+            id: vital.id,
+            title: vital.label,
+            body: vital.value,
+            meta: formatDate(vital.recordedAt),
+        }));
     }, [activeTab, detail.history, detail.notes, detail.prescriptions, detail.results, detail.vitals]);
-    return (<Screen title="Patient Details" subtitle="Summary header and clinical tabs." refreshing={detailQuery.isRefetching} onRefresh={handleRefresh}>
-      <Card>
-        <Text style={styles.summaryHeader}>Summary Header</Text>
-        <Text style={styles.patientName}>{detail.profile.fullName}</Text>
-        <Text style={styles.meta}>Patient ID: {detail.profile.patientId}</Text>
-        <Text style={styles.meta}>Age: {detail.profile.age} | Gender: {detail.profile.gender}</Text>
-        <Text style={styles.meta}>Phone: {detail.profile.phone}</Text>
-        <Text style={styles.meta}>Email: {detail.profile.email}</Text>
-      </Card>
 
-      <Card>
-        <Text style={styles.tabsTitle}>Record Tabs</Text>
-        <View style={styles.tabsWrap}>
-          {tabs.map((tab) => {
-            const active = activeTab === tab;
-            return (<Pressable key={tab} accessibilityRole="button" onPress={() => setActiveTab(tab)} style={[styles.tabChip, active && styles.tabChipActive]}>
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab}</Text>
-              </Pressable>);
-        })}
-        </View>
-      </Card>
+    return (
+        <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+            <View style={styles.container}>
+                <View style={styles.headerRow}>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Go back"
+                        onPress={() => router.back()}
+                        style={styles.backButton}
+                    >
+                        <AppIcon color={palette.text} name="chevron-back" size={24} />
+                    </Pressable>
+                    <Text style={styles.headerTitle}>Patient Details</Text>
+                    <View style={styles.headerSpacer} />
+                </View>
 
-      <Card>
-        <Text style={styles.sectionTitle}>{activeTab}</Text>
-        {tabContent}
-      </Card>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={<RefreshControl onRefresh={() => void detailQuery.refetch()} refreshing={detailQuery.isRefetching} />}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.profileCard}>
+                        <View style={styles.avatar}>
+                            <AppIcon color="#64748B" name="person" size={42} />
+                        </View>
+                        <Text style={styles.patientName}>{detail.profile.fullName}</Text>
+                        <Text style={styles.patientSub}>ID: {detail.profile.patientId}</Text>
+                        <Text style={styles.patientSub}>
+                            {detail.profile.age} yrs  |  {detail.profile.gender}
+                        </Text>
+                        <Text style={styles.patientSub}>{detail.profile.phone}</Text>
+                        <Text style={styles.patientSub}>{detail.profile.email}</Text>
+                    </View>
 
-      <View style={styles.actions}>
-        <PrimaryButton label="Create Note (SOAP)" onPress={() => router.push({
-            pathname: '/(app)/(doctor)/patient/[patientId]/note',
-            params: { patientId },
-        })}/>
-        <PrimaryButton label="Create Prescription" onPress={() => router.push({
-            pathname: '/(app)/(doctor)/patient/[patientId]/prescription',
-            params: { patientId },
-        })}/>
-        <PrimaryButton label="Create Lab/Imaging Order" onPress={() => router.push({
-            pathname: '/(app)/(doctor)/patient/[patientId]/lab-request',
-            params: { patientId },
-        })}/>
-      </View>
-    </Screen>);
+                    <View style={styles.segmentedControl}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.segmentedInner}>
+                            {tabs.map((tab) => {
+                                const active = tab === activeTab;
+                                return (
+                                    <Pressable
+                                        key={tab}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Show ${tab}`}
+                                        onPress={() => setActiveTab(tab)}
+                                        style={[styles.segmentButton, active && styles.segmentButtonActive]}
+                                    >
+                                        <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{tab}</Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
+
+                    <View style={styles.contentCard}>
+                        <Text style={styles.sectionTitle}>{activeTab}</Text>
+                        {content.length === 0 ? (
+                            <Text style={styles.emptyText}>No records in this section.</Text>
+                        ) : (
+                            content.map((item) => (
+                                <View key={item.id} style={styles.itemCard}>
+                                    <Text style={styles.itemTitle}>{item.title}</Text>
+                                    <Text style={styles.itemBody}>{item.body}</Text>
+                                    {item.meta ? <Text style={styles.itemMeta}>{item.meta}</Text> : null}
+                                </View>
+                            ))
+                        )}
+                    </View>
+
+                    <View style={styles.actions}>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Create SOAP note"
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/(app)/(doctor)/patient/[patientId]/note',
+                                    params: { patientId },
+                                })
+                            }
+                            style={styles.primaryAction}
+                        >
+                            <Text style={styles.primaryActionText}>Create Note</Text>
+                        </Pressable>
+
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Create prescription"
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/(app)/(doctor)/patient/[patientId]/prescription',
+                                    params: { patientId },
+                                })
+                            }
+                            style={styles.secondaryAction}
+                        >
+                            <Text style={styles.secondaryActionText}>Create Prescription</Text>
+                        </Pressable>
+
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Create lab request"
+                            onPress={() =>
+                                router.push({
+                                    pathname: '/(app)/(doctor)/patient/[patientId]/lab-request',
+                                    params: { patientId },
+                                })
+                            }
+                            style={styles.dangerAction}
+                        >
+                            <Text style={styles.dangerActionText}>Create Lab Request</Text>
+                        </Pressable>
+                    </View>
+                </ScrollView>
+            </View>
+        </SafeAreaView>
+    );
 }
+
 const styles = StyleSheet.create({
-    summaryHeader: {
-        color: colors.primary,
-        fontSize: typography.caption,
+    safeArea: {
+        flex: 1,
+        backgroundColor: palette.background,
+    },
+    container: {
+        flex: 1,
+        backgroundColor: palette.background,
+    },
+    headerRow: {
+        height: 64,
+        borderBottomWidth: 1,
+        borderBottomColor: palette.border,
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerTitle: {
+        color: palette.text,
+        fontSize: 20,
+        lineHeight: 26,
+        fontFamily: fonts.bodyBold,
         fontWeight: '700',
-        marginBottom: spacing.xs,
+    },
+    headerSpacer: {
+        width: 44,
+    },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 110,
+    },
+    profileCard: {
+        backgroundColor: palette.surface,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: palette.border,
+        padding: 16,
+        alignItems: 'center',
+    },
+    avatar: {
+        width: 82,
+        height: 82,
+        borderRadius: 41,
+        backgroundColor: '#E5E7EB',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 10,
     },
     patientName: {
-        color: colors.text,
-        fontSize: typography.heading,
+        color: palette.text,
+        fontSize: 22,
+        lineHeight: 28,
+        fontFamily: fonts.bodyBold,
         fontWeight: '700',
-        marginBottom: spacing.xs,
     },
-    tabsTitle: {
-        color: colors.text,
-        fontSize: typography.body,
-        fontWeight: '700',
-        marginBottom: spacing.sm,
+    patientSub: {
+        marginTop: 2,
+        color: palette.muted,
+        fontSize: 14,
+        lineHeight: 19,
+        fontFamily: fonts.bodyRegular,
+        textAlign: 'center',
     },
-    tabsWrap: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: spacing.sm,
+    segmentedControl: {
+        marginTop: 14,
+        backgroundColor: palette.segmentBg,
+        borderRadius: 16,
+        padding: 5,
     },
-    tabChip: {
+    segmentedInner: {
+        gap: 8,
+        paddingHorizontal: 1,
+    },
+    segmentButton: {
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 9,
         alignItems: 'center',
-        backgroundColor: colors.primarySoft,
-        borderColor: colors.border,
-        borderRadius: radius.sm,
-        borderWidth: 1,
-        minHeight: 40,
         justifyContent: 'center',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.xs,
     },
-    tabChipActive: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
+    segmentButtonActive: {
+        backgroundColor: '#FFFFFF',
     },
-    tabText: {
-        color: colors.primary,
-        fontSize: typography.caption,
+    segmentText: {
+        color: '#6B7280',
+        fontSize: 14,
+        lineHeight: 19,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    segmentTextActive: {
+        color: palette.primary,
+        fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    tabTextActive: {
-        color: colors.surface,
+    contentCard: {
+        marginTop: 14,
+        backgroundColor: palette.surface,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: palette.border,
+        padding: 14,
     },
     sectionTitle: {
-        color: colors.text,
-        fontSize: typography.heading,
+        color: palette.text,
+        fontSize: 18,
+        lineHeight: 24,
+        fontFamily: fonts.bodyBold,
         fontWeight: '700',
-        marginBottom: spacing.sm,
+        marginBottom: 8,
     },
-    itemsList: {
-        gap: spacing.sm,
-    },
-    itemBlock: {
-        borderColor: colors.border,
-        borderRadius: radius.sm,
+    itemCard: {
+        borderRadius: 12,
         borderWidth: 1,
-        padding: spacing.sm,
+        borderColor: palette.border,
+        padding: 12,
+        marginTop: 8,
     },
     itemTitle: {
-        color: colors.text,
-        fontSize: typography.body,
-        fontWeight: '700',
-        marginBottom: spacing.xs,
-    },
-    line: {
-        color: colors.text,
-        fontSize: typography.body,
-        lineHeight: 22,
-        marginBottom: spacing.xs,
-    },
-    meta: {
-        color: colors.textMuted,
-        fontSize: typography.caption,
+        color: palette.text,
+        fontSize: 15,
         lineHeight: 20,
-        marginBottom: spacing.xs,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
     },
-    emptyText: {
-        color: colors.textMuted,
-        fontSize: typography.body,
+    itemBody: {
+        marginTop: 3,
+        color: '#374151',
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: fonts.bodyRegular,
+    },
+    itemMeta: {
+        marginTop: 6,
+        color: palette.muted,
+        fontSize: 12,
+        lineHeight: 17,
+        fontFamily: fonts.bodyMedium,
     },
     actions: {
-        gap: spacing.sm,
+        marginTop: 16,
+        gap: 10,
+    },
+    primaryAction: {
+        height: 50,
+        borderRadius: 14,
+        backgroundColor: palette.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    primaryActionText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        lineHeight: 20,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    secondaryAction: {
+        height: 50,
+        borderRadius: 14,
+        backgroundColor: '#E0E7FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    secondaryActionText: {
+        color: palette.primary,
+        fontSize: 15,
+        lineHeight: 20,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    dangerAction: {
+        height: 50,
+        borderRadius: 14,
+        backgroundColor: '#FEE2E2',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    dangerActionText: {
+        color: palette.danger,
+        fontSize: 15,
+        lineHeight: 20,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    emptyText: {
+        color: palette.muted,
+        fontSize: 14,
+        lineHeight: 20,
+        textAlign: 'center',
+        paddingVertical: 8,
+        fontFamily: fonts.bodyRegular,
+    },
+    centered: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+        backgroundColor: palette.background,
+    },
+    centerTitle: {
+        color: palette.text,
+        fontSize: 20,
+        lineHeight: 26,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    centerText: {
+        marginTop: 4,
+        color: palette.muted,
+        fontSize: 14,
+        lineHeight: 20,
+        textAlign: 'center',
+        fontFamily: fonts.bodyRegular,
     },
 });

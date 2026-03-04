@@ -154,13 +154,13 @@ const styles = StyleSheet.create({
         lineHeight: 24,
     },
     aiCautionWrap: {
-        backgroundColor: '#FFF5DD',
+        backgroundColor: colors.warningSoft,
         borderRadius: radius.sm,
         marginTop: spacing.sm,
         padding: spacing.sm,
     },
     aiCaution: {
-        color: '#8A6100',
+        color: colors.warningText,
         fontSize: typography.caption,
         fontWeight: '600',
     },

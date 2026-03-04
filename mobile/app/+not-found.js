@@ -1,7 +1,7 @@
 import { Link, Stack } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, spacing, textStyles, typography } from '@/src/core/theme/tokens';
 export default function NotFoundScreen() {
     return (<>
       <Stack.Screen options={{ title: 'Route not found' }}/>
@@ -24,6 +24,7 @@ const styles = StyleSheet.create({
     title: {
         color: colors.text,
         fontSize: typography.heading,
+        fontFamily: textStyles.heading.fontFamily,
         fontWeight: '700',
         marginBottom: spacing.md,
         textAlign: 'center',
@@ -31,6 +32,7 @@ const styles = StyleSheet.create({
     link: {
         color: colors.primary,
         fontSize: typography.body,
+        fontFamily: textStyles.bodySemiBold.fontFamily,
         fontWeight: '700',
     },
 });

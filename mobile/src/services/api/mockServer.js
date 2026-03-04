@@ -64,7 +64,10 @@ function parseIdentity(token) {
 }
 function inferRoleFromEmail(email) {
     const value = email.toLowerCase();
-    if (value.includes('doctor')) {
+    if (value.includes('doctor') || value.startsWith('dr.') || value.startsWith('dr_')) {
+        return 'doctor';
+    }
+    if (value.includes('admin')) {
         return 'doctor';
     }
     if (value.includes('nurse')) {

@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
         padding: spacing.md,
     },
     bubbleMine: {
-        backgroundColor: '#E8F0FF',
+        backgroundColor: colors.primarySoft,
         alignSelf: 'flex-end',
         maxWidth: '90%',
     },

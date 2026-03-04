@@ -1,7 +1,7 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors, radius, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, radius, spacing, textStyles, typography } from '@/src/core/theme/tokens';
 export function FormTextField({ control, name, label, placeholder, secureTextEntry = false, keyboardType = 'default', }) {
     return (<Controller control={control} name={name} render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (<View style={styles.fieldContainer}>
           <Text style={styles.label}>{label}</Text>
@@ -15,17 +15,19 @@ const styles = StyleSheet.create({
     },
     label: {
         color: colors.text,
-        fontSize: typography.body,
+        fontFamily: textStyles.bodyLarge.fontFamily,
+        fontSize: typography.bodyLarge,
         fontWeight: '600',
     },
     input: {
         backgroundColor: colors.surface,
         borderColor: colors.border,
-        borderRadius: radius.sm,
+        borderRadius: radius.md,
         borderWidth: 1,
         color: colors.text,
-        fontSize: typography.body,
-        minHeight: 50,
+        fontFamily: textStyles.body.fontFamily,
+        fontSize: typography.bodyLarge,
+        minHeight: 52,
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.sm,
     },
@@ -35,6 +37,7 @@ const styles = StyleSheet.create({
     error: {
         color: colors.danger,
         fontSize: typography.caption,
+        fontFamily: textStyles.caption.fontFamily,
         fontWeight: '600',
     },
 });

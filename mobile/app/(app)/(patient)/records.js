@@ -1,5 +1,5 @@
 import React from 'react';
-import { PatientResultsListScreen } from '@/src/features/patient/screens/PatientResultsListScreen';
+import { HealthRemindersScreen } from '@/src/features/patient/screens/HealthRemindersScreen';
 export default function LegacyPatientRecordsRoute() {
-    return <PatientResultsListScreen />;
+    return <HealthRemindersScreen />;
 }

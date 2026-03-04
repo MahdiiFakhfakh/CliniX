@@ -7,9 +7,9 @@ import { EmptyState } from '@/src/shared/components/EmptyState';
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import { Screen } from '@/src/shared/components/Screen';
 const riskStyles = {
-    low: { color: '#087A51', backgroundColor: '#E8F8F2', label: 'Low' },
-    medium: { color: '#A76C08', backgroundColor: '#FFF6E7', label: 'Medium' },
-    high: { color: '#C0392B', backgroundColor: '#FDECEA', label: 'High' },
+    low: { color: colors.success, backgroundColor: colors.successSoft, label: 'Low' },
+    medium: { color: colors.warningText, backgroundColor: colors.warningSoft, label: 'Medium' },
+    high: { color: colors.danger, backgroundColor: colors.dangerSoft, label: 'High' },
 };
 export function NursePatientsScreen() {
     const { data, isLoading, isRefetching, refetch } = useNursePatientsQuery();

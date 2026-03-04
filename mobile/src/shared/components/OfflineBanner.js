@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, spacing, textStyles, typography } from '@/src/core/theme/tokens';
 import { useOfflineStatus } from '@/src/shared/hooks/useOfflineStatus';
 export function OfflineBanner() {
     const { isOffline } = useOfflineStatus();
@@ -22,6 +22,7 @@ const styles = StyleSheet.create({
     label: {
         color: colors.text,
         fontSize: typography.body,
+        fontFamily: textStyles.bodyMedium.fontFamily,
         fontWeight: '600',
     },
 });

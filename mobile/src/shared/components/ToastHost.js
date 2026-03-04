@@ -1,22 +1,22 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, radius, shadows, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, radius, shadows, spacing, textStyles, typography } from '@/src/core/theme/tokens';
 import { useToastStore } from '@/src/store/toastStore';
 const toastPalette = {
     error: {
-        backgroundColor: '#FDECEE',
-        borderColor: '#F2C8CD',
+        backgroundColor: colors.dangerSoft,
+        borderColor: colors.dangerBorder,
         textColor: colors.danger,
     },
     info: {
-        backgroundColor: '#EAF2FF',
-        borderColor: '#CADDFE',
+        backgroundColor: colors.primarySoft,
+        borderColor: colors.infoBorder,
         textColor: colors.primary,
     },
     success: {
-        backgroundColor: '#E8F8F2',
-        borderColor: '#CBECDD',
+        backgroundColor: colors.successSoft,
+        borderColor: colors.successBorder,
         textColor: colors.success,
     },
 };
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
         paddingTop: spacing.xs,
     },
     toast: {
-        borderRadius: radius.sm,
+        borderRadius: radius.md,
         borderWidth: 1,
         minHeight: 44,
         paddingHorizontal: spacing.sm,
@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     },
     message: {
         fontSize: typography.caption,
+        fontFamily: textStyles.caption.fontFamily,
         fontWeight: '700',
         lineHeight: 20,
     },

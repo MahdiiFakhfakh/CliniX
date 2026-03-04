@@ -1,5 +1,6 @@
 import React from 'react';
-import { ResultsListScreen } from '@/src/features/results/screens/ResultsListScreen';
+import { PatientResultsListScreen } from '@/src/features/patient/screens/PatientResultsListScreen';
+
 export default function PatientResultsRoute() {
-    return <ResultsListScreen />;
+    return <PatientResultsListScreen />;
 }

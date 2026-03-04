@@ -2,7 +2,7 @@ let demoUsers = [
     {
         id: 'u-patient-1',
         email: 'patient@clinix.app',
-        password: 'Test1234',
+        password: 'password123',
         role: 'patient',
         fullName: 'Mariam Hassan',
         phone: '+1 555-0101',
@@ -10,7 +10,7 @@ let demoUsers = [
     {
         id: 'u-doctor-1',
         email: 'doctor@clinix.app',
-        password: 'Test1234',
+        password: 'password123',
         role: 'doctor',
         fullName: 'Dr. Kareem Adel',
         department: 'Cardiology',
@@ -19,7 +19,7 @@ let demoUsers = [
     {
         id: 'u-nurse-1',
         email: 'nurse@clinix.app',
-        password: 'Test1234',
+        password: 'password123',
         role: 'nurse',
         fullName: 'Nurse Salma Noor',
         department: 'Emergency',
@@ -31,9 +31,9 @@ export async function mockLogin(payload) {
     await delay(450);
     const user = demoUsers.find((item) => item.email.toLowerCase() === payload.email.toLowerCase().trim() &&
         item.password === payload.password &&
-        item.role === payload.role);
+        (!payload.role || item.role === payload.role));
     if (!user) {
-        throw new Error('Invalid credentials. Use one of the demo users shown on login.');
+        throw new Error('Invalid credentials. Please check your email and password.');
     }
     return {
         token: `mock-token-${user.role}-${user.id}`,

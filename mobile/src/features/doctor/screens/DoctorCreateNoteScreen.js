@@ -118,9 +118,9 @@ const styles = StyleSheet.create({
         lineHeight: 24,
     },
     aiCaution: {
-        backgroundColor: '#FFF5DD',
+        backgroundColor: colors.warningSoft,
         borderRadius: radius.sm,
-        color: '#8A6100',
+        color: colors.warningText,
         fontSize: typography.caption,
         fontWeight: '600',
         marginTop: spacing.sm,

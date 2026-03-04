@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, spacing, textStyles, typography } from '@/src/core/theme/tokens';
 export function EmptyState({ title, subtitle }) {
     return (<View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
@@ -16,6 +16,7 @@ const styles = StyleSheet.create({
     title: {
         color: colors.text,
         fontSize: typography.heading,
+        fontFamily: textStyles.heading.fontFamily,
         fontWeight: '700',
         marginBottom: spacing.xs,
         textAlign: 'center',
@@ -23,6 +24,8 @@ const styles = StyleSheet.create({
     subtitle: {
         color: colors.textMuted,
         fontSize: typography.body,
+        fontFamily: textStyles.body.fontFamily,
+        lineHeight: textStyles.body.lineHeight,
         textAlign: 'center',
     },
 });

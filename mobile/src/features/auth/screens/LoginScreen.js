@@ -1,154 +1,583 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import AppIcon from '@/src/shared/components/AppIcon';
+import {
+    AccessibilityInfo,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { roleHomePaths } from '@/src/core/navigation/paths';
-import { colors, radius, spacing, typography } from '@/src/core/theme/tokens';
+import { fonts } from '@/src/core/theme/tokens';
 import { loginSchema } from '@/src/features/auth/schemas/loginSchema';
-import { Card } from '@/src/shared/components/Card';
-import { FormTextField } from '@/src/shared/components/FormTextField';
-import { PrimaryButton } from '@/src/shared/components/PrimaryButton';
-import { Screen } from '@/src/shared/components/Screen';
 import { useAuthStore } from '@/src/store/authStore';
-const roleOptions = ['patient', 'doctor'];
+
+const palette = {
+    screenBg: '#F2F3F7',
+    cardBg: '#FFFFFF',
+    primary: '#2A2ACF',
+    primaryPressed: '#1F1FAF',
+    accentTint: '#E6E9FF',
+    inputBg: '#F5F6FA',
+    inputFocusBg: '#F8FAFF',
+    text: '#111111',
+    textDark: '#333333',
+    textMuted: '#6B7280',
+    textPlaceholder: '#9CA3AF',
+    borderSoft: '#E5E7EB',
+    disabledBg: '#A5B4FC',
+    disabledText: '#E5E7EB',
+    shadow: '#000000',
+};
+
 export function LoginScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
+    const cardFade = useRef(new Animated.Value(0)).current;
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const [focusedField, setFocusedField] = useState(null);
+
     const signIn = useAuthStore((state) => state.signIn);
     const isSubmitting = useAuthStore((state) => state.isSubmitting);
     const errorMessage = useAuthStore((state) => state.errorMessage);
     const clearError = useAuthStore((state) => state.clearError);
     const session = useAuthStore((state) => state.session);
+
     const { control, handleSubmit, watch } = useForm({
         resolver: zodResolver(loginSchema),
         defaultValues: {
-            email: 'dr.james.smith@clinix.com',
-            password: 'password123',
-            role: 'doctor',
+            email: '',
+            password: '',
         },
-        mode: 'onChange',
+        mode: 'onBlur',
     });
-    const selectedRole = watch('role');
+
+    const emailValue = watch('email');
+    const passwordValue = watch('password');
+    const isFormFilled = Boolean(emailValue?.trim() && passwordValue?.trim());
+    const isButtonDisabled = isSubmitting || !isFormFilled;
+
+    useEffect(() => {
+        Animated.timing(cardFade, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
+    }, [cardFade]);
+
     useEffect(() => {
         if (session) {
             router.replace(roleHomePaths[session.user.role]);
         }
     }, [router, session]);
+
     const onSubmit = handleSubmit(async (values) => {
         clearError();
         try {
-            await signIn(values);
-            const role = useAuthStore.getState().session?.user.role ?? values.role;
-            router.replace(roleHomePaths[role]);
-        }
-        catch {
-            // Store already contains the error message.
+            await signIn({
+                email: values.email.trim().toLowerCase(),
+                password: values.password,
+            });
+            const role = useAuthStore.getState().session?.user.role;
+            if (role) {
+                router.replace(roleHomePaths[role]);
+            }
+        } catch {
+            // Error is already stored in auth store.
         }
     });
-    return (<Screen title="CliniX Mobile" subtitle="Role-based hospital workflows for patients and doctors." scroll>
-      <Card>
-        <View style={styles.formBlock}>
-          <FormTextField control={control} name="email" label="Email" placeholder="name@clinix.app" keyboardType="email-address"/>
-          <FormTextField control={control} name="password" label="Password" placeholder="Your password" secureTextEntry/>
 
-          <Controller control={control} name="role" render={({ field: { value, onChange } }) => (<View style={styles.roleContainer}>
-                <Text style={styles.roleLabel}>Role</Text>
-                <View style={styles.roleButtonsRow}>
-                  {roleOptions.map((role) => {
-                const active = value === role;
-                return (<Pressable key={role} accessibilityRole="button" onPress={() => onChange(role)} style={[styles.roleChip, active && styles.roleChipActive]}>
-                        <Text style={[styles.roleChipText, active && styles.roleChipTextActive]}>{role.toUpperCase()}</Text>
-                      </Pressable>);
-            })}
+    const handleTogglePassword = () => {
+        setIsPasswordVisible((previous) => {
+            const next = !previous;
+            const message = next ? 'Password is now visible' : 'Password is now hidden';
+            void AccessibilityInfo.announceForAccessibility(message);
+            return next;
+        });
+    };
+
+    const handleSocialPress = (provider) => {
+        Alert.alert(`${provider} Sign In`, `${provider} authentication will be available soon.`);
+    };
+
+    const handleSignUpPress = () => {
+        router.push('/(auth)/sign-up');
+    };
+
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <KeyboardAvoidingView
+                style={styles.keyboardWrap}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+                <View style={styles.content}>
+                    <Animated.View
+                        style={[
+                            styles.card,
+                            { paddingBottom: 36 + Math.max(insets.bottom, 10) },
+                            {
+                                opacity: cardFade,
+                                transform: [
+                                    {
+                                        scale: cardFade.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.97, 1],
+                                        }),
+                                    },
+                                ],
+                            },
+                        ]}
+                    >
+                        <View style={styles.headerRow}>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Go back"
+                                accessibilityState={{ disabled: true }}
+                                disabled
+                                style={[styles.iconButton, styles.iconButtonDisabled]}
+                            >
+                                <AppIcon color={palette.textDark} name="chevron-back" size={20} />
+                            </Pressable>
+                            <Text style={styles.headerTitle}>Sign In</Text>
+                            <View style={styles.headerSpacer} />
+                        </View>
+
+                        <View style={styles.logoSection}>
+                            <View style={styles.logoCircle}>
+                                <AppIcon color={palette.primary} name="briefcase-plus" size={28} />
+                            </View>
+                            <Text style={styles.brandName}>CliniX</Text>
+                        </View>
+
+                        <View style={styles.welcomeSection}>
+                            <Text style={styles.welcomeTitle}>Welcome back!</Text>
+                            <Text style={styles.welcomeSubtitle}>Please sign in to your account.</Text>
+                        </View>
+
+                        <Controller
+                            control={control}
+                            name="email"
+                            render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
+                                <View style={styles.fieldGroup}>
+                                    <Text style={styles.fieldLabel}>Email Address</Text>
+                                    <TextInput
+                                        accessibilityLabel="Email Address"
+                                        accessibilityHint="Enter your email address"
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                        keyboardType="email-address"
+                                        onBlur={() => {
+                                            onBlur();
+                                            setFocusedField((current) =>
+                                                current === 'email' ? null : current,
+                                            );
+                                        }}
+                                        onChangeText={onChange}
+                                        onFocus={() => setFocusedField('email')}
+                                        placeholder="name@example.com"
+                                        placeholderTextColor={palette.textPlaceholder}
+                                        style={[
+                                            styles.input,
+                                            focusedField === 'email' && styles.inputFocused,
+                                            error && styles.inputError,
+                                        ]}
+                                        textContentType="emailAddress"
+                                        value={value}
+                                    />
+                                    {error?.message ? <Text style={styles.errorText}>{error.message}</Text> : null}
+                                </View>
+                            )}
+                        />
+
+                        <Controller
+                            control={control}
+                            name="password"
+                            render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
+                                <View style={styles.fieldGroup}>
+                                    <Text style={styles.fieldLabel}>Password</Text>
+                                    <View>
+                                        <TextInput
+                                            accessibilityLabel="Password"
+                                            accessibilityHint="Enter your password"
+                                            onBlur={() => {
+                                                onBlur();
+                                                setFocusedField((current) =>
+                                                    current === 'password' ? null : current,
+                                                );
+                                            }}
+                                            onChangeText={onChange}
+                                            onFocus={() => setFocusedField('password')}
+                                            placeholder="Enter your password"
+                                            placeholderTextColor={palette.textPlaceholder}
+                                            secureTextEntry={!isPasswordVisible}
+                                            style={[
+                                                styles.input,
+                                                styles.passwordInput,
+                                                focusedField === 'password' && styles.inputFocused,
+                                                error && styles.inputError,
+                                            ]}
+                                            textContentType="password"
+                                            value={value}
+                                        />
+                                        <Pressable
+                                            accessibilityRole="button"
+                                            accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
+                                            accessibilityHint="Toggles password visibility"
+                                            onPress={handleTogglePassword}
+                                            style={styles.passwordToggle}
+                                        >
+                                            <AppIcon
+                                                color={palette.textMuted}
+                                                name={isPasswordVisible ? 'eye-off' : 'eye'}
+                                                size={20}
+                                            />
+                                        </Pressable>
+                                    </View>
+                                    {error?.message ? <Text style={styles.errorText}>{error.message}</Text> : null}
+                                </View>
+                            )}
+                        />
+
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Forgot Password"
+                            onPress={() => router.push('/(auth)/forgot-password')}
+                            style={styles.forgotWrap}
+                        >
+                            <Text style={styles.forgotText}>Forgot Password?</Text>
+                        </Pressable>
+
+                        {errorMessage ? <Text style={styles.authError}>{errorMessage}</Text> : null}
+
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Sign In"
+                            accessibilityHint="Signs in to your account"
+                            disabled={isButtonDisabled}
+                            onPress={onSubmit}
+                            style={({ pressed }) => [
+                                styles.signInButton,
+                                pressed && !isButtonDisabled && styles.signInButtonPressed,
+                                isButtonDisabled && styles.signInButtonDisabled,
+                                pressed && !isButtonDisabled && styles.signInButtonScaled,
+                            ]}
+                        >
+                            {isSubmitting ? (
+                                <ActivityIndicator color={palette.disabledText} size="small" />
+                            ) : (
+                                <Text
+                                    style={[
+                                        styles.signInButtonText,
+                                        isButtonDisabled && styles.signInButtonTextDisabled,
+                                    ]}
+                                >
+                                    Sign In
+                                </Text>
+                            )}
+                        </Pressable>
+
+                        <View style={styles.dividerRow}>
+                            <View style={styles.dividerLine} />
+                            <Text style={styles.dividerText}>or sign in with</Text>
+                            <View style={styles.dividerLine} />
+                        </View>
+
+                        <View style={styles.socialRow}>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Continue with Google"
+                                onPress={() => handleSocialPress('Google')}
+                                style={styles.socialButton}
+                            >
+                                <AppIcon color={palette.textDark} name="logo-google" size={16} />
+                                <Text style={styles.socialText}>Google</Text>
+                            </Pressable>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Continue with Apple"
+                                onPress={() => handleSocialPress('Apple')}
+                                style={styles.socialButton}
+                            >
+                                <AppIcon color={palette.textDark} name="logo-apple" size={16} />
+                                <Text style={styles.socialText}>Apple</Text>
+                            </Pressable>
+                        </View>
+
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Sign Up"
+                            accessibilityHint="Navigates to account creation"
+                            onPress={handleSignUpPress}
+                            style={styles.signUpWrap}
+                        >
+                            <Text style={styles.signUpText}>
+                                Don&apos;t have an account? <Text style={styles.signUpAction}>Sign Up</Text>
+                            </Text>
+                        </Pressable>
+                    </Animated.View>
                 </View>
-              </View>)}/>
-
-          {errorMessage ? (<View style={styles.errorBox}>
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>) : null}
-
-          <PrimaryButton label={isSubmitting ? 'Signing in...' : `Sign in as ${selectedRole}`} loading={isSubmitting} onPress={onSubmit}/>
-
-          <Pressable accessibilityRole="button" onPress={() => router.push('/(auth)/forgot-password')}>
-            <Text style={styles.forgotLink}>Forgot password?</Text>
-          </Pressable>
-        </View>
-      </Card>
-
-      <Card>
-        <Text style={styles.demoTitle}>Demo Credentials</Text>
-        <Text style={styles.demoLine}>Doctor: dr.james.smith@clinix.com / password123</Text>
-        <Text style={styles.demoLine}>Admin (doctor access): admin@clinix.com / password123</Text>
-        <Text style={styles.demoLine}>Patient: any seeded patient email / password123</Text>
-      </Card>
-    </Screen>);
+            </KeyboardAvoidingView>
+        </SafeAreaView>
+    );
 }
+
 const styles = StyleSheet.create({
-    formBlock: {
-        gap: spacing.md,
+    safeArea: {
+        flex: 1,
+        backgroundColor: palette.screenBg,
     },
-    roleContainer: {
-        gap: spacing.sm,
+    keyboardWrap: {
+        flex: 1,
     },
-    roleLabel: {
-        color: colors.text,
-        fontSize: typography.body,
+    content: {
+        flex: 1,
+        justifyContent: 'flex-start',
+        alignItems: 'stretch',
+    },
+    card: {
+        flex: 1,
+        width: '100%',
+        backgroundColor: palette.cardBg,
+        borderRadius: 0,
+        paddingHorizontal: 24,
+        paddingVertical: 30,
+        shadowColor: palette.shadow,
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: 0,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    iconButton: {
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iconButtonDisabled: {
+        opacity: 0.45,
+    },
+    headerSpacer: {
+        width: 44,
+        height: 44,
+    },
+    headerTitle: {
+        flex: 1,
+        textAlign: 'center',
+        color: palette.text,
+        fontSize: 18,
+        fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
-    roleButtonsRow: {
-        flexDirection: 'row',
-        gap: spacing.sm,
-    },
-    roleChip: {
+    logoSection: {
         alignItems: 'center',
-        backgroundColor: colors.primarySoft,
-        borderColor: colors.border,
-        borderRadius: radius.sm,
-        borderWidth: 1,
-        flex: 1,
-        minHeight: 46,
+        marginBottom: 16,
+    },
+    logoCircle: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        backgroundColor: palette.accentTint,
         justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
     },
-    roleChipActive: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
-    },
-    roleChipText: {
-        color: colors.primary,
-        fontSize: typography.caption,
+    brandName: {
+        color: palette.primary,
+        fontSize: 26,
+        fontFamily: fonts.displayBold,
         fontWeight: '700',
-        letterSpacing: 0.6,
     },
-    roleChipTextActive: {
-        color: colors.surface,
+    welcomeSection: {
+        alignItems: 'center',
+        marginBottom: 24,
     },
-    errorBox: {
-        backgroundColor: '#FDECEC',
-        borderColor: colors.danger,
-        borderRadius: radius.sm,
-        borderWidth: 1,
-        padding: spacing.sm,
+    welcomeTitle: {
+        color: palette.text,
+        fontSize: 22,
+        lineHeight: 28,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+        marginBottom: 6,
+    },
+    welcomeSubtitle: {
+        color: palette.textMuted,
+        fontSize: 14,
+        lineHeight: 20,
+        fontFamily: fonts.bodyRegular,
+    },
+    fieldGroup: {
+        marginBottom: 18,
+    },
+    fieldLabel: {
+        color: palette.text,
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        marginBottom: 6,
+    },
+    input: {
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: palette.inputBg,
+        paddingHorizontal: 20,
+        color: palette.textDark,
+        fontSize: 14,
+        fontFamily: fonts.bodyMedium,
+        borderWidth: 0,
+    },
+    passwordInput: {
+        paddingRight: 52,
+    },
+    inputFocused: {
+        borderWidth: 2,
+        borderColor: palette.primary,
+        backgroundColor: palette.inputFocusBg,
+    },
+    inputError: {
+        borderWidth: 2,
+        borderColor: '#EF4444',
+    },
+    passwordToggle: {
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        width: 52,
+        height: 52,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     errorText: {
-        color: colors.danger,
-        fontSize: typography.caption,
+        marginTop: 6,
+        color: '#EF4444',
+        fontSize: 12,
+        lineHeight: 16,
+        fontFamily: fonts.bodyMedium,
+    },
+    forgotWrap: {
+        alignSelf: 'flex-end',
+        minHeight: 44,
+        justifyContent: 'center',
+        marginBottom: 20,
+    },
+    forgotText: {
+        color: palette.primary,
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
-    demoTitle: {
-        color: colors.text,
-        fontSize: typography.body,
-        fontWeight: '700',
-        marginBottom: spacing.sm,
+    authError: {
+        color: '#EF4444',
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: fonts.bodyMedium,
+        marginBottom: 12,
     },
-    demoLine: {
-        color: colors.textMuted,
-        fontSize: typography.body,
-        lineHeight: 24,
+    signInButton: {
+        minHeight: 56,
+        borderRadius: 28,
+        backgroundColor: palette.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24,
+        shadowColor: palette.shadow,
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 5 },
+        elevation: 4,
     },
-    forgotLink: {
-        color: colors.primary,
-        fontSize: typography.body,
-        fontWeight: '700',
+    signInButtonPressed: {
+        backgroundColor: palette.primaryPressed,
+    },
+    signInButtonDisabled: {
+        backgroundColor: palette.disabledBg,
+    },
+    signInButtonScaled: {
+        transform: [{ scale: 0.98 }],
+    },
+    signInButtonText: {
+        color: palette.cardBg,
+        fontSize: 16,
+        lineHeight: 22,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    signInButtonTextDisabled: {
+        color: palette.disabledText,
+    },
+    dividerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    dividerLine: {
+        height: 1,
+        flex: 1,
+        backgroundColor: palette.borderSoft,
+    },
+    dividerText: {
+        marginHorizontal: 10,
+        color: palette.textMuted,
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: fonts.bodyRegular,
+    },
+    socialRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    socialButton: {
+        width: '48%',
+        minHeight: 48,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: palette.borderSoft,
+        backgroundColor: palette.cardBg,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    socialText: {
+        color: palette.text,
+        fontSize: 14,
+        lineHeight: 20,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    signUpWrap: {
+        minHeight: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 6,
+    },
+    signUpText: {
+        color: palette.textMuted,
+        fontSize: 14,
+        lineHeight: 20,
+        fontFamily: fonts.bodyRegular,
         textAlign: 'center',
+    },
+    signUpAction: {
+        color: palette.primary,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
     },
 });

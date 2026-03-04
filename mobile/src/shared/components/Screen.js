@@ -1,7 +1,7 @@
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, spacing, textStyles, typography } from '@/src/core/theme/tokens';
 export function Screen({ title, subtitle, scroll = true, refreshing = false, onRefresh, children, }) {
     const content = (<View style={styles.body}>
       <Text accessibilityRole="header" style={styles.title}>
@@ -10,7 +10,7 @@ export function Screen({ title, subtitle, scroll = true, refreshing = false, onR
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {children}
     </View>);
-    return (<SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    return (<SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
       {scroll ? (<ScrollView contentContainerStyle={styles.scrollContent} refreshControl={onRefresh ? (<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary}/>) : undefined}>
           {content}
         </ScrollView>) : (content)}
@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
     },
     scrollContent: {
-        paddingBottom: spacing.xl,
+        paddingBottom: spacing.xl + spacing.md,
     },
     body: {
         paddingHorizontal: spacing.md,
@@ -32,11 +32,13 @@ const styles = StyleSheet.create({
     title: {
         color: colors.text,
         fontSize: typography.title,
+        fontFamily: textStyles.title.fontFamily,
         fontWeight: '700',
     },
     subtitle: {
         color: colors.textMuted,
         fontSize: typography.body,
-        lineHeight: 24,
+        fontFamily: textStyles.body.fontFamily,
+        lineHeight: textStyles.body.lineHeight,
     },
 });

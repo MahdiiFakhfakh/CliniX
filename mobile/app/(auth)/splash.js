@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { roleHomePaths } from '@/src/core/navigation/paths';
-import { colors, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, radius, spacing, textStyles, typography } from '@/src/core/theme/tokens';
 import { useAuthStore } from '@/src/store/authStore';
 export default function SplashRoute() {
     const router = useRouter();
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     logoCircle: {
         alignItems: 'center',
         backgroundColor: colors.primary,
-        borderRadius: 48,
+        borderRadius: radius.full,
         height: 96,
         justifyContent: 'center',
         marginBottom: spacing.lg,
@@ -45,18 +45,21 @@ const styles = StyleSheet.create({
     logoText: {
         color: colors.surface,
         fontSize: 44,
+        fontFamily: textStyles.display.fontFamily,
         fontWeight: '800',
     },
     title: {
         color: colors.text,
         fontSize: 30,
+        fontFamily: textStyles.h1.fontFamily,
         fontWeight: '800',
         marginBottom: spacing.xs,
     },
     subtitle: {
         color: colors.textMuted,
         fontSize: typography.body,
-        lineHeight: 24,
+        fontFamily: textStyles.body.fontFamily,
+        lineHeight: textStyles.body.lineHeight,
         textAlign: 'center',
     },
 });
