@@ -453,7 +453,7 @@ router.get(
 // GET all patients
 router.get("/patients", protect, authorize("admin"), async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, status } = req.query;
+    const { page = 1, limit = 50, search, status } = req.query;
     const query = {};
 
     if (search) {
@@ -1346,7 +1346,7 @@ router.put(
 // GET all appointments
 router.get("/appointments", protect, authorize("admin"), async (req, res) => {
   try {
-    const { page = 1, limit = 20, status, date } = req.query;
+    const { page = 1, limit = 1000, status, date } = req.query;
     const query = {};
 
     if (status && status !== "all") {
