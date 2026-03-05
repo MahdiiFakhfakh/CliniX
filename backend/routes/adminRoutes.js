@@ -920,7 +920,13 @@ router.delete(
 // GET all doctors
 router.get("/doctors", protect, authorize("admin"), async (req, res) => {
   try {
-    const { page = 1, limit = 20, search, specialization, status } = req.query;
+    const {
+      page = 1,
+      limit = 1000,
+      search,
+      specialization,
+      status,
+    } = req.query;
     const query = {};
 
     if (search) {
@@ -1543,7 +1549,7 @@ router.put(
 // GET all prescriptions
 router.get("/prescriptions", protect, authorize("admin"), async (req, res) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
+    const { page = 1, limit = 1000, status } = req.query;
     const query = {};
 
     if (status && status !== "all") {
@@ -1802,7 +1808,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       Promise.all([
         Patient.countDocuments({ gender: "male" }),
         Patient.countDocuments({ gender: "female" }),
-        Patient.countDocuments({ gender: "other" }),
       ]),
 
       // Monthly revenue (last 6 months)
