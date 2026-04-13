@@ -1,5 +1,6 @@
 import React from 'react';
-import { PatientChatScreen } from '@/src/features/patient/screens/PatientChatScreen';
+import { ClinixAIScreen } from '@/src/features/patient/screens/ClinixAIScreen';
+
 export default function PatientChatRoute() {
-    return <PatientChatScreen />;
+    return <ClinixAIScreen />;
 }

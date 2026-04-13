@@ -1,57 +1,19 @@
 import { config } from '@/src/core/config/env';
 import { mockAIChat, mockDraftClinicalText, mockExplainResult } from '@/src/mocks/ai';
 import { apiRequest } from '@/src/services/api/client';
-export async function explainResult(payload) {
-    try {
-        const response = await apiRequest({
-            method: 'POST',
-            url: '/ai/explain-result',
-            data: payload,
-        });
-        if (!response.success || !response.explanation) {
-            if (!config.enableMockFallback) {
-                throw new Error('Invalid explain result response');
-            }
-            return mockExplainResult(payload);
-        }
-        return response.explanation;
-    }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return mockExplainResult(payload);
-    }
-}
-export async function draftClinicalText(payload) {
-    try {
-        const response = await apiRequest({
-            method: 'POST',
-            url: '/ai/draft',
-            data: payload,
-        });
-        if (!response.success || !response.draft) {
-            if (!config.enableMockFallback) {
-                throw new Error('Invalid AI draft response');
-            }
-            return mockDraftClinicalText(payload);
-        }
-        return response.draft;
-    }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return mockDraftClinicalText(payload);
-    }
-}
 export async function chatWithClinixAI(payload) {
+    console.log('Calling chatbot with:', payload);  
     try {
         const response = await apiRequest({
             method: 'POST',
-            url: '/ai/chat',
-            data: payload,
+            url: '/chatbot/chat',
+            data: {
+                // only send the latest user message
+                // backend handles history from MongoDB
+                message: payload.messages[payload.messages.length - 1].content,
+            },
         });
+        console.log('Backend response:', JSON.stringify(response));
         const content = response.reply?.content ?? response.content;
         const caution = response.reply?.caution ?? response.caution;
         if (!response.success || !content || !caution) {
@@ -63,6 +25,7 @@ export async function chatWithClinixAI(payload) {
         return { content, caution };
     }
     catch (error) {
+        console.log('CHAT ERROR:', error.message, error.statusCode);
         if (!config.enableMockFallback) {
             throw error;
         }
