@@ -1,90 +1,237 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, typography } from '@/src/core/theme/tokens';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import { useNursePatientsQuery } from '@/src/features/patients/hooks/useNursePatientsQuery';
-import { Card } from '@/src/shared/components/Card';
 import { EmptyState } from '@/src/shared/components/EmptyState';
 import { LoadingView } from '@/src/shared/components/LoadingView';
-import { Screen } from '@/src/shared/components/Screen';
-const riskStyles = {
-    low: { color: colors.success, backgroundColor: colors.successSoft, label: 'Low' },
-    medium: { color: colors.warningText, backgroundColor: colors.warningSoft, label: 'Medium' },
-    high: { color: colors.danger, backgroundColor: colors.dangerSoft, label: 'High' },
+
+const riskConfig = {
+    low: { color: colors.success, bg: colors.successSoft, border: colors.successBorder, label: 'Low' },
+    medium: { color: colors.warningText, bg: colors.warningSoft, border: '#F5D77A', label: 'Medium' },
+    high: { color: colors.danger, bg: colors.dangerSoft, border: colors.dangerBorder, label: 'High' },
 };
-export function NursePatientsScreen() {
-    const { data, isLoading, isRefetching, refetch } = useNursePatientsQuery();
-    if (isLoading) {
-        return (<Screen title="Assigned Patients" subtitle="Loading patients..." scroll={false}>
-        <LoadingView />
-      </Screen>);
-    }
-    if (!data || data.length === 0) {
-        return (<Screen title="Assigned Patients" subtitle="No current assignments." refreshing={isRefetching} onRefresh={() => {
-                void refetch();
-            }}>
-        <EmptyState title="No patients found" subtitle="Patient assignments will appear here."/>
-      </Screen>);
-    }
-    return (<Screen title="Assigned Patients" subtitle="Cached list for nurse offline mode." refreshing={isRefetching} onRefresh={() => {
-            void refetch();
-        }}>
-      <View style={styles.list}>
-        {data.map((patient) => {
-            const risk = riskStyles[patient.riskLevel];
-            return (<Card key={patient.id}>
-              <View style={styles.row}>
-                <Text style={styles.name}>{patient.fullName}</Text>
-                <View style={[styles.riskBadge, { backgroundColor: risk.backgroundColor }]}> 
-                  <Text style={[styles.riskText, { color: risk.color }]}>{risk.label}</Text>
-                </View>
-              </View>
-              <Text style={styles.meta}>Bed: {patient.bedNumber}</Text>
-              <Text style={styles.meta}>Age: {patient.age}</Text>
-              <Text style={styles.condition}>{patient.condition}</Text>
-              <Text style={styles.updated}>Updated: {new Date(patient.updatedAt).toLocaleTimeString()}</Text>
-            </Card>);
-        })}
-      </View>
-    </Screen>);
+
+function getInitials(name) {
+    return name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0]?.toUpperCase() ?? '')
+        .join('');
 }
+
+function PatientCard({ patient }) {
+    const risk = riskConfig[patient.riskLevel] ?? riskConfig.low;
+    const initials = getInitials(patient.fullName);
+    const updatedTime = new Date(patient.updatedAt).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    return (
+        <View style={[styles.card, { borderLeftColor: risk.color }]}>
+            <View style={styles.cardHeader}>
+                <View style={[styles.avatar, { backgroundColor: risk.bg }]}>
+                    <Text style={[styles.avatarText, { color: risk.color }]}>{initials}</Text>
+                </View>
+                <View style={styles.cardInfo}>
+                    <Text style={styles.patientName}>{patient.fullName}</Text>
+                    <Text style={styles.conditionText}>{patient.condition}</Text>
+                </View>
+                <View style={[styles.riskBadge, { backgroundColor: risk.bg, borderColor: risk.border }]}>
+                    <Text style={[styles.riskText, { color: risk.color }]}>{risk.label}</Text>
+                </View>
+            </View>
+
+            <View style={styles.metaRow}>
+                <View style={styles.metaItem}>
+                    <Text style={styles.metaLabel}>Bed</Text>
+                    <Text style={styles.metaValue}>{patient.bedNumber}</Text>
+                </View>
+                <View style={styles.metaDivider} />
+                <View style={styles.metaItem}>
+                    <Text style={styles.metaLabel}>Age</Text>
+                    <Text style={styles.metaValue}>{patient.age} yrs</Text>
+                </View>
+                <View style={styles.metaDivider} />
+                <View style={styles.metaItem}>
+                    <Text style={styles.metaLabel}>Updated</Text>
+                    <Text style={styles.metaValue}>{updatedTime}</Text>
+                </View>
+            </View>
+        </View>
+    );
+}
+
+export function NursePatientsScreen() {
+    const insets = useSafeAreaInsets();
+    const { data, isLoading, isRefetching, refetch } = useNursePatientsQuery();
+
+    if (isLoading) {
+        return (
+            <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
+                <LoadingView label="Loading patients…" />
+            </SafeAreaView>
+        );
+    }
+
+    const patients = data ?? [];
+    const highRisk = patients.filter((p) => p.riskLevel === 'high');
+    const rest = patients.filter((p) => p.riskLevel !== 'high');
+    const sorted = [...highRisk, ...rest];
+
+    return (
+        <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+            <ScrollView
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefetching}
+                        onRefresh={() => void refetch()}
+                        tintColor={colors.primary}
+                    />
+                }
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={styles.pageHeader}>
+                    <Text style={styles.pageTitle}>Assigned Patients</Text>
+                    <Text style={styles.pageCount}>{patients.length} total</Text>
+                </View>
+
+                {sorted.length === 0 ? (
+                    <EmptyState
+                        icon="people-outline"
+                        title="No patients assigned"
+                        subtitle="Your ward assignments will appear here."
+                    />
+                ) : (
+                    <View style={styles.list}>
+                        {sorted.map((patient) => (
+                            <PatientCard key={patient.id} patient={patient} />
+                        ))}
+                    </View>
+                )}
+            </ScrollView>
+        </SafeAreaView>
+    );
+}
+
 const styles = StyleSheet.create({
-    list: {
-        gap: spacing.sm,
+    safeArea: {
+        flex: 1,
+        backgroundColor: colors.background,
     },
-    row: {
-        alignItems: 'center',
+    scrollContent: {
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.md,
+        flexGrow: 1,
+    },
+    pageHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: spacing.xs,
+        alignItems: 'baseline',
+        marginBottom: spacing.sm,
     },
-    name: {
+    pageTitle: {
         color: colors.text,
-        flex: 1,
-        fontSize: typography.body,
+        fontSize: typography.h3,
+        fontFamily: fonts.bodyBold,
         fontWeight: '700',
+    },
+    pageCount: {
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodyMedium,
+    },
+    list: {
+        gap: spacing.xs,
+    },
+    card: {
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderLeftWidth: 4,
+        padding: spacing.md,
+        shadowColor: '#142850',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    avatar: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginRight: spacing.sm,
     },
+    avatarText: {
+        fontSize: 15,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    cardInfo: {
+        flex: 1,
+    },
+    patientName: {
+        color: colors.text,
+        fontSize: typography.bodyLarge,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    conditionText: {
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodyRegular,
+        marginTop: 2,
+    },
     riskBadge: {
-        borderRadius: radius.sm,
-        paddingHorizontal: spacing.sm,
-        paddingVertical: spacing.xs,
+        borderRadius: radius.full,
+        borderWidth: 1,
+        paddingHorizontal: spacing.xs,
+        paddingVertical: 3,
     },
     riskText: {
         fontSize: typography.caption,
-        fontWeight: '700',
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
     },
-    meta: {
-        color: colors.textMuted,
-        fontSize: typography.body,
-        marginBottom: spacing.xs,
+    metaRow: {
+        flexDirection: 'row',
+        backgroundColor: colors.surfaceTint,
+        borderRadius: radius.sm,
+        overflow: 'hidden',
     },
-    condition: {
+    metaItem: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: spacing.xs,
+    },
+    metaDivider: {
+        width: 1,
+        backgroundColor: colors.border,
+        marginVertical: spacing.xxs,
+    },
+    metaLabel: {
+        color: colors.textSubtle,
+        fontSize: 10,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        letterSpacing: 0.4,
+        textTransform: 'uppercase',
+    },
+    metaValue: {
         color: colors.text,
-        fontSize: typography.body,
-    },
-    updated: {
-        color: colors.textMuted,
-        fontSize: typography.caption,
-        marginTop: spacing.xs,
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+        marginTop: 2,
     },
 });

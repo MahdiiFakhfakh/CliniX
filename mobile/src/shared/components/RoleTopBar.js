@@ -2,15 +2,32 @@ import { usePathname, useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts, radius } from '@/src/core/theme/tokens';
 import AppIcon from '@/src/shared/components/AppIcon';
+
+const PAGE_TITLES = {
+    '/schedule': 'Schedule',
+    '/patients': 'Patients',
+    '/appointments': 'Appointments',
+    '/profile': 'Profile',
+    '/preferences': 'Settings',
+    '/notifications': 'Notifications',
+    '/clinix-ai': 'CliniX AI',
+    '/chat': 'Messages',
+};
+
+const getPageTitle = (pathname) => {
+    for (const [segment, label] of Object.entries(PAGE_TITLES)) {
+        if (pathname.endsWith(segment) || pathname.includes(`${segment}/`)) return label;
+    }
+    return null;
+};
 
 const ROLE_CONFIG = {
     patient: {
         title: 'Patient Hub',
-        menuRoute: '/(app)/(patient)/home',
         searchRoute: '/(app)/(patient)/records',
-        moreRoute: '/(app)/settings',
+        profileRoute: '/(app)/(patient)/profile',
         tabs: [
             { label: 'Home', route: '/(app)/(patient)/home', matchers: ['/home', '/dashboard'] },
             { label: 'Appts', route: '/(app)/(patient)/appointments', matchers: ['/appointments', '/appointment', '/book-appointment'] },
@@ -20,27 +37,15 @@ const ROLE_CONFIG = {
     },
     doctor: {
         title: 'Doctor Desk',
-        menuRoute: '/(app)/(doctor)/dashboard',
         searchRoute: '/(app)/(doctor)/patients',
-        moreRoute: '/(app)/settings',
-        tabs: [
-            { label: 'Dashboard', route: '/(app)/(doctor)/dashboard', matchers: ['/dashboard'] },
-            { label: 'Patients', route: '/(app)/(doctor)/patients', matchers: ['/patients', '/patient'] },
-            { label: 'Schedule', route: '/(app)/(doctor)/schedule', matchers: ['/schedule', '/appointments'] },
-            { label: 'Alerts', route: '/(app)/(doctor)/notifications', matchers: ['/notifications'] },
-        ],
+        profileRoute: '/(app)/(doctor)/profile',
+        tabs: [],
     },
     admin: {
         title: 'Admin Desk',
-        menuRoute: '/(app)/(doctor)/dashboard',
         searchRoute: '/(app)/(doctor)/patients',
-        moreRoute: '/(app)/settings',
-        tabs: [
-            { label: 'Overview', route: '/(app)/(doctor)/dashboard', matchers: ['/dashboard'] },
-            { label: 'Patients', route: '/(app)/(doctor)/patients', matchers: ['/patients', '/patient'] },
-            { label: 'Schedule', route: '/(app)/(doctor)/schedule', matchers: ['/schedule', '/appointments'] },
-            { label: 'Messages', route: '/(app)/(doctor)/messages', matchers: ['/messages', '/chat'] },
-        ],
+        profileRoute: '/(app)/(doctor)/profile',
+        tabs: [],
     },
 };
 
@@ -53,151 +58,194 @@ export function RoleTopBar({ role = 'patient' }) {
     const pathname = usePathname();
     const router = useRouter();
     const config = ROLE_CONFIG[role] ?? ROLE_CONFIG.patient;
+    const canGoBack = router.canGoBack();
+    const pageTitle = getPageTitle(pathname);
+    const isSubPage = canGoBack && pageTitle !== null;
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top + 6 }]}>
+        <View style={[styles.container, { paddingTop: insets.top + 4 }]}>
             <View style={styles.topRow}>
-                <Pressable
-                    accessibilityLabel="Open home menu"
-                    accessibilityRole="button"
-                    hitSlop={10}
-                    onPress={() => router.push(config.menuRoute)}
-                    style={styles.iconButton}
-                >
-                    <AppIcon color="#8B8F98" name="menu" size={28} />
-                </Pressable>
-
-                <View style={styles.brandRow}>
-                    <View style={styles.brandBadge}>
-                        <Text style={styles.brandText}>CLX</Text>
+                {/* Back button on sub-pages, brand on primary pages */}
+                {isSubPage ? (
+                    <View style={styles.brandRow}>
+                        <Pressable
+                            accessibilityLabel="Go back"
+                            accessibilityRole="button"
+                            hitSlop={10}
+                            onPress={() => router.back()}
+                            style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}
+                        >
+                            <AppIcon color={colors.text} name="arrow-back" size={22} />
+                        </Pressable>
+                        <Text numberOfLines={1} style={styles.title}>{pageTitle}</Text>
                     </View>
-                    <Text numberOfLines={1} style={styles.title}>
-                        {config.title}
-                    </Text>
-                </View>
+                ) : (
+                    <View style={styles.brandRow}>
+                        <View style={styles.brandBadge}>
+                            <Text style={styles.brandText}>CLX</Text>
+                        </View>
+                        <Text numberOfLines={1} style={styles.title}>
+                            {config.title}
+                        </Text>
+                    </View>
+                )}
 
+                {/* Actions */}
                 <View style={styles.actionRow}>
                     <Pressable
                         accessibilityLabel="Search"
                         accessibilityRole="button"
                         hitSlop={10}
                         onPress={() => router.push(config.searchRoute)}
-                        style={styles.iconButton}
+                        style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.6 }]}
                     >
-                        <AppIcon color="#9CA3AF" name="search" size={29} />
+                        <AppIcon color={colors.textMuted} name="search-outline" size={22} />
                     </Pressable>
                     <Pressable
-                        accessibilityLabel="Open settings"
+                        accessibilityLabel="Open profile"
                         accessibilityRole="button"
                         hitSlop={10}
-                        onPress={() => router.push(config.moreRoute)}
-                        style={styles.iconButton}
+                        onPress={() => router.push(config.profileRoute)}
+                        style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.8 }]}
                     >
-                        <AppIcon color="#9CA3AF" name="settings-outline" size={27} />
+                        <AppIcon color={colors.primary} name="person" size={20} />
                     </Pressable>
                 </View>
             </View>
 
-            <View style={styles.tabRow}>
-                {config.tabs.map((tab) => {
-                    const active = isTabActive(pathname, tab);
-                    return (
-                        <Pressable
-                            accessibilityRole="tab"
-                            accessibilityState={{ selected: active }}
-                            key={tab.label}
-                            onPress={() => router.push(tab.route)}
-                            style={styles.tabButton}
-                        >
-                            <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>{tab.label}</Text>
-                            <View style={[styles.tabIndicator, active ? styles.tabIndicatorActive : null]} />
-                        </Pressable>
-                    );
-                })}
-            </View>
+            {/* Tab strip — only rendered when tabs are defined */}
+            {config.tabs.length > 0 ? (
+                <View style={styles.tabRow}>
+                    {config.tabs.map((tab) => {
+                        const active = isTabActive(pathname, tab);
+                        return (
+                            <Pressable
+                                accessibilityRole="tab"
+                                accessibilityState={{ selected: active }}
+                                key={tab.label}
+                                onPress={() => router.push(tab.route)}
+                                style={styles.tabButton}
+                            >
+                                <Text style={[styles.tabText, active && styles.tabTextActive]}>
+                                    {tab.label}
+                                </Text>
+                                <View style={[styles.tabIndicator, active && styles.tabIndicatorActive]} />
+                            </Pressable>
+                        );
+                    })}
+                </View>
+            ) : null}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        borderBottomColor: colors.border,
+        shadowColor: '#142850',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
     },
     topRow: {
-        minHeight: 64,
+        minHeight: 56,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
+        paddingHorizontal: 16,
         paddingBottom: 2,
-    },
-    iconButton: {
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 22,
     },
     brandRow: {
         flex: 1,
-        minWidth: 0,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        paddingHorizontal: 8,
+        gap: 10,
+        minWidth: 0,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 20,
+        backgroundColor: colors.surfaceTint,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     brandBadge: {
-        width: 44,
-        height: 44,
+        width: 36,
+        height: 36,
         borderRadius: 10,
-        backgroundColor: '#0B0D11',
+        backgroundColor: colors.text,
         alignItems: 'center',
         justifyContent: 'center',
     },
     brandText: {
         color: '#FFFFFF',
         fontFamily: fonts.bodyBold,
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '700',
-        letterSpacing: 0.4,
+        letterSpacing: 0.8,
     },
     title: {
-        color: '#111827',
+        color: colors.text,
         fontFamily: fonts.bodyBold,
-        fontSize: 19,
+        fontSize: 18,
         fontWeight: '700',
     },
     actionRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 6,
+    },
+    iconButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 20,
+    },
+    profileButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.primarySoft,
+        borderWidth: 1.5,
+        borderColor: colors.infoBorder,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     tabRow: {
-        height: 52,
+        height: 46,
         flexDirection: 'row',
         alignItems: 'flex-end',
+        paddingHorizontal: 4,
     },
     tabButton: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'flex-end',
+        paddingBottom: 0,
     },
     tabText: {
-        color: '#8B8F98',
+        color: colors.textMuted,
         fontFamily: fonts.bodySemiBold,
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
-        marginBottom: 9,
+        marginBottom: 8,
     },
     tabTextActive: {
-        color: '#111827',
+        color: colors.text,
     },
     tabIndicator: {
-        height: 4,
-        width: '100%',
+        height: 3,
+        width: '70%',
+        borderRadius: radius.full,
         backgroundColor: 'transparent',
     },
     tabIndicatorActive: {
-        backgroundColor: '#111827',
+        backgroundColor: colors.primary,
     },
 });

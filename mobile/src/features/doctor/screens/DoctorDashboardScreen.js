@@ -1,26 +1,13 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
 import { useChatMessagesQuery } from '@/src/features/chat/hooks/useChatMessagesQuery';
 import { useDoctorAlertsQuery } from '@/src/features/doctor/hooks/useDoctorAlertsQuery';
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
-
-const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    primaryPressed: '#1E40AF',
-    text: '#111827',
-    muted: '#6B7280',
-    border: '#E5E7EB',
-    softPrimary: '#E0E7FF',
-    danger: '#DC2626',
-    warning: '#D97706',
-};
 
 const formatDay = (value) => {
     const date = new Date(value);
@@ -42,16 +29,17 @@ const buildDateTime = (appointment) => {
 
 const severityStyle = (severity) => {
     if (severity === 'high') {
-        return { color: palette.danger, icon: 'alert-circle' };
+        return { color: colors.danger, icon: 'alert-circle' };
     }
     if (severity === 'medium') {
-        return { color: palette.warning, icon: 'warning' };
+        return { color: colors.warning, icon: 'warning' };
     }
     return { color: '#16A34A', icon: 'checkmark-circle' };
 };
 
 export function DoctorDashboardScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const scheduleQuery = useAppointmentsQuery('doctor');
     const alertsQuery = useDoctorAlertsQuery();
     const messagesQuery = useChatMessagesQuery('doctor');
@@ -85,17 +73,17 @@ export function DoctorDashboardScreen() {
 
     if (scheduleQuery.isLoading || alertsQuery.isLoading || messagesQuery.isLoading) {
         return (
-            <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+            <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
                 <LoadingView label="Loading doctor dashboard..." />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+        <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
             <View style={styles.container}>
                 <ScrollView
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
                     refreshControl={<RefreshControl onRefresh={handleRefresh} refreshing={isRefreshing} />}
                     showsVerticalScrollIndicator={false}
                 >
@@ -156,7 +144,7 @@ export function DoctorDashboardScreen() {
                                     onPress={() => router.push('/(app)/(doctor)/schedule')}
                                     style={styles.secondaryButton}
                                 >
-                                    <AppIcon color="#374151" name="calendar-outline" size={16} />
+                                    <AppIcon color={colors.text} name="calendar-outline" size={16} />
                                     <Text style={styles.secondaryButtonText}>Schedule</Text>
                                 </Pressable>
                             </View>
@@ -204,7 +192,7 @@ export function DoctorDashboardScreen() {
                             style={styles.quickAction}
                         >
                             <View style={styles.quickIconWrap}>
-                                <AppIcon color={palette.primary} name="people" size={22} />
+                                <AppIcon color={colors.primary} name="people" size={22} />
                             </View>
                             <Text style={styles.quickLabel}>Patients</Text>
                         </Pressable>
@@ -216,7 +204,7 @@ export function DoctorDashboardScreen() {
                             style={styles.quickAction}
                         >
                             <View style={styles.quickIconWrap}>
-                                <AppIcon color={palette.primary} name="calendar" size={22} />
+                                <AppIcon color={colors.primary} name="calendar" size={22} />
                             </View>
                             <Text style={styles.quickLabel}>Schedule</Text>
                         </Pressable>
@@ -228,7 +216,7 @@ export function DoctorDashboardScreen() {
                             style={styles.quickAction}
                         >
                             <View style={styles.quickIconWrap}>
-                                <AppIcon color={palette.primary} name="sparkles" size={22} />
+                                <AppIcon color={colors.primary} name="sparkles" size={22} />
                             </View>
                             <Text style={styles.quickLabel}>CliniX AI</Text>
                         </Pressable>
@@ -242,16 +230,16 @@ export function DoctorDashboardScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     container: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 16,
-        paddingBottom: 110,
+        flexGrow: 1,
     },
     metricsRow: {
         flexDirection: 'row',
@@ -259,21 +247,21 @@ const styles = StyleSheet.create({
     },
     metricCard: {
         flex: 1,
-        backgroundColor: palette.surface,
-        borderColor: palette.border,
+        backgroundColor: colors.surface,
+        borderColor: colors.border,
         borderWidth: 1,
         borderRadius: 16,
         padding: 14,
     },
     metricLabel: {
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 13,
         lineHeight: 18,
         fontFamily: fonts.bodyMedium,
     },
     metricValue: {
         marginTop: 6,
-        color: palette.primary,
+        color: colors.primary,
         fontSize: 30,
         lineHeight: 32,
         fontFamily: fonts.bodyBold,
@@ -287,24 +275,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     sectionTitle: {
-        color: palette.text,
+        color: colors.text,
         fontSize: 19,
         lineHeight: 24,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     viewAll: {
-        color: palette.primary,
+        color: colors.primary,
         fontSize: 14,
         lineHeight: 19,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
     appointmentCard: {
-        backgroundColor: palette.surface,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: palette.border,
+        borderColor: colors.border,
         padding: 16,
     },
     appointmentTopRow: {
@@ -313,13 +301,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     chip: {
-        backgroundColor: palette.softPrimary,
+        backgroundColor: colors.primarySoft,
         borderRadius: 10,
         paddingHorizontal: 10,
         paddingVertical: 5,
     },
     chipText: {
-        color: palette.primary,
+        color: colors.primary,
         fontSize: 11,
         lineHeight: 14,
         letterSpacing: 0.4,
@@ -327,7 +315,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     appointmentStatus: {
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 13,
         lineHeight: 18,
         textTransform: 'capitalize',
@@ -335,21 +323,21 @@ const styles = StyleSheet.create({
     },
     patientName: {
         marginTop: 12,
-        color: palette.text,
+        color: colors.text,
         fontSize: 22,
         lineHeight: 28,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     departmentText: {
-        color: '#4B5563',
+        color: colors.textMuted,
         fontSize: 15,
         lineHeight: 20,
         fontFamily: fonts.bodyRegular,
     },
     dateLine: {
         marginTop: 5,
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 14,
         lineHeight: 19,
         fontFamily: fonts.bodyMedium,
@@ -363,14 +351,14 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 48,
         borderRadius: 12,
-        backgroundColor: palette.primary,
+        backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
         gap: 6,
     },
     primaryButtonPressed: {
-        backgroundColor: palette.primaryPressed,
+        backgroundColor: colors.primaryMid,
     },
     primaryButtonText: {
         color: '#FFFFFF',
@@ -383,14 +371,16 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 48,
         borderRadius: 12,
-        backgroundColor: '#E5E7EB',
+        backgroundColor: colors.surfaceTint,
+        borderWidth: 1,
+        borderColor: colors.border,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
         gap: 6,
     },
     secondaryButtonText: {
-        color: '#374151',
+        color: colors.text,
         fontSize: 15,
         lineHeight: 20,
         fontFamily: fonts.bodySemiBold,
@@ -400,8 +390,8 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     alertCard: {
-        backgroundColor: palette.surface,
-        borderColor: palette.border,
+        backgroundColor: colors.surface,
+        borderColor: colors.border,
         borderWidth: 1,
         borderRadius: 14,
         padding: 12,
@@ -413,7 +403,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     alertTitle: {
-        color: palette.text,
+        color: colors.text,
         fontSize: 15,
         lineHeight: 20,
         fontFamily: fonts.bodySemiBold,
@@ -421,7 +411,7 @@ const styles = StyleSheet.create({
     },
     alertDescription: {
         marginTop: 2,
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 13,
         lineHeight: 18,
         fontFamily: fonts.bodyRegular,
@@ -440,28 +430,28 @@ const styles = StyleSheet.create({
         width: 62,
         height: 62,
         borderRadius: 31,
-        backgroundColor: '#D8DAF3',
+        backgroundColor: colors.primarySoft,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 8,
     },
     quickLabel: {
         textAlign: 'center',
-        color: palette.text,
+        color: colors.text,
         fontSize: 13,
         lineHeight: 18,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
     emptyCard: {
-        backgroundColor: palette.surface,
+        backgroundColor: colors.surface,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: palette.border,
+        borderColor: colors.border,
         padding: 14,
     },
     emptyText: {
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 14,
         lineHeight: 20,
         fontFamily: fonts.bodyRegular,

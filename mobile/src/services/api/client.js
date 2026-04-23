@@ -13,7 +13,7 @@ let sessionToken = null;
 let onUnauthorized = null;
 export const apiClient = axios.create({
     baseURL: config.apiBaseUrl,
-    timeout: 12000,
+    timeout: 30000,
 });
 export const setApiToken = (token) => {
     sessionToken = token;
@@ -45,6 +45,7 @@ apiClient.interceptors.response.use((response) => response, (error) => {
     return Promise.reject(new ApiClientError(message, statusCode));
 });
 export async function apiRequest(requestConfig) {
+     console.log('apiRequest:', requestConfig.url, 'token:', sessionToken ? 'YES' : 'NO', 'baseURL:', config.apiBaseUrl);
     if (config.enableMockServer) {
         try {
             return await mockApiRequest(requestConfig, sessionToken);

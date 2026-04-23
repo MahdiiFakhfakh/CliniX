@@ -1,26 +1,11 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
 import AppIcon from '@/src/shared/components/AppIcon';
 
-const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    primaryPressed: '#1E40AF',
-    text: '#111827',
-    muted: '#6B7280',
-    border: '#E5E7EB',
-    tagBg: '#E0E7FF',
-    tagText: '#1D4ED8',
-    dateBox: '#F3F4F6',
-    secondaryButton: '#E5E7EB',
-    success: '#16A34A',
-    warning: '#F59E0B',
-};
 
 const DEFAULT_APPOINTMENT = {
     doctorName: 'Dr. Sarah Smith',
@@ -186,12 +171,13 @@ export function PatientHomeScreen() {
         }
     };
 
-    const statusColor = (tone) => (tone === 'warning' ? palette.warning : palette.success);
+    const insets = useSafeAreaInsets();
+    const statusColor = (tone) => (tone === 'warning' ? colors.warning : colors.success);
 
     return (
-        <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+        <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
             <View style={styles.container}>
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false}>
                     <View style={styles.appointmentCard}>
                         <View style={styles.cardTopRow}>
                             <View style={styles.tag}>
@@ -208,7 +194,7 @@ export function PatientHomeScreen() {
                                 <Text style={styles.doctorName}>{nextAppointment.doctorName}</Text>
                                 <Text style={styles.specialtyText}>{nextAppointment.specialty}</Text>
                                 <View style={styles.videoRow}>
-                                    <AppIcon color={palette.primary} name="videocam" size={14} />
+                                    <AppIcon color={colors.primary} name="videocam" size={14} />
                                     <Text style={styles.videoText}>Video Consultation</Text>
                                 </View>
                             </View>
@@ -216,7 +202,7 @@ export function PatientHomeScreen() {
 
                         <View style={styles.dateBox}>
                             <View style={styles.dateRow}>
-                                <AppIcon color={palette.primary} name="calendar-outline" size={22} />
+                                <AppIcon color={colors.primary} name="calendar-outline" size={22} />
                                 <Text style={styles.dateMain}>{formatDateLabel(nextAppointment.date)}</Text>
                             </View>
                             <Text style={styles.dateSub}>{nextAppointment.time} - 11:00 AM</Text>
@@ -324,7 +310,7 @@ export function PatientHomeScreen() {
                                 style={styles.quickAction}
                             >
                                 <View style={styles.quickIconWrap}>
-                                    <AppIcon color={palette.primary} name={action.icon} size={24} />
+                                    <AppIcon color={colors.primary} name={action.icon} size={24} />
                                 </View>
                                 <Text style={styles.quickLabel}>{action.label}</Text>
                             </Pressable>
@@ -341,22 +327,22 @@ export const PatientDashboardScreen = PatientHomeScreen;
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     container: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 16,
-        paddingBottom: 100,
+        flexGrow: 1,
     },
     appointmentCard: {
-        backgroundColor: palette.surface,
+        backgroundColor: colors.surface,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: palette.border,
+        borderColor: colors.border,
         padding: 16,
     },
     cardTopRow: {
@@ -365,13 +351,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     tag: {
-        backgroundColor: palette.tagBg,
+        backgroundColor: colors.primarySoft,
         borderRadius: 8,
         paddingHorizontal: 10,
         paddingVertical: 6,
     },
     tagText: {
-        color: palette.tagText,
+        color: colors.primary,
         fontSize: 12,
         lineHeight: 16,
         fontFamily: fonts.bodyBold,
@@ -379,7 +365,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     countdownText: {
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 14,
         lineHeight: 18,
         fontFamily: fonts.bodyMedium,
@@ -402,7 +388,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     doctorName: {
-        color: palette.text,
+        color: colors.text,
         fontSize: 21,
         lineHeight: 26,
         fontFamily: fonts.bodyBold,
@@ -410,7 +396,7 @@ const styles = StyleSheet.create({
     },
     specialtyText: {
         marginTop: 1,
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 16,
         lineHeight: 22,
         fontFamily: fonts.bodyRegular,
@@ -430,7 +416,7 @@ const styles = StyleSheet.create({
     },
     dateBox: {
         marginTop: 14,
-        backgroundColor: palette.dateBox,
+        backgroundColor: colors.surfaceTint,
         borderRadius: 12,
         padding: 12,
     },
@@ -440,7 +426,7 @@ const styles = StyleSheet.create({
     },
     dateMain: {
         marginLeft: 8,
-        color: palette.text,
+        color: colors.text,
         fontSize: 16,
         lineHeight: 22,
         fontFamily: fonts.bodySemiBold,
@@ -448,7 +434,7 @@ const styles = StyleSheet.create({
     },
     dateSub: {
         marginTop: 2,
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 14,
         lineHeight: 18,
         fontFamily: fonts.bodyRegular,
@@ -462,7 +448,7 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 54,
         borderRadius: 12,
-        backgroundColor: palette.primary,
+        backgroundColor: colors.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -473,7 +459,7 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     primaryButtonPressed: {
-        backgroundColor: palette.primaryPressed,
+        backgroundColor: colors.primaryMid,
     },
     primaryButtonText: {
         marginLeft: 8,
@@ -487,7 +473,7 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 54,
         borderRadius: 12,
-        backgroundColor: palette.secondaryButton,
+        backgroundColor: colors.surfaceTint,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -508,14 +494,14 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     sectionTitle: {
-        color: palette.text,
+        color: colors.text,
         fontSize: 21,
         lineHeight: 26,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     viewAll: {
-        color: palette.primary,
+        color: colors.primary,
         fontSize: 17,
         lineHeight: 22,
         fontFamily: fonts.bodySemiBold,
@@ -531,8 +517,8 @@ const styles = StyleSheet.create({
         marginTop: 12,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: palette.surface,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
         padding: 14,
         flexDirection: 'row',
         alignItems: 'center',
@@ -552,14 +538,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
     },
     checkboxChecked: {
-        backgroundColor: palette.primary,
-        borderColor: palette.primary,
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     reminderTextWrap: {
         flex: 1,
     },
     reminderTitle: {
-        color: palette.text,
+        color: colors.text,
         fontSize: 18,
         lineHeight: 23,
         fontFamily: fonts.bodySemiBold,
@@ -569,7 +555,7 @@ const styles = StyleSheet.create({
         textDecorationLine: 'line-through',
     },
     reminderSubtitle: {
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 13,
         lineHeight: 18,
         fontFamily: fonts.bodyRegular,
@@ -619,7 +605,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     vitalValue: {
-        color: palette.text,
+        color: colors.text,
         fontSize: 38,
         lineHeight: 36,
         fontFamily: fonts.bodyBold,
@@ -628,7 +614,7 @@ const styles = StyleSheet.create({
     vitalUnit: {
         marginLeft: 4,
         marginBottom: 4,
-        color: palette.muted,
+        color: colors.textMuted,
         fontSize: 14,
         lineHeight: 18,
         fontFamily: fonts.bodyMedium,
@@ -656,14 +642,14 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: '#D8DAF3',
+        backgroundColor: colors.primarySoft,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 8,
     },
     quickLabel: {
         textAlign: 'center',
-        color: palette.text,
+        color: colors.text,
         fontSize: 14,
         lineHeight: 18,
         fontFamily: fonts.bodySemiBold,

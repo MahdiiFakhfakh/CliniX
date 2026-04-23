@@ -18,13 +18,6 @@ function TabIcon({ color, name }) {
     );
 }
 
-function AvatarTabIcon() {
-    return (
-        <View style={styles.avatarIcon}>
-            <AppIcon color="#1D4ED8" name="person" size={24} />
-        </View>
-    );
-}
 
 export default function DoctorTabsLayout() {
     const isHydrated = useAuthStore((state) => state.isHydrated);
@@ -64,21 +57,21 @@ export default function DoctorTabsLayout() {
                 title: 'Notifications',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="notifications-outline"/>,
             }}/>
-            <Tabs.Screen name="profile" options={{
-                title: 'Profile',
-                tabBarIcon: () => <AvatarTabIcon />,
+            <Tabs.Screen name="preferences" options={{
+                title: 'Settings',
+                tabBarIcon: ({ color }) => <TabIcon color={color} name="ellipsis-horizontal"/>,
             }}/>
 
             <Tabs.Screen name="schedule" options={{ href: null }}/>
             <Tabs.Screen name="patients" options={{ href: null }}/>
             <Tabs.Screen name="appointments" options={{ href: null }}/>
+            <Tabs.Screen name="profile" options={{ href: null }}/>
             <Tabs.Screen name="patient/[patientId]" options={{ href: null }}/>
             <Tabs.Screen name="patient/[patientId]/note" options={{ href: null }}/>
             <Tabs.Screen name="patient/[patientId]/prescription" options={{ href: null }}/>
             <Tabs.Screen name="patient/[patientId]/lab-request" options={{ href: null }}/>
             <Tabs.Screen name="chat" options={{ href: null }}/>
             <Tabs.Screen name="clinix-ai" options={{ href: null }}/>
-            <Tabs.Screen name="preferences" options={{ href: null }}/>
         </Tabs>
     );
 }
@@ -86,10 +79,14 @@ export default function DoctorTabsLayout() {
 const styles = StyleSheet.create({
     tabBar: {
         height: 72,
-        borderTopWidth: 0,
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F5',
         backgroundColor: '#FFFFFF',
-        elevation: 0,
-        shadowOpacity: 0,
+        shadowColor: '#142850',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 8,
         paddingTop: 8,
         paddingBottom: 8,
     },
@@ -100,17 +97,8 @@ const styles = StyleSheet.create({
     iconWrap: {
         alignItems: 'center',
         justifyContent: 'center',
-        width: 32,
-        height: 32,
-    },
-    avatarIcon: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: '#E6ECFF',
-        borderWidth: 1,
-        borderColor: '#C7D2FE',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
 });

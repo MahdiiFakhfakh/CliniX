@@ -1,33 +1,14 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { roleHomePaths } from '@/src/core/navigation/paths';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import { useAuthStore } from '@/src/store/authStore';
 import { usePreferencesStore } from '@/src/store/preferencesStore';
 import AppIcon from '@/src/shared/components/AppIcon';
 
-const palette = {
-    screen: '#EEF1F4',
-    surface: '#FFFFFF',
-    section: '#DCE2E7',
-    text: '#111827',
-    muted: '#5B6775',
-    border: '#DEE4EA',
-    blue: '#1D9BF0',
-    danger: '#DC2626',
-};
-
-function SectionHeader({ title }) {
-    return (
-        <View style={styles.sectionHeader}>
-            <Text style={styles.sectionHeaderText}>{title}</Text>
-        </View>
-    );
-}
-
-function SettingRow({ title, subtitle, onPress, danger = false }) {
+function SettingRow({ icon, iconBg = colors.primarySoft, iconColor = colors.primary, title, subtitle, onPress, danger = false, showChevron = true }) {
     return (
         <Pressable
             accessibilityRole="button"
@@ -35,17 +16,32 @@ function SettingRow({ title, subtitle, onPress, danger = false }) {
             onPress={onPress}
             style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
         >
+            <View style={[styles.rowIconWrap, { backgroundColor: danger ? colors.dangerSoft : iconBg }]}>
+                <AppIcon color={danger ? colors.danger : iconColor} name={icon} size={18} />
+            </View>
             <View style={styles.rowTextWrap}>
                 <Text style={[styles.rowTitle, danger && styles.rowTitleDanger]}>{title}</Text>
                 {subtitle ? <Text style={styles.rowSubtitle}>{subtitle}</Text> : null}
             </View>
-            <AppIcon color="#A3AAB3" name="chevron-forward" size={18} />
+            {showChevron ? (
+                <AppIcon color={colors.textSubtle} name="chevron-forward" size={16} />
+            ) : null}
         </Pressable>
+    );
+}
+
+function Section({ title, children }) {
+    return (
+        <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{title}</Text>
+            <View style={styles.sectionCard}>{children}</View>
+        </View>
     );
 }
 
 export function SettingsScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const session = useAuthStore((state) => state.session);
     const signOut = useAuthStore((state) => state.signOut);
     const notificationsEnabled = usePreferencesStore((state) => state.notificationsEnabled);
@@ -62,66 +58,126 @@ export function SettingsScreen() {
     };
 
     const handleSignOut = async () => {
-        await signOut();
-        router.replace('/(auth)/login');
+        Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Sign out',
+                style: 'destructive',
+                onPress: async () => {
+                    await signOut();
+                    router.replace('/(auth)/login');
+                },
+            },
+        ]);
     };
 
     const handlePlaceholder = (label) => {
-        Alert.alert(label, `${label} settings will be available here.`);
+        Alert.alert(label, `${label} settings will be available in a future update.`);
     };
 
-    const handleText = session?.user.email ? `@${session.user.email.split('@')[0]}` : '@clinix_user';
+    const fullName = session?.user.profile.fullName ?? 'CliniX User';
+    const email = session?.user.email ?? '';
+    const initials = fullName
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0]?.toUpperCase() ?? '')
+        .join('');
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                        onPress={handleBack}
-                        style={styles.backButton}
-                    >
-                        <AppIcon color={palette.blue} name="arrow-back" size={24} />
-                    </Pressable>
-                    <Text style={styles.headerTitle}>Settings and privacy</Text>
-                    <View style={styles.headerSpacer} />
-                </View>
+        <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+            <View style={styles.header}>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                    onPress={handleBack}
+                    style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.6 }]}
+                >
+                    <AppIcon color={colors.primary} name="arrow-back" size={22} />
+                </Pressable>
+                <Text style={styles.headerTitle}>Settings</Text>
+                <View style={styles.headerSpacer} />
+            </View>
 
-                <View style={styles.handleBar}>
-                    <Text style={styles.handleText}>{handleText}</Text>
-                </View>
+            <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* Profile summary */}
+                <Pressable
+                    style={({ pressed }) => [styles.profileCard, pressed && { opacity: 0.9 }]}
+                    onPress={() => router.push('/(app)/(doctor)/profile')}
+                    accessibilityRole="button"
+                    accessibilityLabel="View profile"
+                >
+                    <View style={styles.profileAvatar}>
+                        <Text style={styles.profileInitials}>{initials}</Text>
+                    </View>
+                    <View style={styles.profileInfo}>
+                        <Text style={styles.profileName}>{fullName}</Text>
+                        <Text style={styles.profileEmail}>{email}</Text>
+                    </View>
+                    <AppIcon color={colors.textSubtle} name="chevron-forward" size={18} />
+                </Pressable>
 
-                <SectionHeader title="Account" />
-                <View style={styles.listBlock}>
+                <Section title="Account">
                     <SettingRow
-                        title="Privacy and safety"
+                        icon="lock-closed-outline"
+                        title="Privacy & Safety"
                         onPress={() => router.push('/(app)/privacy-safety')}
                     />
                     <SettingRow
+                        icon="notifications-outline"
+                        iconBg={colors.warningSoft}
+                        iconColor={colors.warning}
                         title="Notifications"
-                        subtitle={notificationsEnabled ? 'On' : 'Off'}
+                        subtitle={notificationsEnabled ? 'Enabled' : 'Disabled'}
                         onPress={() => handlePlaceholder('Notifications')}
                     />
                     <SettingRow
-                        title="Content preferences"
+                        icon="options-outline"
+                        title="Content Preferences"
                         onPress={() => handlePlaceholder('Content preferences')}
                     />
-                </View>
+                </Section>
 
-                <SectionHeader title="General" />
-                <View style={styles.listBlock}>
-                    <SettingRow title="Display and sound" onPress={() => handlePlaceholder('Display and sound')} />
-                    <SettingRow title="Data usage" onPress={() => handlePlaceholder('Data usage')} />
-                    <SettingRow title="Accessibility" onPress={() => handlePlaceholder('Accessibility')} />
-                    <SettingRow title="About CliniX" onPress={() => handlePlaceholder('About CliniX')} />
-                </View>
+                <Section title="General">
+                    <SettingRow
+                        icon="contrast-outline"
+                        iconBg="#F3F0FF"
+                        iconColor="#7C3AED"
+                        title="Display & Sound"
+                        onPress={() => handlePlaceholder('Display and sound')}
+                    />
+                    <SettingRow
+                        icon="cellular-outline"
+                        title="Data Usage"
+                        onPress={() => handlePlaceholder('Data usage')}
+                    />
+                    <SettingRow
+                        icon="accessibility-outline"
+                        iconBg={colors.successSoft}
+                        iconColor={colors.success}
+                        title="Accessibility"
+                        onPress={() => handlePlaceholder('Accessibility')}
+                    />
+                    <SettingRow
+                        icon="information-circle-outline"
+                        title="About CliniX"
+                        onPress={() => handlePlaceholder('About CliniX')}
+                    />
+                </Section>
 
-                <SectionHeader title="Session" />
-                <View style={styles.listBlock}>
-                    <SettingRow title="Sign out" danger onPress={handleSignOut} />
-                </View>
-            </View>
+                <Section title="Session">
+                    <SettingRow
+                        icon="log-out-outline"
+                        title="Sign Out"
+                        danger
+                        showChevron={false}
+                        onPress={handleSignOut}
+                    />
+                </Section>
+            </ScrollView>
         </SafeAreaView>
     );
 }
@@ -129,21 +185,16 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: palette.screen,
+        backgroundColor: colors.background,
     },
-    container: {
-        flex: 1,
-        backgroundColor: palette.screen,
-    },
-    headerRow: {
-        minHeight: 56,
-        backgroundColor: palette.surface,
+    header: {
+        height: 56,
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: palette.border,
+        borderBottomColor: colors.border,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 8,
+        paddingHorizontal: spacing.xs,
     },
     backButton: {
         width: 44,
@@ -152,83 +203,132 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerTitle: {
-        color: palette.text,
-        fontSize: 22,
-        lineHeight: 28,
+        flex: 1,
+        textAlign: 'center',
+        color: colors.text,
+        fontSize: typography.heading,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     headerSpacer: {
         width: 44,
-        height: 44,
     },
-    handleBar: {
-        backgroundColor: palette.section,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
+    scroll: {
+        flex: 1,
     },
-    handleText: {
-        color: palette.muted,
-        fontSize: 16,
-        lineHeight: 20,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
+    scrollContent: {
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.md,
+        flexGrow: 1,
     },
-    sectionHeader: {
-        marginTop: 12,
-        backgroundColor: palette.section,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: palette.border,
+    profileCard: {
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.md,
+        shadowColor: '#142850',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 2,
     },
-    sectionHeaderText: {
-        color: '#617283',
-        fontSize: 17,
-        lineHeight: 22,
+    profileAvatar: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: spacing.sm,
+    },
+    profileInitials: {
+        color: '#fff',
+        fontSize: 18,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    listBlock: {
-        backgroundColor: palette.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
+    profileInfo: {
+        flex: 1,
+    },
+    profileName: {
+        color: colors.text,
+        fontSize: typography.bodyLarge,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    profileEmail: {
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodyRegular,
+        marginTop: 2,
+    },
+    section: {
+        marginBottom: spacing.md,
+    },
+    sectionTitle: {
+        color: colors.textSubtle,
+        fontSize: typography.caption,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+        marginBottom: spacing.xs,
+        paddingHorizontal: spacing.xxs,
+    },
+    sectionCard: {
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        overflow: 'hidden',
+        shadowColor: '#142850',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 1,
     },
     row: {
-        minHeight: 60,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+        minHeight: 58,
+        gap: spacing.sm,
     },
     rowPressed: {
-        backgroundColor: '#F2F5F8',
+        backgroundColor: colors.surfaceTint,
+    },
+    rowIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     rowTextWrap: {
         flex: 1,
-        marginRight: 10,
     },
     rowTitle: {
-        color: palette.text,
-        fontSize: 18,
-        lineHeight: 24,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
         fontFamily: fonts.bodyMedium,
         fontWeight: '500',
     },
     rowTitleDanger: {
-        color: palette.danger,
+        color: colors.danger,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
     },
     rowSubtitle: {
         marginTop: 2,
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 19,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodyRegular,
     },
 });

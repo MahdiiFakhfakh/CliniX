@@ -1,24 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
 import { useDoctorAlertsQuery } from '@/src/features/doctor/hooks/useDoctorAlertsQuery';
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
-
-const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    text: '#111827',
-    muted: '#6B7280',
-    border: '#E5E7EB',
-    primary: '#1D4ED8',
-    primarySoft: '#DBEAFE',
-    danger: '#DC2626',
-    dangerSoft: '#FEE2E2',
-};
 
 const FILTERS = [
     { key: 'all', label: 'All' },
@@ -61,6 +49,7 @@ const relativeTime = (dateValue) => {
 
 export function DoctorNotificationsScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [filter, setFilter] = useState('all');
     const appointmentsQuery = useAppointmentsQuery('doctor');
     const alertsQuery = useDoctorAlertsQuery();
@@ -115,20 +104,17 @@ export function DoctorNotificationsScreen() {
 
     if (appointmentsQuery.isLoading || alertsQuery.isLoading) {
         return (
-            <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+            <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
                 <LoadingView label="Loading notifications..." />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+        <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
             <View style={styles.container}>
-                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                    <Text style={styles.title}>Doctor Notifications</Text>
-                    <Text style={styles.subtitle}>
-                        Showing only new bookings and emergency calls.
-                    </Text>
+                <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false}>
+                    <Text style={styles.title}>Notifications</Text>
 
                     <View style={styles.filterRow}>
                         {FILTERS.map((item) => {
@@ -191,7 +177,7 @@ export function DoctorNotificationsScreen() {
                                             ]}
                                         >
                                             <AppIcon
-                                                color={emergency ? palette.danger : palette.primary}
+                                                color={emergency ? colors.danger : colors.primary}
                                                 name={emergency ? 'call' : 'calendar-outline'}
                                                 size={22}
                                             />
@@ -227,106 +213,95 @@ export function DoctorNotificationsScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     container: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     content: {
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 108,
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.sm,
+        flexGrow: 1,
     },
     title: {
-        color: palette.text,
-        fontSize: 26,
-        lineHeight: 32,
+        color: colors.text,
+        fontSize: typography.h3,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    subtitle: {
-        marginTop: 4,
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 19,
-        fontFamily: fonts.bodyRegular,
-    },
     filterRow: {
-        marginTop: 14,
+        marginTop: spacing.sm,
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        gap: spacing.xs,
     },
     filterPill: {
-        borderRadius: 999,
+        borderRadius: radius.full,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
     },
     filterPillActive: {
-        backgroundColor: '#E8EEFF',
-        borderColor: '#BFD1FF',
+        backgroundColor: colors.primarySoft,
+        borderColor: colors.infoBorder,
     },
     filterText: {
-        color: '#4B5563',
-        fontSize: 13,
-        lineHeight: 17,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
     filterTextActive: {
-        color: palette.primary,
+        color: colors.primary,
     },
     list: {
-        marginTop: 14,
-        gap: 10,
+        marginTop: spacing.sm,
+        gap: spacing.xs,
     },
     emptyCard: {
-        borderRadius: 14,
+        borderRadius: radius.sm,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: palette.surface,
-        padding: 16,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        padding: spacing.md,
     },
     emptyTitle: {
-        color: palette.text,
-        fontSize: 17,
-        lineHeight: 22,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     emptyBody: {
-        marginTop: 4,
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 19,
+        marginTop: spacing.xxs,
+        color: colors.textMuted,
+        fontSize: typography.body,
         fontFamily: fonts.bodyRegular,
     },
     card: {
-        borderRadius: 14,
+        borderRadius: radius.sm,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: palette.surface,
-        padding: 12,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        padding: spacing.sm,
         flexDirection: 'row',
         alignItems: 'flex-start',
     },
     iconWrap: {
         width: 44,
         height: 44,
-        borderRadius: 12,
+        borderRadius: radius.sm,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 10,
+        marginRight: spacing.xs,
     },
     iconWrapBooking: {
-        backgroundColor: palette.primarySoft,
+        backgroundColor: colors.primarySoft,
     },
     iconWrapEmergency: {
-        backgroundColor: palette.dangerSoft,
+        backgroundColor: colors.dangerSoft,
     },
     cardBody: {
         flex: 1,
@@ -337,38 +312,34 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     kindLabel: {
-        fontSize: 12,
-        lineHeight: 16,
+        fontSize: typography.caption,
         letterSpacing: 0.4,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
         textTransform: 'uppercase',
     },
     kindLabelBooking: {
-        color: palette.primary,
+        color: colors.primary,
     },
     kindLabelEmergency: {
-        color: palette.danger,
+        color: colors.danger,
     },
     timeText: {
-        color: '#94A3B8',
-        fontSize: 12,
-        lineHeight: 16,
+        color: colors.textSubtle,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyMedium,
     },
     headline: {
-        marginTop: 4,
-        color: palette.text,
-        fontSize: 17,
-        lineHeight: 22,
+        marginTop: spacing.xxs,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
     details: {
         marginTop: 2,
-        color: palette.muted,
-        fontSize: 13,
-        lineHeight: 18,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodyRegular,
     },
 });

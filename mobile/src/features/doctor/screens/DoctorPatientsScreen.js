@@ -2,20 +2,10 @@ import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import { useDoctorPatientsQuery } from '@/src/features/doctor/hooks/useDoctorPatientsQuery';
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
-
-const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    text: '#111827',
-    muted: '#6B7280',
-    border: '#E5E7EB',
-    chipBg: '#E5E7EB',
-};
 
 const FILTERS = [
     { key: 'all', label: 'All Patients' },
@@ -25,9 +15,9 @@ const FILTERS = [
 ];
 
 const riskStyle = {
-    high: { bg: '#FEE2E2', text: '#B91C1C', label: 'HIGH' },
-    medium: { bg: '#FEF3C7', text: '#B45309', label: 'MEDIUM' },
-    low: { bg: '#DCFCE7', text: '#15803D', label: 'LOW' },
+    high: { bg: colors.dangerSoft, text: colors.danger, border: colors.dangerBorder, label: 'HIGH' },
+    medium: { bg: colors.warningSoft, text: colors.warningText, border: '#F5D77A', label: 'MED' },
+    low: { bg: colors.successSoft, text: colors.success, border: colors.successBorder, label: 'LOW' },
 };
 
 const formatDate = (isoDate) => {
@@ -67,7 +57,7 @@ export function DoctorPatientsScreen() {
     if (patientsQuery.isLoading) {
         return (
             <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
-                <LoadingView label="Loading patient list..." />
+                <LoadingView label="Loading patient list…" />
             </SafeAreaView>
         );
     }
@@ -77,11 +67,11 @@ export function DoctorPatientsScreen() {
             <View style={styles.container}>
                 <View style={styles.headerRow}>
                     <Text style={styles.headerTitle}>My Patients</Text>
-                    <Text style={styles.headerSub}>Found {filteredPatients.length}</Text>
+                    <Text style={styles.headerSub}>{filteredPatients.length} found</Text>
                 </View>
 
                 <View style={styles.searchRow}>
-                    <AppIcon color="#6B7280" name="search" size={22} />
+                    <AppIcon color={colors.textMuted} name="search-outline" size={20} />
                     <TextInput
                         accessibilityLabel="Search patients"
                         autoCapitalize="none"
@@ -131,8 +121,10 @@ export function DoctorPatientsScreen() {
                             return (
                                 <View key={patient.id} style={styles.card}>
                                     <View style={styles.cardTop}>
-                                        <View style={styles.avatar}>
-                                            <AppIcon color="#64748B" name="person" size={22} />
+                                        <View style={[styles.avatar, { backgroundColor: riskStyle[patient.riskLevel]?.bg ?? colors.surfaceTint }]}>
+                                            <Text style={{ fontSize: 15, fontFamily: fonts.bodyBold, fontWeight: '700', color: riskStyle[patient.riskLevel]?.text ?? colors.textMuted }}>
+                                                {patient.fullName.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')}
+                                            </Text>
                                         </View>
                                         <View style={styles.cardTextWrap}>
                                             <Text style={styles.name}>{patient.fullName}</Text>
@@ -141,7 +133,7 @@ export function DoctorPatientsScreen() {
                                             </Text>
                                             <Text style={styles.meta}>Last visit: {formatDate(patient.lastVisit)}</Text>
                                         </View>
-                                        <View style={[styles.riskPill, { backgroundColor: risk.bg }]}>
+                                        <View style={[styles.riskPill, { backgroundColor: risk.bg, borderColor: risk.border }]}>
                                             <Text style={[styles.riskText, { color: risk.text }]}>
                                                 {risk.label}
                                             </Text>
@@ -176,71 +168,74 @@ export function DoctorPatientsScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     container: {
         flex: 1,
-        backgroundColor: palette.background,
-        paddingHorizontal: 20,
+        backgroundColor: colors.background,
+        paddingHorizontal: spacing.md,
     },
     headerRow: {
-        paddingTop: 8,
-        marginBottom: 12,
+        paddingTop: spacing.xs,
+        marginBottom: spacing.sm,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
     },
     headerTitle: {
-        color: palette.text,
-        fontSize: 26,
-        lineHeight: 32,
+        color: colors.text,
+        fontSize: typography.h3,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     headerSub: {
-        marginTop: 2,
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 19,
-        fontFamily: fonts.bodyRegular,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodyMedium,
     },
     searchRow: {
-        height: 54,
-        borderRadius: 14,
-        backgroundColor: '#E5E7EB',
-        paddingHorizontal: 14,
+        height: 50,
+        borderRadius: radius.sm,
+        backgroundColor: colors.surfaceTint,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: spacing.sm,
         flexDirection: 'row',
         alignItems: 'center',
     },
     searchInput: {
         flex: 1,
-        marginLeft: 10,
-        color: palette.text,
-        fontSize: 15,
-        lineHeight: 20,
+        marginLeft: spacing.xs,
+        color: colors.text,
+        fontSize: typography.body,
         fontFamily: fonts.bodyRegular,
     },
     filtersRow: {
-        paddingTop: 12,
-        paddingBottom: 10,
-        gap: 10,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.xs,
+        gap: spacing.xs,
     },
     filtersScroller: {
-        maxHeight: 64,
-        marginBottom: 4,
+        maxHeight: 60,
+        marginBottom: spacing.xxs,
     },
     filterChip: {
-        height: 42,
-        borderRadius: 21,
-        backgroundColor: palette.chipBg,
-        paddingHorizontal: 16,
+        height: 38,
+        borderRadius: radius.full,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: spacing.sm,
         alignItems: 'center',
         justifyContent: 'center',
     },
     filterChipActive: {
-        backgroundColor: palette.primary,
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     filterText: {
-        color: '#4B5563',
-        fontSize: 14,
-        lineHeight: 18,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
@@ -251,87 +246,87 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingTop: 2,
-        paddingBottom: 120,
-        gap: 12,
+        paddingTop: spacing.xxs,
+        gap: spacing.xs,
     },
     card: {
-        backgroundColor: palette.surface,
-        borderRadius: 16,
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: palette.border,
-        padding: 14,
+        borderColor: colors.border,
+        padding: spacing.sm,
+        shadowColor: '#142850',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
     },
     cardTop: {
         flexDirection: 'row',
         alignItems: 'flex-start',
     },
     avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#E5E7EB',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: colors.surfaceTint,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 10,
+        marginRight: spacing.sm,
     },
     cardTextWrap: {
         flex: 1,
     },
     name: {
-        color: palette.text,
-        fontSize: 18,
-        lineHeight: 24,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     meta: {
         marginTop: 2,
-        color: palette.muted,
-        fontSize: 13,
-        lineHeight: 18,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodyRegular,
     },
     riskPill: {
-        borderRadius: 12,
-        paddingVertical: 6,
-        paddingHorizontal: 10,
+        borderRadius: radius.full,
+        borderWidth: 1,
+        paddingVertical: 4,
+        paddingHorizontal: spacing.xs,
     },
     riskText: {
-        fontSize: 12,
-        lineHeight: 16,
+        fontSize: typography.caption,
         letterSpacing: 0.4,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     actionsRow: {
-        marginTop: 12,
+        marginTop: spacing.sm,
     },
     primaryButton: {
         height: 46,
-        borderRadius: 12,
-        backgroundColor: palette.primary,
+        borderRadius: radius.sm,
+        backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
     },
     primaryButtonText: {
         color: '#FFFFFF',
-        fontSize: 15,
-        lineHeight: 20,
+        fontSize: typography.body,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     emptyCard: {
-        borderRadius: 16,
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: palette.surface,
-        padding: 16,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        padding: spacing.md,
     },
     emptyText: {
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 20,
+        color: colors.textMuted,
+        fontSize: typography.body,
         textAlign: 'center',
         fontFamily: fonts.bodyRegular,
     },

@@ -1,6 +1,8 @@
 import Constants from 'expo-constants';
 
+
 const DEFAULT_BASE_URL = 'http://localhost:5000/api';
+
 
 const sanitizeBaseUrl = (value) => {
     if (typeof value !== 'string') {
@@ -41,4 +43,5 @@ export const config = {
     enableMockServer: (process.env.EXPO_PUBLIC_ENABLE_MOCK_SERVER ?? 'false') === 'true',
     enableMockFallback: (process.env.EXPO_PUBLIC_ENABLE_MOCK_FALLBACK ?? 'false') === 'true',
     appName: 'CliniX Mobile',
+     enableMockFallback: false,
 };
