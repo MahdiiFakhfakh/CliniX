@@ -3,10 +3,10 @@ import { HiX } from "react-icons/hi";
 
 const Alert = ({ type = "info", message, onClose }) => {
   const alertClasses = {
-    info: "bg-blue-50 text-blue-800 border-blue-200",
-    success: "bg-green-50 text-green-800 border-green-200",
-    warning: "bg-yellow-50 text-yellow-800 border-yellow-200",
-    error: "bg-red-50 text-red-800 border-red-200",
+    info: "bg-sky-50 text-sky-800 border-sky-200",
+    success: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    warning: "bg-amber-50 text-amber-800 border-amber-200",
+    error: "bg-rose-50 text-rose-800 border-rose-200",
   };
 
   return (

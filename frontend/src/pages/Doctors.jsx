@@ -12,7 +12,6 @@ import {
   HiOutlineCalendar,
   HiOutlineClock,
   HiOutlineStar,
-  HiOutlineCurrencyDollar,
   HiOutlineAcademicCap,
   HiOutlineBriefcase,
   HiOutlineLocationMarker,
@@ -89,12 +88,6 @@ const Doctors = () => {
               .toUpperCase() || "DR",
           ratingStars: doctor.ratings?.average || 4.5,
           reviewCount: doctor.ratings?.totalReviews || 0,
-          formattedFee: doctor.consultationFee
-            ? new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-              }).format(doctor.consultationFee)
-            : "$0",
           experienceText: doctor.experience
             ? `${doctor.experience} ${doctor.experience === 1 ? "year" : "years"}`
             : "N/A",
@@ -289,11 +282,6 @@ const Doctors = () => {
         aVal = a.experience || 0;
         bVal = b.experience || 0;
       }
-      if (sortBy === "consultationFee") {
-        aVal = a.consultationFee || 0;
-        bVal = b.consultationFee || 0;
-      }
-
       if (sortOrder === "asc") {
         return aVal > bVal ? 1 : -1;
       } else {
@@ -619,17 +607,6 @@ const Doctors = () => {
             Experience{" "}
             {sortBy === "experience" && (sortOrder === "asc" ? "↑" : "↓")}
           </button>
-          <button
-            onClick={() => handleSort("consultationFee")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
-              sortBy === "consultationFee"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
-            }`}
-          >
-            Fee{" "}
-            {sortBy === "consultationFee" && (sortOrder === "asc" ? "↑" : "↓")}
-          </button>
         </div>
       </div>
     </div>
@@ -644,13 +621,13 @@ const Doctors = () => {
         <div
           key={doctor._id}
           onClick={() => fetchDoctorDetails(doctor._id)}
-          className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 overflow-hidden cursor-pointer"
+          className="group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-200 hover:shadow-xl hover:shadow-teal-900/10 cursor-pointer"
         >
           {/* Header with Gradient */}
-          <div className="relative h-32 bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-5">
+          <div className="relative h-28 bg-gradient-to-r from-slate-900 via-teal-800 to-emerald-600 p-5">
             <div className="absolute top-4 right-4">
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${
+                className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm ring-1 ring-white/25 ${
                   doctor.status === "available"
                     ? "bg-green-500"
                     : doctor.status === "on_leave"
@@ -666,10 +643,10 @@ const Doctors = () => {
             <div className="absolute -bottom-12 left-5">
               <div
                 className={`
-                w-24 h-24 rounded-2xl border-4 border-white shadow-xl flex items-center justify-center
+                w-20 h-20 rounded-lg border-4 border-white shadow-xl flex items-center justify-center
                 ${
                   doctor.status === "available"
-                    ? "bg-gradient-to-br from-green-500 to-green-600"
+                    ? "bg-gradient-to-br from-teal-500 to-emerald-600"
                     : doctor.status === "on_leave"
                       ? "bg-gradient-to-br from-yellow-500 to-yellow-600"
                       : "bg-gradient-to-br from-gray-500 to-gray-600"
@@ -684,65 +661,61 @@ const Doctors = () => {
           </div>
 
           {/* Content */}
-          <div className="pt-16 p-5">
+          <div className="pt-14 p-5">
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-lg font-black text-slate-950 group-hover:text-teal-700 transition-colors">
                   {doctor.fullName}
                 </h3>
-                <p className="text-sm font-medium text-blue-600">
+                <p className="text-sm font-bold text-teal-700">
                   {doctor.specialization}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   {doctor.department || "General Medicine"}
                 </p>
               </div>
 
               {doctor.licenseNumber && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-lg">
-                  <HiOutlineBadgeCheck className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center gap-1 px-2 py-1 bg-teal-50 rounded-lg ring-1 ring-teal-100">
+                  <HiOutlineBadgeCheck className="w-4 h-4 text-teal-700" />
                 </div>
               )}
             </div>
 
             {/* Rating */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-4">
               <div className="flex items-center">
                 <HiOutlineStar className="w-4 h-4 text-yellow-400 fill-current" />
-                <span className="text-sm font-semibold text-gray-700 ml-1">
+                <span className="text-sm font-bold text-slate-700 ml-1">
                   {doctor.ratings?.average || 4.5}
                 </span>
               </div>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-slate-500">
                 ({doctor.ratings?.totalReviews || 0} reviews)
               </span>
             </div>
 
             {/* Details Grid */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineBriefcase className="w-4 h-4 mr-2 text-gray-400" />
+            <div className="grid grid-cols-2 gap-3 mb-4 rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+              <div className="flex items-center text-sm text-slate-600">
+                <HiOutlineBriefcase className="w-4 h-4 mr-2 text-teal-600" />
                 <span>{doctor.experienceText}</span>
               </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineCurrencyDollar className="w-4 h-4 mr-2 text-gray-400" />
-                <span className="font-medium">{doctor.formattedFee}</span>
+              <div className="flex items-center text-sm text-slate-600">
+                <HiOutlineAcademicCap className="w-4 h-4 mr-2 text-sky-600" />
+                <span className="truncate">{doctor.qualifications?.[0] || "MD"}</span>
               </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineAcademicCap className="w-4 h-4 mr-2 text-gray-400" />
-                <span>{doctor.qualifications?.[0] || "MD"}</span>
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineUsers className="w-4 h-4 mr-2 text-gray-400" />
+              <div className="flex items-center text-sm text-slate-600">
+                <HiOutlineUsers className="w-4 h-4 mr-2 text-violet-600" />
                 <span>{doctor.patientLoad} patients</span>
               </div>
             </div>
 
             {/* Contact Preview */}
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-              <div className="flex items-center text-xs text-gray-500">
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              <div className="flex min-w-0 items-center text-xs text-slate-500">
                 <HiOutlineMail className="w-3 h-3 mr-1" />
-                <span className="truncate max-w-[120px]">{doctor.email}</span>
+                <span className="truncate">{doctor.email}</span>
               </div>
               <button
                 onClick={(e) => {
@@ -752,7 +725,7 @@ const Doctors = () => {
                     doctor.status === "available" ? "on_leave" : "available",
                   );
                 }}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                className="flex-shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"
               >
                 {doctor.status === "available" ? "Set Leave" : "Set Available"}
               </button>
@@ -782,7 +755,7 @@ const Doctors = () => {
                 Contact
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Experience & Fee
+                Experience
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Rating
@@ -847,9 +820,6 @@ const Doctors = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
                     {doctor.experienceText}
-                  </div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {doctor.formattedFee}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -979,14 +949,6 @@ const Doctors = () => {
                 <p className="text-sm text-blue-600 font-medium">Experience</p>
                 <p className="text-2xl font-bold text-blue-900">
                   {selectedDoctor.experience || 0} yrs
-                </p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-xl">
-                <p className="text-sm text-green-600 font-medium">
-                  Consultation Fee
-                </p>
-                <p className="text-2xl font-bold text-green-900">
-                  ${selectedDoctor.consultationFee || 0}
                 </p>
               </div>
               <div className="bg-purple-50 p-4 rounded-xl">

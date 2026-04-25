@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -13,24 +13,18 @@ import {
   HiOutlineClock,
   HiOutlineHeart,
   HiOutlineUsers,
-  HiOutlineCheckCircle,
-  HiOutlineXCircle,
   HiOutlineRefresh,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
   HiOutlineEye,
   HiOutlinePencil,
   HiOutlineTrash,
-  HiOutlineDotsVertical,
   HiOutlineInformationCircle,
   HiOutlineChartBar,
   HiOutlineDocumentDuplicate,
   HiOutlineUserGroup,
   HiOutlineUser,
   HiOutlineLocationMarker,
-  HiOutlineBriefcase,
-  HiOutlineColorSwatch,
-  HiOutlineScale,
   HiOutlineBeaker,
 } from "react-icons/hi";
 
@@ -64,13 +58,7 @@ const Patients = () => {
 
   const navigate = useNavigate();
 
-  // Fetch patients on component mount
-  useEffect(() => {
-    fetchPatients();
-    fetchStats();
-  }, []);
-
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -207,9 +195,9 @@ const Patients = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
@@ -226,7 +214,13 @@ const Patients = () => {
     } catch (error) {
       console.error("Failed to fetch patient stats:", error);
     }
-  };
+  }, []);
+
+  // Fetch patients on component mount
+  useEffect(() => {
+    fetchPatients();
+    fetchStats();
+  }, [fetchPatients, fetchStats]);
 
   const fetchPatientDetails = async (patientId) => {
     try {
@@ -246,7 +240,7 @@ const Patients = () => {
   const handleStatusChange = async (patientId, newStatus) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.put(
+      await axios.put(
         `http://localhost:5000/api/admin/patients/${patientId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } },
@@ -331,8 +325,6 @@ const Patients = () => {
     "Senior",
     "Elderly",
   ];
-  const statuses = ["all", "active", "inactive", "pending"];
-
   // Filter patients
   useEffect(() => {
     let filtered = [...patients];
@@ -799,23 +791,50 @@ const Patients = () => {
   // GRID VIEW COMPONENT
   // ============================================
   const GridView = () => (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid auto-rows-fr gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {currentItems.map((patient) => (
         <div
           key={patient._id}
           onClick={() => fetchPatientDetails(patient._id)}
-          className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 overflow-hidden cursor-pointer"
+          className="group flex h-full min-h-[390px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-200 hover:shadow-xl hover:shadow-teal-900/10 cursor-pointer"
         >
-          {/* Header with Gradient */}
-          <div className="relative h-32 bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-5">
-            <div className="absolute top-4 right-4">
+          <div className="h-1.5 bg-gradient-to-r from-teal-600 via-emerald-500 to-sky-500" />
+
+          <div className="flex flex-1 flex-col p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div
+                  className={`
+                  flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg text-lg font-black text-white shadow-sm
+                  ${
+                    patient.status === "active"
+                      ? "bg-gradient-to-br from-teal-600 to-emerald-600"
+                      : patient.status === "inactive"
+                        ? "bg-gradient-to-br from-gray-500 to-gray-600"
+                        : "bg-gradient-to-br from-yellow-500 to-yellow-600"
+                  }
+                `}
+                >
+                  {patient.initials}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="truncate text-base font-black text-slate-950 group-hover:text-teal-700 transition-colors">
+                    {patient.fullName}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    <span className="inline-flex max-w-full rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600">
+                      <span className="truncate">{patient.patientId}</span>
+                    </span>
+                  </p>
+                </div>
+              </div>
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${
+                className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${
                   patient.status === "active"
-                    ? "bg-green-500"
+                    ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
                     : patient.status === "inactive"
-                      ? "bg-gray-500"
-                      : "bg-yellow-500"
+                      ? "bg-slate-100 text-slate-600 ring-slate-200"
+                      : "bg-amber-50 text-amber-700 ring-amber-200"
                 }`}
               >
                 {patient.status?.charAt(0).toUpperCase() +
@@ -823,87 +842,40 @@ const Patients = () => {
               </span>
             </div>
 
-            {/* Avatar */}
-            <div className="absolute -bottom-12 left-5">
-              <div
-                className={`
-                w-24 h-24 rounded-2xl border-4 border-white shadow-xl flex items-center justify-center text-white text-3xl font-bold
-                ${
-                  patient.status === "active"
-                    ? "bg-gradient-to-br from-green-500 to-green-600"
-                    : patient.status === "inactive"
-                      ? "bg-gradient-to-br from-gray-500 to-gray-600"
-                      : "bg-gradient-to-br from-yellow-500 to-yellow-600"
-                }
-              `}
-              >
-                {patient.initials}
-              </div>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="pt-16 p-5">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                  {patient.fullName}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded-full">
-                    {patient.patientId}
-                  </span>
-                </p>
-              </div>
-
-              {/* Risk Level Badge */}
-              <div
-                className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                  patient.riskLevel === "High"
-                    ? "bg-red-100 text-red-700"
-                    : patient.riskLevel === "Medium"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-green-100 text-green-700"
-                }`}
-              >
-                {patient.riskLevel} Risk
-              </div>
-            </div>
-
             {/* Patient Info Grid */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineHeart className="w-4 h-4 mr-2 text-gray-400" />
-                <span>{patient.bloodGroup || "Unknown"}</span>
+            <div className="grid grid-cols-2 gap-2 mb-4 rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+              <div className="flex min-w-0 items-center text-sm text-slate-600">
+                <HiOutlineHeart className="w-4 h-4 mr-2 text-rose-500" />
+                <span className="truncate">{patient.bloodGroup || "Unknown"}</span>
               </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineUser className="w-4 h-4 mr-2 text-gray-400" />
-                <span>
+              <div className="flex min-w-0 items-center text-sm text-slate-600">
+                <HiOutlineUser className="w-4 h-4 mr-2 text-teal-600" />
+                <span className="truncate">
                   {patient.age || "?"} yrs •{" "}
                   {patient.gender?.charAt(0).toUpperCase() || "?"}
                 </span>
               </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineCalendar className="w-4 h-4 mr-2 text-gray-400" />
-                <span>{patient.lastVisitFormatted}</span>
+              <div className="flex min-w-0 items-center text-sm text-slate-600">
+                <HiOutlineCalendar className="w-4 h-4 mr-2 text-sky-600" />
+                <span className="truncate">{patient.lastVisitFormatted}</span>
               </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineBeaker className="w-4 h-4 mr-2 text-gray-400" />
-                <span>{patient.bmiCategory}</span>
+              <div className="flex min-w-0 items-center text-sm text-slate-600">
+                <HiOutlineBeaker className="w-4 h-4 mr-2 text-violet-600" />
+                <span className="truncate">{patient.bmiCategory}</span>
               </div>
             </div>
 
             {/* Contact Preview */}
             <div className="space-y-2 mb-4">
-              <div className="flex items-center text-xs text-gray-500">
+              <div className="flex items-center text-xs text-slate-500">
                 <HiOutlineMail className="w-3 h-3 mr-1 flex-shrink-0" />
                 <span className="truncate">{patient.email}</span>
               </div>
-              <div className="flex items-center text-xs text-gray-500">
+              <div className="flex items-center text-xs text-slate-500">
                 <HiOutlinePhone className="w-3 h-3 mr-1 flex-shrink-0" />
                 <span className="truncate">{patient.phone}</span>
               </div>
-              <div className="flex items-center text-xs text-gray-500">
+              <div className="flex items-center text-xs text-slate-500">
                 <HiOutlineLocationMarker className="w-3 h-3 mr-1 flex-shrink-0" />
                 <span className="truncate">
                   {patient.address?.city || "No city"}
@@ -912,13 +884,13 @@ const Patients = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-2 pt-3 border-t border-gray-100">
+            <div className="mt-auto flex gap-2 pt-3 border-t border-slate-100">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   fetchPatientDetails(patient._id);
                 }}
-                className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                className="flex-1 px-3 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-all flex items-center justify-center gap-2 text-sm font-bold"
               >
                 <HiOutlineEye className="w-4 h-4" />
                 View
@@ -931,7 +903,7 @@ const Patients = () => {
                     patient.status === "active" ? "inactive" : "active",
                   );
                 }}
-                className="flex-1 px-3 py-2 bg-gray-50 text-gray-600 rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                className="flex-1 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-all flex items-center justify-center gap-2 text-sm font-bold"
               >
                 <HiOutlinePencil className="w-4 h-4" />
                 {patient.status === "active" ? "Deactivate" : "Activate"}
@@ -941,7 +913,7 @@ const Patients = () => {
                   e.stopPropagation();
                   handleDeletePatient(patient._id);
                 }}
-                className="px-3 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all"
+                className="px-3 py-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-all"
               >
                 <HiOutlineTrash className="w-4 h-4" />
               </button>
