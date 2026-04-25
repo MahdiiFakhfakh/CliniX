@@ -46,6 +46,7 @@ export function LoginScreen() {
     const cardFade = useRef(new Animated.Value(0)).current;
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [focusedField, setFocusedField] = useState(null);
+    const [selectedRole, setSelectedRole] = useState(null);
 
     const signIn = useAuthStore((state) => state.signIn);
     const isSubmitting = useAuthStore((state) => state.isSubmitting);
@@ -64,7 +65,7 @@ export function LoginScreen() {
 
     const emailValue = watch('email');
     const passwordValue = watch('password');
-    const isFormFilled = Boolean(emailValue?.trim() && passwordValue?.trim());
+    const isFormFilled = Boolean(emailValue?.trim() && passwordValue?.trim() && selectedRole);
     const isButtonDisabled = isSubmitting || !isFormFilled;
 
     useEffect(() => {
@@ -87,6 +88,7 @@ export function LoginScreen() {
             await signIn({
                 email: values.email.trim().toLowerCase(),
                 password: values.password,
+                role: selectedRole ?? undefined,
             });
             const role = useAuthStore.getState().session?.user.role;
             if (role) {
@@ -139,17 +141,7 @@ export function LoginScreen() {
                         ]}
                     >
                         <View style={styles.headerRow}>
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel="Go back"
-                                accessibilityState={{ disabled: true }}
-                                disabled
-                                style={[styles.iconButton, styles.iconButtonDisabled]}
-                            >
-                                <AppIcon color={palette.textDark} name="chevron-back" size={20} />
-                            </Pressable>
                             <Text style={styles.headerTitle}>Sign In</Text>
-                            <View style={styles.headerSpacer} />
                         </View>
 
                         <View style={styles.logoSection}>
@@ -162,6 +154,36 @@ export function LoginScreen() {
                         <View style={styles.welcomeSection}>
                             <Text style={styles.welcomeTitle}>Welcome back!</Text>
                             <Text style={styles.welcomeSubtitle}>Please sign in to your account.</Text>
+                        </View>
+
+                        <View style={styles.roleSection}>
+                            <Text style={styles.roleLabel}>I am a...</Text>
+                            <View style={styles.roleRow}>
+                                {[
+                                    { key: 'patient', label: 'Patient', icon: 'person' },
+                                    { key: 'doctor', label: 'Doctor', icon: 'medkit' },
+                                ].map((role) => {
+                                    const selected = selectedRole === role.key;
+                                    return (
+                                        <Pressable
+                                            key={role.key}
+                                            accessibilityRole="button"
+                                            accessibilityLabel={`Sign in as ${role.label}`}
+                                            onPress={() => setSelectedRole(role.key)}
+                                            style={[styles.roleCard, selected && styles.roleCardSelected]}
+                                        >
+                                            <AppIcon
+                                                color={selected ? palette.primary : palette.textMuted}
+                                                name={role.icon}
+                                                size={22}
+                                            />
+                                            <Text style={[styles.roleText, selected && styles.roleTextSelected]}>
+                                                {role.label}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
                         </View>
 
                         <Controller
@@ -285,33 +307,6 @@ export function LoginScreen() {
                                 </Text>
                             )}
                         </Pressable>
-
-                        <View style={styles.dividerRow}>
-                            <View style={styles.dividerLine} />
-                            <Text style={styles.dividerText}>or sign in with</Text>
-                            <View style={styles.dividerLine} />
-                        </View>
-
-                        <View style={styles.socialRow}>
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel="Continue with Google"
-                                onPress={() => handleSocialPress('Google')}
-                                style={styles.socialButton}
-                            >
-                                <AppIcon color={palette.textDark} name="logo-google" size={16} />
-                                <Text style={styles.socialText}>Google</Text>
-                            </Pressable>
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel="Continue with Apple"
-                                onPress={() => handleSocialPress('Apple')}
-                                style={styles.socialButton}
-                            >
-                                <AppIcon color={palette.textDark} name="logo-apple" size={16} />
-                                <Text style={styles.socialText}>Apple</Text>
-                            </Pressable>
-                        </View>
 
                         <Pressable
                             accessibilityRole="button"
@@ -579,5 +574,44 @@ const styles = StyleSheet.create({
         color: palette.primary,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
+    },
+    roleSection: {
+        marginBottom: 20,
+    },
+    roleLabel: {
+        color: palette.textDark,
+        fontSize: 14,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        marginBottom: 10,
+    },
+    roleRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    roleCard: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: palette.inputBg,
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    roleCardSelected: {
+        borderColor: palette.primary,
+        backgroundColor: palette.accentTint,
+    },
+    roleText: {
+        color: palette.textMuted,
+        fontSize: 14,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    roleTextSelected: {
+        color: palette.primary,
     },
 });

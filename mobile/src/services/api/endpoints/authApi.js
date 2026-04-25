@@ -1,6 +1,6 @@
 import { config } from '@/src/core/config/env';
 import { isUserRole } from '@/src/core/types/auth';
-import { mockForgotPassword, mockLogin, mockUpdateProfile } from '@/src/mocks/auth';
+import { mockForgotPassword, mockLogin, mockRegister, mockUpdateProfile } from '@/src/mocks/auth';
 import { ApiClientError, apiRequest } from '@/src/services/api/client';
 const mapRole = (incomingRole, fallbackRole) => {
     if (isUserRole(incomingRole)) {
@@ -28,6 +28,28 @@ const mapBackendSession = (response, fallbackRole) => {
         },
     };
 };
+export async function register(payload) {
+    try {
+        const backendResponse = await apiRequest({
+            method: 'POST',
+            url: '/auth/register',
+            data: {
+                email: payload.email,
+                password: payload.password,
+                role: payload.role,
+            },
+        });
+        if (!backendResponse.success || !backendResponse.token) {
+            throw new ApiClientError('Invalid register response from API');
+        }
+        return mapBackendSession(backendResponse, payload.role);
+    } catch (error) {
+        if (!config.enableMockFallback) {
+            throw error;
+        }
+        return mockRegister(payload);
+    }
+}
 export async function login(payload) {
     const requestData = {
         email: payload.email,

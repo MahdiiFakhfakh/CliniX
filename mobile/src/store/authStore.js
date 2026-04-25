@@ -35,7 +35,15 @@ export const useAuthStore = create((set) => ({
             set({ session, isSubmitting: false, errorMessage: null });
         }
         catch (error) {
-            const message = error instanceof Error ? error.message : 'Unable to sign in';
+            const statusCode = error?.statusCode;
+            let message;
+            if (statusCode === 401 || statusCode === 400) {
+                message = 'Incorrect email or password.';
+            } else if (!statusCode) {
+                message = 'Unable to connect. Please check your internet connection.';
+            } else {
+                message = error instanceof Error ? error.message : 'Unable to sign in.';
+            }
             showErrorToast(error, message);
             set({ isSubmitting: false, errorMessage: message });
             throw error;

@@ -1,7 +1,7 @@
 import { isUserRole } from '@/src/core/types/auth';
 import { mockAIChat, mockDraftClinicalText, mockExplainResult } from '@/src/mocks/ai';
 import { cancelMockAppointment, createMockAppointment, getMockAppointments, updateMockAppointment, } from '@/src/mocks/appointments';
-import { mockForgotPassword, mockLogin, mockUpdateProfile } from '@/src/mocks/auth';
+import { mockForgotPassword, mockLogin, mockRegister, mockUpdateProfile } from '@/src/mocks/auth';
 import { addMockChatMessage, getMockChatMessages, getMockThreadId } from '@/src/mocks/chats';
 import { mockNotifications } from '@/src/mocks/notifications';
 import { addMockConsultationNote, addMockLabRequest, addMockPrescription, getMockDoctorAlerts, getMockDoctorPatientDetail, getMockDoctorPatients, getMockLabResults, getMockMedicalSummary, getMockPatientProfile, getMockPrescriptions, } from '@/src/mocks/records';
@@ -204,6 +204,26 @@ function parseAppointmentStatus(value) {
 }
 async function handleAuthRoutes(context) {
     const { method, path, body, identity } = context;
+    if (method === 'POST' && path === '/auth/register') {
+        const payload = ensureObject(body, {});
+        const email = (payload.email ?? '').trim();
+        const password = payload.password ?? '';
+        const role = payload.role && isUserRole(payload.role) ? payload.role : 'patient';
+        if (!email || !password) {
+            return createMockError('Email and password are required.', 400);
+        }
+        const session = await mockRegister({ email, password, role });
+        return {
+            success: true,
+            token: session.token,
+            user: {
+                id: session.user.id,
+                email: session.user.email,
+                role: session.user.role,
+                profile: session.user.profile,
+            },
+        };
+    }
     if (method === 'POST' && path === '/auth/login') {
         const payload = ensureObject(body, {});
         const email = (payload.email ?? '').trim();

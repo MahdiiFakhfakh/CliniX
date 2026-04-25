@@ -26,7 +26,38 @@ let demoUsers = [
         phone: '+1 555-0177',
     },
 ];
+let userIdCounter = 100;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+export async function mockRegister(payload) {
+    await delay(450);
+    const existing = demoUsers.find((item) => item.email.toLowerCase() === payload.email.toLowerCase().trim());
+    if (existing) {
+        throw new Error('An account with this email already exists.');
+    }
+    userIdCounter += 1;
+    const newUser = {
+        id: `u-${payload.role}-${userIdCounter}`,
+        email: payload.email.toLowerCase().trim(),
+        password: payload.password,
+        role: payload.role,
+        fullName: payload.email.split('@')[0],
+        phone: null,
+    };
+    demoUsers = [...demoUsers, newUser];
+    return {
+        token: `mock-token-${newUser.role}-${newUser.id}`,
+        user: {
+            id: newUser.id,
+            email: newUser.email,
+            role: newUser.role,
+            profile: {
+                fullName: newUser.fullName,
+                department: null,
+                phone: null,
+            },
+        },
+    };
+}
 export async function mockLogin(payload) {
     await delay(450);
     const user = demoUsers.find((item) => item.email.toLowerCase() === payload.email.toLowerCase().trim() &&

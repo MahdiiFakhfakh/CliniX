@@ -1,13 +1,15 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
+import { register } from '@/src/services/api/endpoints/authApi';
 import AppIcon from '@/src/shared/components/AppIcon';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Linking,
+    Alert,
     Platform,
     Pressable,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -127,17 +129,19 @@ export function SignUpScreen() {
 
         setLoading(true);
         try {
-            await new Promise((resolve) => setTimeout(resolve, 900));
-            Alert.alert(
-                'Account request submitted',
-                'Your sign-up request has been captured. Please log in after account activation.',
-                [
-                    {
-                        text: 'Go to Log In',
-                        onPress: () => router.replace('/(auth)/login'),
-                    },
-                ],
-            );
+            await register({
+                email: email.trim().toLowerCase(),
+                password,
+                role: selectedRole,
+            });
+            if (selectedRole === 'doctor') {
+                router.replace('/(auth)/doctor-pending');
+            } else {
+                router.replace('/(auth)/login');
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unable to create account. Please try again.';
+            setErrors((previous) => ({ ...previous, submit: message }));
         } finally {
             setLoading(false);
         }
@@ -157,7 +161,12 @@ export function SignUpScreen() {
                 style={styles.keyboardWrap}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-                <View style={styles.container}>
+                <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={styles.container}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
                     <View style={styles.headerRow}>
                         <Pressable
                             accessibilityRole="button"
@@ -241,6 +250,8 @@ export function SignUpScreen() {
                         >
                             <TextInput
                                 accessibilityLabel="Create Password"
+                                autoCapitalize="none"
+                                autoCorrect={false}
                                 onBlur={() => setFocusedField((current) => (current === 'password' ? null : current))}
                                 onChangeText={(value) => {
                                     setPassword(value);
@@ -277,6 +288,8 @@ export function SignUpScreen() {
                         >
                             <TextInput
                                 accessibilityLabel="Confirm Password"
+                                autoCapitalize="none"
+                                autoCorrect={false}
                                 onBlur={() =>
                                     setFocusedField((current) =>
                                         current === 'confirmPassword' ? null : current,
@@ -347,6 +360,7 @@ export function SignUpScreen() {
                         </Text>
                     </View>
                     {errors.agree ? <Text style={[styles.errorText, styles.termsError]}>{errors.agree}</Text> : null}
+                    {errors.submit ? <Text style={[styles.errorText, styles.submitError]}>{errors.submit}</Text> : null}
 
                     <Pressable
                         accessibilityRole="button"
@@ -377,7 +391,7 @@ export function SignUpScreen() {
                             </Text>
                         </Text>
                     </View>
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -391,8 +405,11 @@ const styles = StyleSheet.create({
     keyboardWrap: {
         flex: 1,
     },
-    container: {
+    scroll: {
         flex: 1,
+    },
+    container: {
+        flexGrow: 1,
         paddingHorizontal: 24,
         paddingTop: 12,
         paddingBottom: 20,
@@ -611,6 +628,12 @@ const styles = StyleSheet.create({
     },
     termsError: {
         marginLeft: 32,
+    },
+    submitError: {
+        marginTop: 12,
+        textAlign: 'center',
+        fontSize: 14,
+        lineHeight: 20,
     },
 });
 
