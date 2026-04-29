@@ -94,19 +94,6 @@ export function PatientAppointmentsScreen() {
     return (
         <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
             <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                        onPress={() => router.back()}
-                        style={styles.headerButton}
-                    >
-                        <AppIcon color={palette.primary} name="chevron-back" size={30} />
-                    </Pressable>
-                    <Text style={styles.headerTitle}>My Appointments</Text>
-                    <View style={styles.headerSpacer} />
-                </View>
-
                 <View style={styles.segmentedControl}>
                     {TABS.map((tab) => {
                         const active = activeTab === tab.key;
@@ -190,14 +177,17 @@ export function PatientAppointmentsScreen() {
                     </View>
                 </ScrollView>
 
-                <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Book new appointment"
-                    onPress={() => router.push('/(app)/(patient)/book-appointment')}
-                    style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-                >
-                    <AppIcon color="#FFFFFF" name="add" size={32} />
-                </Pressable>
+                <View style={styles.bookButtonWrap}>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Book new appointment"
+                        onPress={() => router.push('/(app)/(patient)/book-appointment')}
+                        style={({ pressed }) => [styles.bookButton, pressed && styles.bookButtonPressed]}
+                    >
+                        <AppIcon color="#FFFFFF" name="add-circle" size={22} />
+                        <Text style={styles.bookButtonText}>Book Appointment</Text>
+                    </Pressable>
+                </View>
             </View>
         </SafeAreaView>
     );
@@ -212,34 +202,8 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: palette.background,
     },
-    headerRow: {
-        height: 76,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-        paddingHorizontal: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    headerButton: {
-        width: 46,
-        height: 46,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitle: {
-        color: palette.text,
-        fontSize: 24,
-        lineHeight: 30,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
-    headerSpacer: {
-        width: 46,
-        height: 46,
-    },
     segmentedControl: {
-        marginTop: 10,
+        marginTop: 16,
         marginHorizontal: 22,
         backgroundColor: palette.segmentBg,
         borderRadius: 16,
@@ -272,7 +236,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 22,
         paddingTop: 14,
-        paddingBottom: 148,
+        paddingBottom: 24,
         gap: 12,
     },
     card: {
@@ -386,23 +350,35 @@ const styles = StyleSheet.create({
         lineHeight: 21,
         fontFamily: fonts.bodyMedium,
     },
-    fab: {
-        position: 'absolute',
-        right: 24,
-        bottom: 88,
-        width: 74,
-        height: 74,
-        borderRadius: 37,
-        backgroundColor: palette.primary,
+    bookButtonWrap: {
+        paddingHorizontal: 22,
+        paddingVertical: 14,
+        backgroundColor: palette.background,
+        borderTopWidth: 1,
+        borderTopColor: palette.border,
+    },
+    bookButton: {
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 10,
+        height: 58,
+        borderRadius: 29,
+        backgroundColor: palette.primary,
         shadowColor: '#1D4ED8',
-        shadowOpacity: 0.35,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 7,
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 5,
     },
-    fabPressed: {
-        transform: [{ scale: 0.96 }],
+    bookButtonPressed: {
+        opacity: 0.88,
+        transform: [{ scale: 0.98 }],
+    },
+    bookButtonText: {
+        color: '#FFFFFF',
+        fontSize: 17,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
     },
 });

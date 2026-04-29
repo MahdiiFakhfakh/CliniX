@@ -110,6 +110,91 @@ const isRoleMismatch = (requestedRole, actualRole) => {
   return true;
 };
 
+// @desc Register a new patient or doctor
+// @route POST /api/auth/register
+exports.register = async (req, res) => {
+  const email = safeString(req.body?.email).toLowerCase();
+  const password = safeString(req.body?.password);
+  const role = safeString(req.body?.role).toLowerCase();
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, error: "Email and password are required" });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
+  }
+  if (!["patient", "doctor"].includes(role)) {
+    return res.status(400).json({ success: false, error: "Role must be patient or doctor" });
+  }
+
+  try {
+    const existing = await User.findOne({ email }).lean();
+    if (existing) {
+      return res.status(409).json({ success: false, error: "An account with this email already exists" });
+    }
+
+    const {
+      firstName: rawFirst,
+      lastName: rawLast,
+      dateOfBirth,
+      gender,
+      phone,
+      bloodGroup,
+      height,
+      weight,
+      address,
+      emergencyContact,
+    } = req.body;
+
+    const nameFromEmail = email.split("@")[0];
+    const firstName = safeString(rawFirst, nameFromEmail);
+    const lastName = safeString(rawLast, nameFromEmail);
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    const user = await User.create({ name: fullName, email, password, role });
+
+    if (role === "patient") {
+      await Patient.create({
+        user: user._id,
+        firstName,
+        lastName,
+        fullName,
+        email,
+        phone: safeString(phone, "00000000"),
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : new Date("2000-01-01"),
+        gender: gender || "other",
+        bloodGroup: bloodGroup || "Unknown",
+        height: height || undefined,
+        weight: weight || undefined,
+        address: address || {},
+        emergencyContact: emergencyContact || {},
+        status: "active",
+      });
+    } else {
+      await Doctor.create({
+        user: user._id,
+        firstName,
+        lastName,
+        fullName,
+        email,
+        phone: safeString(phone, "00000000"),
+        specialization: "Pending",
+        licenseNumber: `PENDING-${user._id}`,
+        department: "Pending",
+        status: "pending",
+      });
+    }
+
+    const token = tokenize(user._id, user.role);
+    const mappedUser = await mapAuthUser(user);
+
+    return res.status(201).json({ success: true, token, user: mappedUser });
+  } catch (error) {
+    console.error("Register error:", error);
+    return res.status(500).json({ success: false, error: "Server error during registration" });
+  }
+};
+
 // @desc Login user
 // @route POST /api/auth/login
 exports.login = async (req, res) => {

@@ -51,66 +51,6 @@ const ICON_THEME = {
     },
 };
 
-const INITIAL_REMINDERS = {
-    morning: [
-        {
-            id: 'rem-vitamin-d3',
-            title: 'Vitamin D3',
-            subtitle: '8:00 AM - 1 Capsule (2000 IU)',
-            type: 'vitamin',
-            primaryAction: 'Done',
-            bucket: 'today',
-            section: 'morning',
-        },
-        {
-            id: 'rem-bp-check',
-            title: 'Blood Pressure Check',
-            subtitle: '9:30 AM - Fasting measurement',
-            type: 'bp',
-            primaryAction: 'Log Data',
-            bucket: 'today',
-            section: 'morning',
-        },
-        {
-            id: 'rem-vitamin-upcoming',
-            title: 'Vitamin B12',
-            subtitle: 'Tomorrow 8:00 AM - 1 Tablet',
-            type: 'vitamin',
-            primaryAction: 'Done',
-            bucket: 'upcoming',
-            section: 'morning',
-        },
-    ],
-    afternoon: [
-        {
-            id: 'rem-hydration',
-            title: 'Hydration Goal',
-            subtitle: '1:00 PM - Drink 500ml water',
-            type: 'hydration',
-            primaryAction: 'Done',
-            bucket: 'today',
-            section: 'afternoon',
-        },
-        {
-            id: 'rem-walk-upcoming',
-            title: 'Evening Walk',
-            subtitle: 'Tomorrow 6:00 PM - 30 minutes',
-            type: 'exercise',
-            primaryAction: 'Done',
-            bucket: 'upcoming',
-            section: 'afternoon',
-        },
-    ],
-    completed: [
-        {
-            id: 'done-exercise',
-            title: 'Morning Exercise',
-            subtitle: '7:00 AM',
-            type: 'exercise',
-            status: 'done',
-        },
-    ],
-};
 
 const filterByTab = (items, activeTab) => {
     if (activeTab === 'today') {
@@ -126,7 +66,7 @@ export function HealthRemindersScreen() {
     const router = useRouter();
 
     const [activeTab, setActiveTab] = useState('today');
-    const [reminders, setReminders] = useState(INITIAL_REMINDERS);
+    const [reminders, setReminders] = useState({ morning: [], afternoon: [], completed: [] });
 
     const morningItems = useMemo(
         () => filterByTab(reminders.morning, activeTab),

@@ -25,11 +25,7 @@ export async function fetchPatientProfile() {
             ensureFallbackEnabled('Invalid patient profile response');
             return getMockPatientProfile();
         }
-        const fallback = getMockPatientProfile();
-        return {
-            ...fallback,
-            ...response.patient,
-        };
+        return response.patient;
     }
     catch (error) {
         if (!config.enableMockFallback) {

@@ -46,7 +46,6 @@ export function LoginScreen() {
     const cardFade = useRef(new Animated.Value(0)).current;
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
     const [focusedField, setFocusedField] = useState(null);
-    const [selectedRole, setSelectedRole] = useState(null);
 
     const signIn = useAuthStore((state) => state.signIn);
     const isSubmitting = useAuthStore((state) => state.isSubmitting);
@@ -65,7 +64,7 @@ export function LoginScreen() {
 
     const emailValue = watch('email');
     const passwordValue = watch('password');
-    const isFormFilled = Boolean(emailValue?.trim() && passwordValue?.trim() && selectedRole);
+    const isFormFilled = Boolean(emailValue?.trim() && passwordValue?.trim());
     const isButtonDisabled = isSubmitting || !isFormFilled;
 
     useEffect(() => {
@@ -88,7 +87,6 @@ export function LoginScreen() {
             await signIn({
                 email: values.email.trim().toLowerCase(),
                 password: values.password,
-                role: selectedRole ?? undefined,
             });
             const role = useAuthStore.getState().session?.user.role;
             if (role) {
@@ -154,36 +152,6 @@ export function LoginScreen() {
                         <View style={styles.welcomeSection}>
                             <Text style={styles.welcomeTitle}>Welcome back!</Text>
                             <Text style={styles.welcomeSubtitle}>Please sign in to your account.</Text>
-                        </View>
-
-                        <View style={styles.roleSection}>
-                            <Text style={styles.roleLabel}>I am a...</Text>
-                            <View style={styles.roleRow}>
-                                {[
-                                    { key: 'patient', label: 'Patient', icon: 'person' },
-                                    { key: 'doctor', label: 'Doctor', icon: 'medkit' },
-                                ].map((role) => {
-                                    const selected = selectedRole === role.key;
-                                    return (
-                                        <Pressable
-                                            key={role.key}
-                                            accessibilityRole="button"
-                                            accessibilityLabel={`Sign in as ${role.label}`}
-                                            onPress={() => setSelectedRole(role.key)}
-                                            style={[styles.roleCard, selected && styles.roleCardSelected]}
-                                        >
-                                            <AppIcon
-                                                color={selected ? palette.primary : palette.textMuted}
-                                                name={role.icon}
-                                                size={22}
-                                            />
-                                            <Text style={[styles.roleText, selected && styles.roleTextSelected]}>
-                                                {role.label}
-                                            </Text>
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
                         </View>
 
                         <Controller

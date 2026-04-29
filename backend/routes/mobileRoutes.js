@@ -107,19 +107,45 @@ const mapAppointmentRecord = (appointment) => {
   };
 };
 
+const computeAge = (dateOfBirth) => {
+  if (!dateOfBirth) return null;
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age -= 1;
+  return age;
+};
+
 const mapPatientProfile = (patient) => ({
   id: patient._id.toString(),
   patientId: toSafeString(patient.patientId, `PT-${patient._id.toString().slice(-6)}`),
   fullName: asFullName(patient, "Unknown Patient"),
-  age: Number.isFinite(patient.age) ? patient.age : 0,
+  age: computeAge(patient.dateOfBirth) ?? (Number.isFinite(patient.age) ? patient.age : null),
   gender: ["male", "female", "other"].includes(patient.gender) ? patient.gender : "other",
   dateOfBirth: toDateOnly(patient.dateOfBirth),
   phone: toSafeString(patient.phone),
   email: toSafeString(patient.email),
-  emergencyContact:
-    toSafeString(patient?.emergencyContact?.phone) ||
-    toSafeString(patient?.emergencyContact?.name) ||
-    "Not available",
+  height: Number.isFinite(patient.height) ? patient.height : null,
+  weight: Number.isFinite(patient.weight) ? patient.weight : null,
+  bmi: Number.isFinite(patient.bmi) ? patient.bmi : null,
+  address: patient.address
+    ? {
+        street: toSafeString(patient.address.street),
+        city: toSafeString(patient.address.city),
+        state: toSafeString(patient.address.state),
+        country: toSafeString(patient.address.country),
+        zipCode: toSafeString(patient.address.zipCode),
+      }
+    : {},
+  emergencyContact: patient.emergencyContact
+    ? {
+        name: toSafeString(patient.emergencyContact.name),
+        relationship: toSafeString(patient.emergencyContact.relationship),
+        phone: toSafeString(patient.emergencyContact.phone),
+      }
+    : null,
 });
 
 const mapMedicalSummary = (patient, primaryDoctorName) => {
@@ -141,7 +167,7 @@ const mapMedicalSummary = (patient, primaryDoctorName) => {
     chronicConditions,
     activeMedications,
     primaryDoctor: primaryDoctorName || "Not assigned",
-    lastVisit: toIso(patient.lastVisit),
+    lastVisit: patient.lastVisit ? toIso(patient.lastVisit) : null,
   };
 };
 

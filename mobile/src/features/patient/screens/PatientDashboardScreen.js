@@ -1,94 +1,14 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 
-const DEFAULT_APPOINTMENT = {
-    doctorName: 'Dr. Sarah Smith',
-    specialty: 'Cardiology Specialist',
-    date: new Date().toISOString(),
-    time: '10:30 AM',
-    countdown: 'In 2 hours',
-};
 
-const INITIAL_REMINDERS = [
-    {
-        id: 'r1',
-        title: 'Lisinopril - 10mg',
-        subtitle: 'AFTER BREAKFAST • 8:00 AM',
-        icon: 'medkit-outline',
-        completed: false,
-    },
-    {
-        id: 'r2',
-        title: 'Log water intake',
-        subtitle: 'DAILY GOAL • 2.5L',
-        icon: 'water-outline',
-        completed: true,
-    },
-    {
-        id: 'r3',
-        title: 'Evening Walk',
-        subtitle: 'FITNESS • 6:00 PM',
-        icon: 'walk-outline',
-        completed: false,
-    },
-];
 
-const INITIAL_VITALS = [
-    {
-        id: 'heart',
-        title: 'Heart Rate',
-        value: '72',
-        unit: 'BPM',
-        status: 'NORMAL',
-        statusTone: 'success',
-        icon: 'heart',
-        iconColor: '#EF4444',
-        bg: '#FFF1F1',
-        border: '#F8CDD0',
-    },
-    {
-        id: 'spo2',
-        title: 'SpO2',
-        value: '98',
-        unit: '%',
-        status: 'OPTIMAL',
-        statusTone: 'success',
-        icon: 'airplane',
-        iconColor: '#2563EB',
-        bg: '#ECF4FF',
-        border: '#C7DDFD',
-    },
-    {
-        id: 'bp',
-        title: 'Blood Pressure',
-        value: '125/82',
-        unit: 'mmHg',
-        status: 'SLIGHT HIGH',
-        statusTone: 'warning',
-        icon: 'pulse',
-        iconColor: '#A855F7',
-        bg: '#F5F0FF',
-        border: '#E2D4FF',
-    },
-    {
-        id: 'temp',
-        title: 'Temperature',
-        value: '36.6',
-        unit: '°C',
-        status: 'NORMAL',
-        statusTone: 'success',
-        icon: 'thermometer',
-        iconColor: '#F97316',
-        bg: '#FFF8EE',
-        border: '#FBD4A2',
-    },
-];
 
 const QUICK_ACTIONS = [
     { id: 'book', label: 'Book Appt', icon: 'add-circle', path: '/(app)/(patient)/book-appointment' },
@@ -127,29 +47,42 @@ export function PatientHomeScreen() {
     const router = useRouter();
     const appointmentsQuery = useAppointmentsQuery('patient');
 
-    const [reminders, setReminders] = useState(INITIAL_REMINDERS);
-    const [vitals] = useState(INITIAL_VITALS);
-    const [nextAppointment, setNextAppointment] = useState(DEFAULT_APPOINTMENT);
+    const [reminders, setReminders] = useState([]);
+    const [showAddReminder, setShowAddReminder] = useState(false);
+    const [reminderTitle, setReminderTitle] = useState('');
+    const [reminderTime, setReminderTime] = useState('');
 
-    useEffect(() => {
+    const nextAppointment = useMemo(() => {
         const next = appointmentsQuery.data?.[0];
-        if (!next) {
-            setNextAppointment(DEFAULT_APPOINTMENT);
-            return;
-        }
-        setNextAppointment({
-            doctorName: next.doctorName ?? DEFAULT_APPOINTMENT.doctorName,
-            specialty: `${next.department ?? 'Cardiology'} Specialist`,
-            date: next.date ?? DEFAULT_APPOINTMENT.date,
-            time: next.time ?? DEFAULT_APPOINTMENT.time,
-            countdown: next.date ? buildCountdown(next.date) : DEFAULT_APPOINTMENT.countdown,
-        });
+        if (!next) return null;
+        return {
+            doctorName: next.doctorName ?? 'Unknown Doctor',
+            specialty: `${next.department ?? 'General'} Specialist`,
+            date: next.date ?? new Date().toISOString(),
+            time: next.time ?? '',
+            countdown: next.date ? buildCountdown(next.date) : '',
+        };
     }, [appointmentsQuery.data]);
 
     const reminderCount = useMemo(
         () => reminders.filter((item) => !item.completed).length,
         [reminders],
     );
+
+    const handleAddReminder = () => {
+        if (!reminderTitle.trim()) return;
+        const newReminder = {
+            id: `r-${Date.now()}`,
+            title: reminderTitle.trim(),
+            subtitle: reminderTime.trim() ? `REMINDER • ${reminderTime.trim()}` : 'REMINDER',
+            icon: 'notifications-outline',
+            completed: false,
+        };
+        setReminders((prev) => [...prev, newReminder]);
+        setReminderTitle('');
+        setReminderTime('');
+        setShowAddReminder(false);
+    };
 
     const toggleReminder = (id) => {
         setReminders((current) =>
@@ -172,131 +105,129 @@ export function PatientHomeScreen() {
     };
 
     const insets = useSafeAreaInsets();
-    const statusColor = (tone) => (tone === 'warning' ? colors.warning : colors.success);
 
     return (
         <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
             <View style={styles.container}>
                 <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false}>
-                    <View style={styles.appointmentCard}>
-                        <View style={styles.cardTopRow}>
+                    {nextAppointment ? (
+                        <View style={styles.appointmentCard}>
+                            <View style={styles.cardTopRow}>
+                                <View style={styles.tag}>
+                                    <Text style={styles.tagText}>NEXT APPOINTMENT</Text>
+                                </View>
+                                <Text style={styles.countdownText}>{nextAppointment.countdown}</Text>
+                            </View>
+
+                            <View style={styles.doctorRow}>
+                                <View style={styles.doctorAvatar}>
+                                    <AppIcon color="#FFFFFF" name="person" size={30} />
+                                </View>
+                                <View style={styles.doctorTextWrap}>
+                                    <Text style={styles.doctorName}>{nextAppointment.doctorName}</Text>
+                                    <Text style={styles.specialtyText}>{nextAppointment.specialty}</Text>
+                                    <View style={styles.videoRow}>
+                                        <AppIcon color={colors.primary} name="videocam" size={14} />
+                                        <Text style={styles.videoText}>Video Consultation</Text>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.dateBox}>
+                                <View style={styles.dateRow}>
+                                    <AppIcon color={colors.primary} name="calendar-outline" size={22} />
+                                    <Text style={styles.dateMain}>{formatDateLabel(nextAppointment.date)}</Text>
+                                </View>
+                                <Text style={styles.dateSub}>{nextAppointment.time}</Text>
+                            </View>
+
+                            <View style={styles.actionRow}>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Join call"
+                                    onPress={() => router.push('/(app)/(patient)/video')}
+                                    style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
+                                >
+                                    <AppIcon color="#FFFFFF" name="videocam" size={18} />
+                                    <Text style={styles.primaryButtonText}>Join Call</Text>
+                                </Pressable>
+
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Directions"
+                                    onPress={handleDirections}
+                                    style={styles.secondaryButton}
+                                >
+                                    <AppIcon color="#374151" name="navigate" size={18} />
+                                    <Text style={styles.secondaryButtonText}>Directions</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    ) : (
+                        <View style={styles.appointmentCard}>
                             <View style={styles.tag}>
                                 <Text style={styles.tagText}>NEXT APPOINTMENT</Text>
                             </View>
-                            <Text style={styles.countdownText}>{nextAppointment.countdown}</Text>
-                        </View>
-
-                        <View style={styles.doctorRow}>
-                            <View style={styles.doctorAvatar}>
-                                <AppIcon color="#FFFFFF" name="person" size={30} />
+                            <View style={styles.emptyAppointment}>
+                                <AppIcon color={colors.textMuted} name="calendar-outline" size={36} />
+                                <Text style={styles.emptyAppointmentTitle}>No upcoming appointments</Text>
+                                <Text style={styles.emptyAppointmentSub}>Book an appointment to get started.</Text>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Book an appointment"
+                                    onPress={() => router.push('/(app)/(patient)/book-appointment')}
+                                    style={({ pressed }) => [styles.primaryButton, styles.bookButton, pressed && styles.primaryButtonPressed]}
+                                >
+                                    <AppIcon color="#FFFFFF" name="add-circle" size={18} />
+                                    <Text style={styles.primaryButtonText}>Book Appointment</Text>
+                                </Pressable>
                             </View>
-                            <View style={styles.doctorTextWrap}>
-                                <Text style={styles.doctorName}>{nextAppointment.doctorName}</Text>
-                                <Text style={styles.specialtyText}>{nextAppointment.specialty}</Text>
-                                <View style={styles.videoRow}>
-                                    <AppIcon color={colors.primary} name="videocam" size={14} />
-                                    <Text style={styles.videoText}>Video Consultation</Text>
-                                </View>
-                            </View>
                         </View>
-
-                        <View style={styles.dateBox}>
-                            <View style={styles.dateRow}>
-                                <AppIcon color={colors.primary} name="calendar-outline" size={22} />
-                                <Text style={styles.dateMain}>{formatDateLabel(nextAppointment.date)}</Text>
-                            </View>
-                            <Text style={styles.dateSub}>{nextAppointment.time} - 11:00 AM</Text>
-                        </View>
-
-                        <View style={styles.actionRow}>
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel="Join call"
-                                onPress={() => router.push('/(app)/(patient)/video')}
-                                style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
-                            >
-                                <AppIcon color="#FFFFFF" name="videocam" size={18} />
-                                <Text style={styles.primaryButtonText}>Join Call</Text>
-                            </Pressable>
-
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel="Directions"
-                                onPress={handleDirections}
-                                style={styles.secondaryButton}
-                            >
-                                <AppIcon color="#374151" name="navigate" size={18} />
-                                <Text style={styles.secondaryButtonText}>Directions</Text>
-                            </Pressable>
-                        </View>
-                    </View>
+                    )}
 
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Today&apos;s Reminders</Text>
-                        <Pressable onPress={() => router.push('/(app)/(patient)/records')}>
-                            <Text style={styles.viewAll}>View All</Text>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Add reminder"
+                            onPress={() => setShowAddReminder(true)}
+                            style={styles.addReminderButton}
+                        >
+                            <AppIcon color={colors.primary} name="add-circle" size={20} />
+                            <Text style={styles.addReminderText}>Add</Text>
                         </Pressable>
                     </View>
 
-                    <Text style={styles.reminderCounter}>{reminderCount} pending</Text>
-
-                    {reminders.map((item) => (
-                        <View key={item.id} style={[styles.reminderCard, item.completed && styles.reminderCompleted]}>
-                            <Pressable
-                                accessibilityRole="checkbox"
-                                accessibilityState={{ checked: item.completed }}
-                                accessibilityLabel={`Toggle ${item.title}`}
-                                onPress={() => toggleReminder(item.id)}
-                                style={[styles.checkbox, item.completed && styles.checkboxChecked]}
-                            >
-                                {item.completed ? <AppIcon color="#FFFFFF" name="checkmark" size={15} /> : null}
-                            </Pressable>
-                            <View style={styles.reminderTextWrap}>
-                                <Text style={[styles.reminderTitle, item.completed && styles.reminderTitleDone]}>
-                                    {item.title}
-                                </Text>
-                                <Text style={styles.reminderSubtitle}>{item.subtitle}</Text>
-                            </View>
-                            <AppIcon color="#9CA3AF" name={item.icon} size={22} />
-                        </View>
-                    ))}
-
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Latest Vitals</Text>
-                        <Text style={styles.syncText}>LAST SYNC: 2M AGO</Text>
-                    </View>
-
-                    <View style={styles.vitalsGrid}>
-                        {vitals.map((vital) => (
-                            <Pressable
-                                key={vital.id}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Open ${vital.title}`}
-                                onPress={() =>
-                                    router.push({
-                                        pathname: '/(app)/(patient)/result/[resultId]',
-                                        params: { resultId: vital.id === 'heart' ? 'heart-rate' : vital.id },
-                                    })
-                                }
-                                style={[styles.vitalCard, { backgroundColor: vital.bg, borderColor: vital.border }]}
-                            >
-                                <View style={styles.vitalTop}>
-                                    <View style={styles.vitalIconWrap}>
-                                        <AppIcon color={vital.iconColor} name={vital.icon} size={20} />
+                    {reminders.length > 0 ? (
+                        <>
+                            <Text style={styles.reminderCounter}>{reminderCount} pending</Text>
+                            {reminders.map((item) => (
+                                <View key={item.id} style={[styles.reminderCard, item.completed && styles.reminderCompleted]}>
+                                    <Pressable
+                                        accessibilityRole="checkbox"
+                                        accessibilityState={{ checked: item.completed }}
+                                        accessibilityLabel={`Toggle ${item.title}`}
+                                        onPress={() => toggleReminder(item.id)}
+                                        style={[styles.checkbox, item.completed && styles.checkboxChecked]}
+                                    >
+                                        {item.completed ? <AppIcon color="#FFFFFF" name="checkmark" size={15} /> : null}
+                                    </Pressable>
+                                    <View style={styles.reminderTextWrap}>
+                                        <Text style={[styles.reminderTitle, item.completed && styles.reminderTitleDone]}>
+                                            {item.title}
+                                        </Text>
+                                        <Text style={styles.reminderSubtitle}>{item.subtitle}</Text>
                                     </View>
-                                    <Text style={[styles.vitalStatus, { color: statusColor(vital.statusTone) }]}>
-                                        {vital.status}
-                                    </Text>
+                                    <AppIcon color="#9CA3AF" name={item.icon} size={22} />
                                 </View>
-
-                                <View style={styles.vitalValueRow}>
-                                    <Text style={styles.vitalValue}>{vital.value}</Text>
-                                    <Text style={styles.vitalUnit}>{vital.unit}</Text>
-                                </View>
-                                <Text style={styles.vitalLabel}>{vital.title}</Text>
-                            </Pressable>
-                        ))}
-                    </View>
+                            ))}
+                        </>
+                    ) : (
+                        <View style={styles.emptyReminders}>
+                            <AppIcon color={colors.textMuted} name="notifications-off-outline" size={32} />
+                            <Text style={styles.emptyRemindersText}>No reminders for today</Text>
+                        </View>
+                    )}
 
                     <Text style={[styles.sectionTitle, styles.quickTitle]}>Quick Actions</Text>
 
@@ -318,6 +249,55 @@ export function PatientHomeScreen() {
                     </ScrollView>
                 </ScrollView>
             </View>
+
+            <Modal
+                animationType="slide"
+                transparent
+                visible={showAddReminder}
+                onRequestClose={() => setShowAddReminder(false)}
+            >
+                <Pressable style={styles.modalOverlay} onPress={() => setShowAddReminder(false)}>
+                    <Pressable style={styles.modalSheet} onPress={() => {}}>
+                        <View style={styles.modalHandle} />
+                        <Text style={styles.modalTitle}>New Reminder</Text>
+
+                        <Text style={styles.modalLabel}>Title</Text>
+                        <TextInput
+                            autoFocus
+                            onChangeText={setReminderTitle}
+                            placeholder="e.g. Take medication"
+                            placeholderTextColor="#9CA3AF"
+                            style={styles.modalInput}
+                            value={reminderTitle}
+                        />
+
+                        <Text style={styles.modalLabel}>Time <Text style={styles.modalOptional}>(optional)</Text></Text>
+                        <TextInput
+                            onChangeText={setReminderTime}
+                            placeholder="e.g. 8:00 AM"
+                            placeholderTextColor="#9CA3AF"
+                            style={styles.modalInput}
+                            value={reminderTime}
+                        />
+
+                        <View style={styles.modalActions}>
+                            <Pressable
+                                onPress={() => setShowAddReminder(false)}
+                                style={styles.modalCancelButton}
+                            >
+                                <Text style={styles.modalCancelText}>Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleAddReminder}
+                                style={[styles.modalSaveButton, !reminderTitle.trim() && styles.modalSaveDisabled]}
+                                disabled={!reminderTitle.trim()}
+                            >
+                                <Text style={styles.modalSaveText}>Add Reminder</Text>
+                            </Pressable>
+                        </View>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -336,7 +316,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 16,
-        flexGrow: 1,
+        paddingBottom: 16,
     },
     appointmentCard: {
         backgroundColor: colors.surface,
@@ -344,6 +324,29 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
         padding: 16,
+    },
+    emptyAppointment: {
+        alignItems: 'center',
+        paddingVertical: 20,
+        gap: 6,
+    },
+    emptyAppointmentTitle: {
+        color: colors.text,
+        fontSize: 17,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        marginTop: 8,
+    },
+    emptyAppointmentSub: {
+        color: colors.textMuted,
+        fontSize: 14,
+        fontFamily: fonts.bodyRegular,
+        marginBottom: 8,
+    },
+    bookButton: {
+        paddingHorizontal: 24,
+        flex: 0,
+        width: '100%',
     },
     cardTopRow: {
         flexDirection: 'row',
@@ -507,6 +510,16 @@ const styles = StyleSheet.create({
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
+    emptyReminders: {
+        alignItems: 'center',
+        paddingVertical: 20,
+        gap: 8,
+    },
+    emptyRemindersText: {
+        color: colors.textMuted,
+        fontSize: 15,
+        fontFamily: fonts.bodyRegular,
+    },
     reminderCounter: {
         color: '#94A3B8',
         fontSize: 12,
@@ -560,71 +573,103 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         fontFamily: fonts.bodyRegular,
     },
-    syncText: {
-        color: '#94A3B8',
-        fontSize: 12,
-        lineHeight: 16,
+    addReminderButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    addReminderText: {
+        color: colors.primary,
+        fontSize: 15,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
-    vitalsGrid: {
-        marginTop: 4,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        rowGap: 12,
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
     },
-    vitalCard: {
-        width: '48.5%',
-        borderRadius: 16,
-        borderWidth: 1,
-        padding: 12,
-    },
-    vitalTop: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    vitalIconWrap: {
-        width: 42,
-        height: 42,
-        borderRadius: 10,
+    modalSheet: {
         backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        paddingBottom: 40,
+    },
+    modalHandle: {
+        width: 40,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: '#E5E7EB',
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+        color: colors.text,
+        marginBottom: 20,
+    },
+    modalLabel: {
+        fontSize: 14,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: 8,
+    },
+    modalOptional: {
+        fontSize: 13,
+        fontFamily: fonts.bodyRegular,
+        fontWeight: '400',
+        color: '#9CA3AF',
+    },
+    modalInput: {
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: '#F5F6FA',
+        paddingHorizontal: 18,
+        fontSize: 15,
+        fontFamily: fonts.bodyRegular,
+        color: colors.text,
+        marginBottom: 16,
+    },
+    modalActions: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 8,
+    },
+    modalCancelButton: {
+        flex: 1,
+        height: 52,
+        borderRadius: 26,
+        borderWidth: 1.5,
+        borderColor: '#E5E7EB',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    vitalStatus: {
-        fontSize: 12,
-        lineHeight: 16,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
-    vitalValueRow: {
-        marginTop: 12,
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-    },
-    vitalValue: {
-        color: colors.text,
-        fontSize: 38,
-        lineHeight: 36,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
-    vitalUnit: {
-        marginLeft: 4,
-        marginBottom: 4,
-        color: colors.textMuted,
-        fontSize: 14,
-        lineHeight: 18,
-        fontFamily: fonts.bodyMedium,
-    },
-    vitalLabel: {
-        marginTop: 4,
-        color: '#334155',
+    modalCancelText: {
         fontSize: 15,
-        lineHeight: 20,
-        fontFamily: fonts.bodyMedium,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        color: colors.textMuted,
+    },
+    modalSaveButton: {
+        flex: 1,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalSaveDisabled: {
+        backgroundColor: '#A5B4FC',
+    },
+    modalSaveText: {
+        fontSize: 15,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        color: '#FFFFFF',
     },
     quickTitle: {
         marginTop: 24,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { HealthRemindersScreen } from '@/src/features/patient/screens/HealthRemindersScreen';
-export default function LegacyPatientRecordsRoute() {
-    return <HealthRemindersScreen />;
+import { PatientRecordsScreen } from '@/src/features/patient/screens/PatientRecordsScreen';
+export default function PatientRecordsRoute() {
+    return <PatientRecordsScreen />;
 }

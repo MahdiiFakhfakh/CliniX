@@ -8,7 +8,7 @@ import AppIcon from '@/src/shared/components/AppIcon';
 const PAGE_TITLES = {
     '/schedule': 'Schedule',
     '/patients': 'Patients',
-    '/appointments': 'Appointments',
+    '/patient': 'Patient File',
     '/profile': 'Profile',
     '/preferences': 'Settings',
     '/notifications': 'Notifications',
@@ -36,7 +36,7 @@ const ROLE_CONFIG = {
         ],
     },
     doctor: {
-        title: 'Doctor Desk',
+        title: 'CliniX Doctor',
         searchRoute: '/(app)/(doctor)/patients',
         profileRoute: '/(app)/(doctor)/profile',
         tabs: [],
