@@ -5,7 +5,6 @@ import { toast } from "react-hot-toast";
 import {
   HiOutlineSearch,
   HiOutlineFilter,
-  HiOutlinePlus,
   HiOutlineDownload,
   HiOutlineMail,
   HiOutlinePhone,
@@ -495,10 +494,6 @@ const Doctors = () => {
               )}
             </button>
 
-            <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span className="hidden sm:inline">Add Doctor</span>
-            </button>
           </div>
         </div>
 
@@ -1098,10 +1093,6 @@ const Doctors = () => {
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export</span>
             </button>
-            <button className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span>Add Doctor</span>
-            </button>
           </div>
         </div>
 
@@ -1126,7 +1117,7 @@ const Doctors = () => {
               selectedStatus !== "all" ||
               selectedDepartment !== "all"
                 ? "Try adjusting your search or filters"
-                : "Start by adding your first doctor"}
+                : "No doctors to display"}
             </p>
             {searchTerm ||
             selectedSpecialization !== "all" ||
@@ -1139,12 +1130,7 @@ const Doctors = () => {
                 <HiOutlineRefresh className="w-5 h-5" />
                 Clear all filters
               </button>
-            ) : (
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg">
-                <HiOutlinePlus className="w-5 h-5" />
-                Add Doctor
-              </button>
-            )}
+            ) : null}
           </div>
         ) : (
           <>

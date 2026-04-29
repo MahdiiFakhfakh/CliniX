@@ -266,7 +266,6 @@ router.get("/patients/stats", protect, authorize("admin"), async (req, res) => {
 
     const male = await Patient.countDocuments({ gender: "male" });
     const female = await Patient.countDocuments({ gender: "female" });
-    const other = await Patient.countDocuments({ gender: "other" });
 
     const ageResult = await Patient.aggregate([
       { $match: { age: { $exists: true } } },
@@ -284,7 +283,6 @@ router.get("/patients/stats", protect, authorize("admin"), async (req, res) => {
         newThisMonth,
         male,
         female,
-        other,
         avgAge,
       },
     });
@@ -1802,7 +1800,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       Promise.all([
         Patient.countDocuments({ gender: "male" }),
         Patient.countDocuments({ gender: "female" }),
-        Patient.countDocuments({ gender: "other" }),
       ]),
 
       // Monthly revenue (last 6 months)
@@ -1857,7 +1854,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       bloodGroupDistribution: bloodGroupDistribution.map((b) => b.count),
       malePatients: genderDistribution[0],
       femalePatients: genderDistribution[1],
-      otherPatients: genderDistribution[2],
 
       // Revenue
       last6Months: getLast6Months(),
