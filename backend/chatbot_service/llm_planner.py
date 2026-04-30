@@ -73,9 +73,13 @@ class LLMPlanner:
             "pendingAction": (
                 agent_input.pending_action.model_dump(by_alias=True)
                 if agent_input.pending_action
-                else None
+            else None
             ),
         }
+        messages = [
+            {"role": "system", "content": PLANNER_SYSTEM_PROMPT},
+            {"role": "user", "content": json.dumps(user_context)},
+        ]
 
         try:
             async with httpx.AsyncClient(timeout=25) as client:
@@ -87,14 +91,36 @@ class LLMPlanner:
                     },
                     json={
                         "model": self.settings.openrouter_model,
-                        "messages": [
-                            {"role": "system", "content": PLANNER_SYSTEM_PROMPT},
-                            {"role": "user", "content": json.dumps(user_context)},
-                        ],
+                        "messages": messages,
                         "temperature": 0,
                         "response_format": {"type": "json_object"},
                     },
                 )
+                if (
+                    response.status_code == 400
+                    and "Developer instruction is not enabled" in response.text
+                ):
+                    response = await client.post(
+                        f"{self.settings.openrouter_base_url.rstrip('/')}/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.settings.openrouter_api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "model": self.settings.openrouter_model,
+                            "messages": [
+                                {
+                                    "role": "user",
+                                    "content": (
+                                        f"{PLANNER_SYSTEM_PROMPT}\n\n"
+                                        f"User context JSON:\n{json.dumps(user_context)}"
+                                    ),
+                                },
+                            ],
+                            "temperature": 0,
+                            "response_format": {"type": "json_object"},
+                        },
+                    )
         except httpx.HTTPError as exc:
             logger.warning("LLM planner request failed: %s", exc)
             return None
@@ -108,9 +134,13 @@ class LLMPlanner:
             return None
 
         try:
-            content = response.json()["choices"][0]["message"]["content"]
+            content = response.json()["choices"][0]["message"].get("content")
+            if not isinstance(content, str) or not content.strip():
+                logger.warning("LLM planner returned empty content: %s", response.text)
+                return None
+
             raw_plan: dict[str, Any] = json.loads(content)
             return ClinixPlannerOutput.model_validate(raw_plan)
-        except (KeyError, json.JSONDecodeError, ValidationError) as exc:
+        except (KeyError, IndexError, TypeError, json.JSONDecodeError, ValidationError) as exc:
             logger.warning("LLM planner returned invalid output: %s", exc)
             return None
