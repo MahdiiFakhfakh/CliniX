@@ -63,10 +63,10 @@ export default function DoctorTabsLayout() {
             <Tabs.Screen name="patients" options={{ href: null }}/>
             <Tabs.Screen name="appointments" options={{ href: null }}/>
             <Tabs.Screen name="profile" options={{ href: null }}/>
-            <Tabs.Screen name="patient/[patientId]" options={{ href: null }}/>
-            <Tabs.Screen name="patient/[patientId]/note" options={{ href: null }}/>
-            <Tabs.Screen name="patient/[patientId]/prescription" options={{ href: null }}/>
-            <Tabs.Screen name="patient/[patientId]/lab-request" options={{ href: null }}/>
+            <Tabs.Screen name="patient/[patientId]" options={{ href: null, headerShown: false }}/>
+            <Tabs.Screen name="patient/[patientId]/note" options={{ href: null, headerShown: false }}/>
+            <Tabs.Screen name="patient/[patientId]/prescription" options={{ href: null, headerShown: false }}/>
+            <Tabs.Screen name="patient/[patientId]/lab-request" options={{ href: null, headerShown: false }}/>
             <Tabs.Screen name="chat" options={{ href: null }}/>
             <Tabs.Screen name="clinix-ai" options={{ href: null }}/>
         </Tabs>
