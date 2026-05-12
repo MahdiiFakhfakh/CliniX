@@ -18,7 +18,7 @@ const palette = {
     danger: '#DC2626',
 };
 
-const tabs = ['History', 'Notes', 'Prescriptions', 'Results', 'Vitals'];
+const tabs = ['History', 'Prescriptions', 'Results', 'Vitals'];
 
 const formatDate = (value) => {
     const date = new Date(value);
@@ -81,15 +81,6 @@ export function DoctorPatientDetailScreen() {
             }));
         }
 
-        if (activeTab === 'Notes') {
-            return (detail.notes ?? []).map((note) => ({
-                id: note.id,
-                title: `SOAP ${formatDate(note.createdAt)}`,
-                body: `S: ${note.subjective}\nO: ${note.objective}\nA: ${note.assessment}\nP: ${note.plan}`,
-                meta: '',
-            }));
-        }
-
         if (activeTab === 'Prescriptions') {
             return (detail.prescriptions ?? []).map((item) => ({
                 id: item.id,
@@ -114,7 +105,7 @@ export function DoctorPatientDetailScreen() {
             body: vital.value,
             meta: formatDate(vital.recordedAt),
         }));
-    }, [activeTab, detail.history, detail.notes, detail.prescriptions, detail.results, detail.vitals]);
+    }, [activeTab, detail.history, detail.prescriptions, detail.results, detail.vitals]);
 
     return (
         <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
@@ -184,35 +175,6 @@ export function DoctorPatientDetailScreen() {
                         )}
                     </View>
 
-                    <View style={styles.actions}>
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel="Create SOAP note"
-                            onPress={() =>
-                                router.push({
-                                    pathname: '/(app)/(doctor)/patient/[patientId]/note',
-                                    params: { patientId },
-                                })
-                            }
-                            style={styles.primaryAction}
-                        >
-                            <Text style={styles.primaryActionText}>Create Note</Text>
-                        </Pressable>
-
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel="Create lab request"
-                            onPress={() =>
-                                router.push({
-                                    pathname: '/(app)/(doctor)/patient/[patientId]/lab-request',
-                                    params: { patientId },
-                                })
-                            }
-                            style={styles.dangerAction}
-                        >
-                            <Text style={styles.dangerActionText}>Create Lab Request</Text>
-                        </Pressable>
-                    </View>
                 </ScrollView>
             </View>
         </SafeAreaView>
@@ -366,52 +328,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         lineHeight: 17,
         fontFamily: fonts.bodyMedium,
-    },
-    actions: {
-        marginTop: 16,
-        gap: 10,
-    },
-    primaryAction: {
-        height: 50,
-        borderRadius: 14,
-        backgroundColor: palette.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    primaryActionText: {
-        color: '#FFFFFF',
-        fontSize: 15,
-        lineHeight: 20,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
-    secondaryAction: {
-        height: 50,
-        borderRadius: 14,
-        backgroundColor: '#E0E7FF',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    secondaryActionText: {
-        color: palette.primary,
-        fontSize: 15,
-        lineHeight: 20,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
-    dangerAction: {
-        height: 50,
-        borderRadius: 14,
-        backgroundColor: '#FEE2E2',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    dangerActionText: {
-        color: palette.danger,
-        fontSize: 15,
-        lineHeight: 20,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
     },
     emptyText: {
         color: palette.muted,
