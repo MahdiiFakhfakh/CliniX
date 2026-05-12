@@ -68,20 +68,13 @@ export async function fetchPrescriptions(patientId) {
         try {
             const response = await apiRequest({
                 method: 'GET',
-                url: `/patients/${patientId}`,
+                url: `/patients/${patientId}/prescriptions`,
             });
-            if (!response.success) {
+            if (!response.success || !Array.isArray(response.prescriptions)) {
                 ensureFallbackEnabled('Invalid doctor patient prescription response');
                 return getMockPrescriptions(patientId);
             }
-            if (Array.isArray(response.detail?.prescriptions)) {
-                return response.detail.prescriptions;
-            }
-            if (Array.isArray(response.prescriptions)) {
-                return response.prescriptions;
-            }
-            ensureFallbackEnabled('Missing prescriptions in doctor patient response');
-            return getMockPrescriptions(patientId);
+            return response.prescriptions;
         }
         catch (error) {
             if (!config.enableMockFallback) {
@@ -95,7 +88,7 @@ export async function fetchPrescriptions(patientId) {
             method: 'GET',
             url: '/patients/me/prescriptions',
         });
-        if (!response.success || !response.prescriptions) {
+        if (!response.success || !Array.isArray(response.prescriptions)) {
             ensureFallbackEnabled('Invalid patient prescriptions response');
             return getMockPrescriptions();
         }

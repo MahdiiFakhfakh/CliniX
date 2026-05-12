@@ -525,6 +525,31 @@ router.get("/patients/me/prescriptions", protect, authorize("patient", "admin"),
   }
 });
 
+router.get("/patients/:id/prescriptions", protect, authorize("doctor", "patient", "admin"), async (req, res) => {
+  try {
+    const patient = await Patient.findById(req.params.id);
+    if (!patient) {
+      return res.status(404).json({ success: false, message: "Patient not found" });
+    }
+
+    if (!ensurePatientCanAccess(req.user, patient)) {
+      return res.status(403).json({ success: false, message: "Not authorized to access this patient" });
+    }
+
+    const prescriptions = await Prescription.find({ patient: patient._id })
+      .populate("doctor", "firstName lastName fullName")
+      .sort({ date: -1 });
+
+    res.json({
+      success: true,
+      prescriptions: prescriptions.map((item) => mapPrescriptionForMobile(item, patient, item.doctor)),
+    });
+  } catch (error) {
+    console.error("GET /patients/:id/prescriptions failed:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch patient prescriptions" });
+  }
+});
+
 router.get("/doctors/me/schedule", protect, authorize("doctor", "admin"), async (req, res) => {
   try {
     const doctor = await getEffectiveDoctor(req.user);
