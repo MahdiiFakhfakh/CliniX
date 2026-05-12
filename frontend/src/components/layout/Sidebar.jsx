@@ -11,6 +11,7 @@ import {
   HiChatAlt2,
   HiBell,
   HiOutlineClock,
+  HiHeart,
 } from "react-icons/hi";
 
 const Sidebar = ({
@@ -70,43 +71,57 @@ const Sidebar = ({
   if (!isOpen) return null;
 
   const bgClass =
-    theme === "dark" ? "bg-gray-900 text-gray-200" : "bg-white text-gray-900";
-  const borderClass = theme === "dark" ? "border-gray-700" : "border-gray-200";
+    theme === "dark"
+      ? "bg-slate-950 text-slate-200"
+      : "bg-white/85 text-slate-900 backdrop-blur-xl";
+  const borderClass =
+    theme === "dark" ? "border-slate-800" : "border-teal-100/80";
   const hoverClass =
     theme === "dark"
-      ? "hover:bg-gray-800 hover:text-white"
-      : "hover:bg-gray-50 hover:text-gray-900";
+      ? "hover:bg-slate-900 hover:text-white"
+      : "hover:bg-teal-50 hover:text-teal-900";
 
   return (
     <aside
-      className={`w-64 ${bgClass} ${borderClass} border-r min-h-[calc(100vh-80px)] transition-all duration-300 ${
+      className={`w-72 ${bgClass} ${borderClass} border-r min-h-[calc(100vh-65px)] transition-all duration-300 shadow-[12px_0_40px_rgba(15,118,110,0.06)] ${
         isOpen ? "translate-x-0" : "-translate-x-full"
       } lg:translate-x-0 lg:block`}
     >
       {/* Header */}
-      <div className={`p-4 border-b ${borderClass}`}>
-        <h2 className="text-lg font-semibold">CliniX Admin</h2>
-        <p className="text-sm mt-1 text-gray-500">Navigation Menu</p>
+      <div className={`p-5 border-b ${borderClass}`}>
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-700 text-white shadow-sm shadow-teal-900/20">
+            <HiHeart className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-slate-950">
+              CliniX
+            </h2>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-teal-700">
+              Care Admin
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Navigation Links */}
       <nav className="p-4">
-        <ul className="space-y-1">
+        <ul className="space-y-1.5">
           {navItems.map((item) => (
             <li key={item.path}>
               <NavLink
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  `group flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
                     isActive
-                      ? "bg-blue-600 text-white border-l-4 border-blue-500"
-                      : hoverClass
+                      ? "bg-teal-700 text-white shadow-sm shadow-teal-900/20"
+                      : `${hoverClass} text-slate-600`
                   }`
                 }
                 end={item.path === "/dashboard"}
               >
-                {item.icon}
-                <span className="font-medium">{item.label}</span>
+                <span className="shrink-0">{item.icon}</span>
+                <span>{item.label}</span>
               </NavLink>
             </li>
           ))}
@@ -115,9 +130,9 @@ const Sidebar = ({
 
       {/* Notifications & System Status */}
       {(notifications.length > 0 || systemStatus) && (
-        <div className="p-4 border-t mt-4">
+        <div className={`p-4 border-t mt-4 ${borderClass}`}>
           <div
-            className={`rounded-lg p-4 ${theme === "dark" ? "bg-gray-800" : "bg-blue-50"}`}
+            className={`rounded-lg p-4 ${theme === "dark" ? "bg-slate-900" : "bg-teal-50 border border-teal-100"}`}
           >
             {notifications.length > 0 && (
               <div className="flex items-center justify-between">
@@ -127,13 +142,13 @@ const Sidebar = ({
                     {notifications.length} unread messages
                   </p>
                 </div>
-                <HiBell className="w-5 h-5 text-blue-600" />
+                <HiBell className="w-5 h-5 text-teal-700" />
               </div>
             )}
             {systemStatus && (
               <div className="flex items-center mt-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-xs text-green-600">{systemStatus}</span>
+                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
+                <span className="text-xs text-emerald-700">{systemStatus}</span>
               </div>
             )}
           </div>

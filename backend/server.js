@@ -32,6 +32,10 @@ app.use(
 );
 app.use(morgan("dev"));
 
+app.get("/api/health", (req, res) => {
+  res.json({ success: true, service: "clinix-backend" });
+});
+
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));

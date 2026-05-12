@@ -38,7 +38,9 @@ apiClient.interceptors.response.use((response) => response, (error) => {
         'Unexpected network error';
     const message = statusCode
         ? fallbackMessage
-        : 'Unable to connect. Please check your internet connection.';
+        : error.code === 'ECONNABORTED'
+            ? `Request timed out while waiting for API at ${config.apiBaseUrl}`
+            : `Network error. Unable to reach API at ${config.apiBaseUrl}`;
     if (statusCode === 401 && onUnauthorized) {
         onUnauthorized();
     }

@@ -52,21 +52,14 @@ router.get(
         status: "cancelled",
       });
 
-      // 5. Revenue (sum of fees from paid completed appointments)
-      const revenueResult = await Appointment.aggregate([
-        { $match: { status: "completed", paymentStatus: "paid" } },
-        { $group: { _id: null, total: { $sum: "$fee" } } },
-      ]);
-      const revenue = revenueResult[0]?.total || 0;
-
-      // 6. Recent appointments (last 5)
+      // 5. Recent appointments (last 5)
       const recentAppointments = await Appointment.find()
         .populate("patient", "firstName lastName patientId")
         .populate("doctor", "firstName lastName specialization")
         .sort({ date: -1, time: -1 })
         .limit(5);
 
-      // 7. Chart data: last 7 days appointments
+      // 6. Chart data: last 7 days appointments
       const last7Days = [];
       const appointmentsPerDay = [];
       for (let i = 6; i >= 0; i--) {
@@ -80,7 +73,7 @@ router.get(
         appointmentsPerDay.push(count);
       }
 
-      // 8. Patient growth (last 6 months)
+      // 7. Patient growth (last 6 months)
       const growthLabels = [];
       const patientGrowth = [];
       for (let i = 5; i >= 0; i--) {
@@ -94,7 +87,7 @@ router.get(
         patientGrowth.push(count);
       }
 
-      // 9. Stats object
+      // 8. Stats object
       const stats = {
         totalPatients,
         totalDoctors,
@@ -104,7 +97,6 @@ router.get(
         pendingAppointments,
         completedAppointments,
         cancelledAppointments,
-        revenue,
       };
 
       res.json({
@@ -370,12 +362,6 @@ router.get(
         },
       });
 
-      const revenueResult = await Appointment.aggregate([
-        { $match: { status: "completed", paymentStatus: "paid" } },
-        { $group: { _id: null, total: { $sum: "$fee" } } },
-      ]);
-      const revenue = revenueResult[0]?.total || 0;
-
       res.json({
         success: true,
         data: {
@@ -386,7 +372,6 @@ router.get(
           cancelled,
           noShow,
           todayAppointments,
-          revenue,
         },
       });
     } catch (error) {
@@ -576,7 +561,7 @@ router.get("/patients/:id", protect, authorize("admin"), async (req, res) => {
     const patient = await Patient.findById(req.params.id)
       .populate(
         "primaryDoctor",
-        "firstName lastName specialization email phone consultationFee",
+        "firstName lastName specialization email phone",
       )
       .populate({
         path: "appointments",
@@ -675,7 +660,7 @@ router.get("/patients/:id", protect, authorize("admin"), async (req, res) => {
     const patient = await Patient.findById(req.params.id)
       .populate(
         "primaryDoctor",
-        "firstName lastName specialization email phone consultationFee",
+        "firstName lastName specialization email phone",
       )
       .populate({
         path: "appointments",
@@ -1075,11 +1060,9 @@ router.post("/doctors", protect, authorize("admin"), async (req, res) => {
       qualifications,
       licenseNumber,
       experience,
-      hospital,
       department,
       email,
       phone,
-      consultationFee,
       availability,
       workingHours,
       bio,
@@ -1117,11 +1100,10 @@ router.post("/doctors", protect, authorize("admin"), async (req, res) => {
       qualifications: qualifications || [],
       licenseNumber,
       experience: experience || 0,
-      hospital: hospital || "City General Hospital",
+      hospital: "CliniX",
       department: department || specialization,
       email,
       phone,
-      consultationFee: consultationFee || 200,
       availability: availability || [],
       workingHours: workingHours || { start: "09:00", end: "17:00" },
       bio: bio || `Dr. ${lastName} is a specialist in ${specialization}.`,
@@ -1155,7 +1137,7 @@ router.put("/doctors/:id", protect, authorize("admin"), async (req, res) => {
 
     const doctor = await Doctor.findByIdAndUpdate(
       req.params.id,
-      { ...updates, updatedAt: new Date() },
+      { ...updates, hospital: "CliniX", updatedAt: new Date() },
       { new: true, runValidators: true },
     );
 
@@ -1699,7 +1681,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       totalDoctors,
       totalAppointments,
       totalPrescriptions,
-      totalRevenue,
 
       // Last 7 days appointments
       last7Days,
@@ -1715,9 +1696,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       ageDistribution,
       bloodGroupDistribution,
       genderDistribution,
-
-      // Monthly trends
-      monthlyRevenue,
 
       // Status distribution
       completedAppointments,
@@ -1736,7 +1714,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       patientGrowth,
       doctorGrowth,
       appointmentGrowth,
-      revenueGrowth,
       prescriptionGrowth,
       completionRate,
       completionTrend,
@@ -1745,12 +1722,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       Doctor.countDocuments(),
       Appointment.countDocuments(),
       Prescription.countDocuments(),
-
-      // Total revenue from paid completed appointments
-      Appointment.aggregate([
-        { $match: { status: "completed", paymentStatus: "paid" } },
-        { $group: { _id: null, total: { $sum: "$fee" } } },
-      ]).then((r) => r[0]?.total || 0),
 
       // Last 7 days labels
       getLast7Days(),
@@ -1810,9 +1781,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
         Patient.countDocuments({ gender: "female" }),
       ]),
 
-      // Monthly revenue (last 6 months)
-      getMonthlyRevenue(),
-
       // Status counts
       Appointment.countDocuments({ status: "completed" }),
       Appointment.countDocuments({ status: "scheduled" }),
@@ -1830,7 +1798,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       calculateGrowth(Patient, "patient"),
       calculateGrowth(Doctor, "doctor"),
       calculateGrowth(Appointment, "appointment"),
-      calculateRevenueGrowth(),
       calculateGrowth(Prescription, "prescription"),
       calculateCompletionRate(),
       calculateCompletionTrend(),
@@ -1843,7 +1810,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       totalDoctors,
       totalAppointments,
       totalPrescriptions,
-      totalRevenue,
 
       // Appointments Chart
       last7Days,
@@ -1864,10 +1830,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       femalePatients: genderDistribution[1],
       otherPatients: genderDistribution[2],
 
-      // Revenue
-      last6Months: getLast6Months(),
-      monthlyRevenue,
-
       // Status Distribution
       completedAppointments,
       scheduledAppointments,
@@ -1886,7 +1848,6 @@ router.get("/analytics", protect, authorize("admin"), async (req, res) => {
       patientGrowth,
       doctorGrowth,
       appointmentGrowth,
-      revenueGrowth,
       prescriptionGrowth,
       completionRate,
       completionTrend,
@@ -1945,39 +1906,6 @@ async function getAppointmentsByStatusPerDay(status) {
   return data;
 }
 
-async function getMonthlyRevenue() {
-  const data = [];
-  for (let i = 5; i >= 0; i--) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-    const revenue = await Appointment.aggregate([
-      {
-        $match: {
-          date: { $gte: startOfMonth, $lte: endOfMonth },
-          status: "completed",
-          paymentStatus: "paid",
-        },
-      },
-      { $group: { _id: null, total: { $sum: "$fee" } } },
-    ]);
-    data.push(revenue[0]?.total || 0);
-  }
-  return data;
-}
-
-function getLast6Months() {
-  const months = [];
-  for (let i = 5; i >= 0; i--) {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    months.push(format(date, "MMM"));
-  }
-  return months;
-}
-
 async function getTopConditions() {
   return Patient.aggregate([
     { $unwind: "$chronicConditions" },
@@ -2017,49 +1945,6 @@ async function calculateGrowth(model, type) {
 
   if (lastMonth === 0) return "+100%";
   const growth = (((thisMonth - lastMonth) / lastMonth) * 100).toFixed(0);
-  return `${growth > 0 ? "+" : ""}${growth}%`;
-}
-
-async function calculateRevenueGrowth() {
-  const thisMonth = await Appointment.aggregate([
-    {
-      $match: {
-        date: {
-          $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        },
-        status: "completed",
-        paymentStatus: "paid",
-      },
-    },
-    { $group: { _id: null, total: { $sum: "$fee" } } },
-  ]);
-
-  const lastMonth = await Appointment.aggregate([
-    {
-      $match: {
-        date: {
-          $gte: new Date(
-            new Date().getFullYear(),
-            new Date().getMonth() - 1,
-            1,
-          ),
-          $lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        },
-        status: "completed",
-        paymentStatus: "paid",
-      },
-    },
-    { $group: { _id: null, total: { $sum: "$fee" } } },
-  ]);
-
-  const thisMonthTotal = thisMonth[0]?.total || 0;
-  const lastMonthTotal = lastMonth[0]?.total || 0;
-
-  if (lastMonthTotal === 0) return "+100%";
-  const growth = (
-    ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) *
-    100
-  ).toFixed(0);
   return `${growth > 0 ? "+" : ""}${growth}%`;
 }
 

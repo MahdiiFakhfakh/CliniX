@@ -24,7 +24,6 @@ import {
   HiOutlineChartBar,
   HiOutlineDocumentDuplicate,
   HiOutlineVideoCamera,
-  HiOutlineCurrencyDollar,
   HiOutlineDocumentText,
 } from "react-icons/hi";
 import { format, isToday, isTomorrow, isThisWeek, parseISO } from "date-fns";
@@ -51,7 +50,6 @@ const Appointments = () => {
     scheduled: 0,
     completed: 0,
     cancelled: 0,
-    revenue: 0,
   });
 
   const navigate = useNavigate();
@@ -123,14 +121,6 @@ const Appointments = () => {
                       : appt.status === "no_show"
                         ? "No Show"
                         : appt.status,
-          paymentStatusColor:
-            appt.paymentStatus === "paid"
-              ? "green"
-              : appt.paymentStatus === "pending"
-                ? "yellow"
-                : appt.paymentStatus === "partial"
-                  ? "blue"
-                  : "red",
           typeIcon:
             appt.type === "video" ? (
               <HiOutlineVideoCamera className="w-4 h-4" />
@@ -447,8 +437,6 @@ const Appointments = () => {
         "Time",
         "Type",
         "Status",
-        "Fee",
-        "Payment Status",
       ],
       ...filteredAppointments.map((a) => [
         a.appointmentId,
@@ -458,8 +446,6 @@ const Appointments = () => {
         a.time,
         a.type,
         a.status,
-        a.fee || 0,
-        a.paymentStatus || "pending",
       ]),
     ]
       .map((row) => row.join(","))
@@ -498,7 +484,7 @@ const Appointments = () => {
   // STATS CARDS COMPONENT
   // ============================================
   const StatsCards = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
@@ -564,20 +550,15 @@ const Appointments = () => {
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Revenue</p>
+            <p className="text-sm font-medium text-gray-500">Cancelled</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              $
-              {(
-                stats.revenue ||
-                appointments.reduce((sum, a) => sum + (a.fee || 0), 0)
-              ).toLocaleString()}
+              {stats.cancelled ||
+                appointments.filter((a) => a.status === "cancelled").length}
             </p>
-            <p className="text-xs text-purple-600 mt-1">
-              From completed appointments
-            </p>
+            <p className="text-xs text-red-600 mt-1">Cancelled visits</p>
           </div>
-          <div className="bg-purple-100 p-3 rounded-2xl">
-            <HiOutlineCurrencyDollar className="w-6 h-6 text-purple-600" />
+          <div className="bg-red-100 p-3 rounded-2xl">
+            <HiOutlineXCircle className="w-6 h-6 text-red-600" />
           </div>
         </div>
       </div>
@@ -804,9 +785,6 @@ const Appointments = () => {
                 Status
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Payment
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -904,24 +882,6 @@ const Appointments = () => {
                     <option value="cancelled">Cancelled</option>
                     <option value="no_show">No Show</option>
                   </select>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`
-                    px-3 py-1.5 rounded-lg text-xs font-semibold
-                    ${
-                      appointment.paymentStatus === "paid"
-                        ? "bg-green-100 text-green-700"
-                        : appointment.paymentStatus === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : appointment.paymentStatus === "partial"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-red-100 text-red-700"
-                    }
-                  `}
-                  >
-                    ${appointment.fee || 0}
-                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex items-center space-x-3">
@@ -1095,31 +1055,6 @@ const Appointments = () => {
                   <p className="font-medium text-gray-900 capitalize">
                     {selectedAppointment.type}
                   </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Fee</p>
-                  <p className="font-medium text-gray-900">
-                    ${selectedAppointment.fee || 0}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Payment Status</p>
-                  <span
-                    className={`
-                    inline-block px-3 py-1 rounded-lg text-xs font-semibold mt-1
-                    ${
-                      selectedAppointment.paymentStatus === "paid"
-                        ? "bg-green-100 text-green-700"
-                        : selectedAppointment.paymentStatus === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : selectedAppointment.paymentStatus === "partial"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-red-100 text-red-700"
-                    }
-                  `}
-                  >
-                    {selectedAppointment.paymentStatus}
-                  </span>
                 </div>
               </div>
             </div>

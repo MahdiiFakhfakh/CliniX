@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bar, Line, Doughnut } from "react-chartjs-2";
+import { Bar, Doughnut } from "react-chartjs-2";
 import axios from "axios";
 import Loader from "../components/common/Loader";
 import {
@@ -8,8 +8,6 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
   ArcElement,
   Title,
   Tooltip,
@@ -20,7 +18,6 @@ import {
   HiOutlineUsers,
   HiOutlineUserGroup,
   HiOutlineCalendar,
-  HiOutlineCurrencyDollar,
   HiOutlineDocumentText,
   HiOutlineClipboardList,
   HiOutlineTrendingUp,
@@ -45,8 +42,6 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
   ArcElement,
   Title,
   Tooltip,
@@ -187,29 +182,6 @@ const Analytics = () => {
     },
   };
 
-  const revenueOptions = {
-    ...chartOptions,
-    plugins: {
-      ...chartOptions.plugins,
-      tooltip: {
-        ...chartOptions.plugins.tooltip,
-        callbacks: {
-          label: (context) => `$${context.raw.toLocaleString()}`,
-        },
-      },
-    },
-    scales: {
-      ...chartOptions.scales,
-      y: {
-        ...chartOptions.scales.y,
-        ticks: {
-          ...chartOptions.scales.y.ticks,
-          callback: (value) => `$${value.toLocaleString()}`,
-        },
-      },
-    },
-  };
-
   if (isLoading) return <Loader />;
 
   if (error) {
@@ -273,16 +245,6 @@ const Analytics = () => {
         textColor: "text-purple-600",
       },
       {
-        title: "Total Revenue",
-        value: `$${data?.totalRevenue?.toLocaleString() || 0}`,
-        change: data?.revenueGrowth || "+22.8%",
-        trend: "up",
-        icon: <HiOutlineCurrencyDollar className="w-7 h-7" />,
-        bgGradient: "from-indigo-500 to-indigo-600",
-        lightBg: "bg-indigo-50",
-        textColor: "text-indigo-600",
-      },
-      {
         title: "Prescriptions",
         value: data?.totalPrescriptions || 0,
         change: data?.prescriptionGrowth || "+10.4%",
@@ -305,7 +267,7 @@ const Analytics = () => {
     ];
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {stats.map((stat, idx) => (
           <div
             key={idx}
@@ -348,9 +310,9 @@ const Analytics = () => {
   };
 
   // ============================================
-  // APPOINTMENTS & REVENUE CHARTS
+  // APPOINTMENT ACTIVITY CHART
   // ============================================
-  const AppointmentsRevenueSection = () => {
+  const AppointmentActivitySection = () => {
     // Appointments Chart Data - FROM DATABASE
     const appointmentsChartData = {
       labels: data?.last7Days || [],
@@ -379,29 +341,8 @@ const Analytics = () => {
       ],
     };
 
-    // Revenue Chart Data - FROM DATABASE
-    const revenueChartData = {
-      labels: data?.last6Months || [],
-      datasets: [
-        {
-          label: "Revenue",
-          data: data?.monthlyRevenue || [],
-          borderColor: "rgba(99, 102, 241, 1)",
-          backgroundColor: "rgba(99, 102, 241, 0.1)",
-          borderWidth: 2,
-          pointBorderColor: "rgba(99, 102, 241, 1)",
-          pointBackgroundColor: "white",
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          tension: 0.3,
-          fill: true,
-        },
-      ],
-    };
-
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         {/* Appointments Chart */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
@@ -430,26 +371,6 @@ const Analytics = () => {
           </div>
           <div className="h-80">
             <Bar data={appointmentsChartData} options={chartOptions} />
-          </div>
-        </div>
-
-        {/* Revenue Chart */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Revenue Trend
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Monthly revenue (last 6 months)
-              </p>
-            </div>
-            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-3 rounded-xl">
-              <HiOutlineCurrencyDollar className="w-6 h-6 text-indigo-600" />
-            </div>
-          </div>
-          <div className="h-80">
-            <Line data={revenueChartData} options={revenueOptions} />
           </div>
         </div>
       </div>
@@ -741,7 +662,7 @@ const Analytics = () => {
     };
 
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         {/* Top Conditions */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
@@ -907,11 +828,6 @@ const Analytics = () => {
     const topDoctorPrescriptions =
       data?.prescriptionsPerDoctor?.[0]?.count || 0;
 
-    const avgRevenue =
-      data?.totalRevenue && totalAppointments
-        ? Math.round(data.totalRevenue / totalAppointments)
-        : 185;
-
     const noShowRate =
       data?.noShowAppointments && totalAppointments
         ? ((data.noShowAppointments / totalAppointments) * 100).toFixed(1)
@@ -981,14 +897,6 @@ const Analytics = () => {
         </div>
 
         <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
-              Average Revenue per Appointment
-            </span>
-            <span className="font-bold text-gray-900">
-              ${avgRevenue.toLocaleString()}
-            </span>
-          </div>
           <div className="flex items-center justify-between text-sm mt-2">
             <span className="text-gray-600">Total Patients Served</span>
             <span className="font-bold text-gray-900">
@@ -1045,8 +953,8 @@ const Analytics = () => {
         {/* Stats Overview - From Database */}
         <StatsOverview />
 
-        {/* Appointments & Revenue - From Database */}
-        <AppointmentsRevenueSection />
+        {/* Appointment activity - From Database */}
+        <AppointmentActivitySection />
 
         {/* Patient Demographics - From Database */}
         <PatientDemographicsSection />

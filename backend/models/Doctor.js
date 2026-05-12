@@ -42,7 +42,10 @@ const doctorSchema = new mongoose.Schema({
     min: 0,
     default: 0,
   },
-  hospital: String,
+  hospital: {
+    type: String,
+    default: "CliniX",
+  },
   department: {
     type: String,
     required: [true, "Department is required"],
