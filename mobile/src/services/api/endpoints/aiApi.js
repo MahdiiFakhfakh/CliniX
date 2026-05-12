@@ -7,6 +7,7 @@ export async function chatWithClinixAI(payload) {
         const response = await apiRequest({
             method: 'POST',
             url: '/chatbot/chat',
+            timeout: 180000,
             data: {
                 // only send the latest user message
                 // backend handles history from MongoDB

@@ -96,36 +96,35 @@ const seedDatabase = async () => {
     // ============================================
 
     const doctorSpecializations = [
-      { spec: "Cardiology", dept: "Cardiology", fee: 250, exp: 15 },
-      { spec: "Pediatrics", dept: "Pediatrics", fee: 180, exp: 12 },
-      { spec: "Orthopedics", dept: "Orthopedics", fee: 220, exp: 14 },
-      { spec: "Neurology", dept: "Neurology", fee: 300, exp: 18 },
-      { spec: "Dermatology", dept: "Dermatology", fee: 160, exp: 10 },
-      { spec: "Gynecology", dept: "Gynecology", fee: 200, exp: 13 },
-      { spec: "Ophthalmology", dept: "Ophthalmology", fee: 170, exp: 11 },
-      { spec: "Psychiatry", dept: "Psychiatry", fee: 190, exp: 12 },
-      { spec: "Oncology", dept: "Oncology", fee: 350, exp: 20 },
-      { spec: "Endocrinology", dept: "Endocrinology", fee: 210, exp: 14 },
-      { spec: "Gastroenterology", dept: "Gastroenterology", fee: 230, exp: 16 },
-      { spec: "Nephrology", dept: "Nephrology", fee: 240, exp: 15 },
-      { spec: "Pulmonology", dept: "Pulmonology", fee: 220, exp: 13 },
-      { spec: "Urology", dept: "Urology", fee: 250, exp: 17 },
-      { spec: "Rheumatology", dept: "Rheumatology", fee: 210, exp: 14 },
-      { spec: "Hematology", dept: "Hematology", fee: 260, exp: 16 },
+      { spec: "Cardiology", dept: "Cardiology", exp: 15 },
+      { spec: "Pediatrics", dept: "Pediatrics", exp: 12 },
+      { spec: "Orthopedics", dept: "Orthopedics", exp: 14 },
+      { spec: "Neurology", dept: "Neurology", exp: 18 },
+      { spec: "Dermatology", dept: "Dermatology", exp: 10 },
+      { spec: "Gynecology", dept: "Gynecology", exp: 13 },
+      { spec: "Ophthalmology", dept: "Ophthalmology", exp: 11 },
+      { spec: "Psychiatry", dept: "Psychiatry", exp: 12 },
+      { spec: "Oncology", dept: "Oncology", exp: 20 },
+      { spec: "Endocrinology", dept: "Endocrinology", exp: 14 },
+      { spec: "Gastroenterology", dept: "Gastroenterology", exp: 16 },
+      { spec: "Nephrology", dept: "Nephrology", exp: 15 },
+      { spec: "Pulmonology", dept: "Pulmonology", exp: 13 },
+      { spec: "Urology", dept: "Urology", exp: 17 },
+      { spec: "Rheumatology", dept: "Rheumatology", exp: 14 },
+      { spec: "Hematology", dept: "Hematology", exp: 16 },
       {
         spec: "Infectious Disease",
         dept: "Internal Medicine",
-        fee: 230,
         exp: 15,
       },
-      { spec: "Allergy & Immunology", dept: "Allergy", fee: 170, exp: 11 },
-      { spec: "Emergency Medicine", dept: "Emergency", fee: 280, exp: 12 },
-      { spec: "Family Medicine", dept: "Family Medicine", fee: 150, exp: 9 },
-      { spec: "Geriatrics", dept: "Geriatrics", fee: 180, exp: 14 },
-      { spec: "Neonatology", dept: "Pediatrics", fee: 290, exp: 16 },
-      { spec: "Vascular Surgery", dept: "Surgery", fee: 400, exp: 19 },
-      { spec: "Plastic Surgery", dept: "Surgery", fee: 450, exp: 17 },
-      { spec: "Cardiothoracic Surgery", dept: "Surgery", fee: 500, exp: 22 },
+      { spec: "Allergy & Immunology", dept: "Allergy", exp: 11 },
+      { spec: "Emergency Medicine", dept: "Emergency", exp: 12 },
+      { spec: "Family Medicine", dept: "Family Medicine", exp: 9 },
+      { spec: "Geriatrics", dept: "Geriatrics", exp: 14 },
+      { spec: "Neonatology", dept: "Pediatrics", exp: 16 },
+      { spec: "Vascular Surgery", dept: "Surgery", exp: 19 },
+      { spec: "Plastic Surgery", dept: "Surgery", exp: 17 },
+      { spec: "Cardiothoracic Surgery", dept: "Surgery", exp: 22 },
     ];
 
     const firstNames = [
@@ -230,29 +229,6 @@ const seedDatabase = async () => {
       "Mitchell",
     ];
 
-    const hospitals = [
-      "City General Hospital",
-      "St. Mary's Medical Center",
-      "University Medical Center",
-      "Community Health Hospital",
-      "Memorial Hospital",
-      "Presbyterian Medical Center",
-      "Mercy General Hospital",
-      "Veterans Affairs Medical Center",
-      "Children's Hospital",
-      "Regional Medical Center",
-      "Harborview Medical Center",
-      "Cedars-Sinai Medical Center",
-      "Johns Hopkins Hospital",
-      "Mayo Clinic",
-      "Cleveland Clinic",
-      "Massachusetts General",
-      "Stanford Health Care",
-      "UCLA Medical Center",
-      "NYU Langone Health",
-      "Mount Sinai Hospital",
-    ];
-
     const qualifications = [
       ["MD", "PhD"],
       ["MD", "FACC"],
@@ -334,11 +310,10 @@ const seedDatabase = async () => {
         qualifications: qualifications[i % qualifications.length],
         licenseNumber: `${spec.spec.substring(0, 4).toUpperCase()}${100000 + i}`,
         experience: spec.exp,
-        hospital: hospitals[Math.floor(Math.random() * hospitals.length)],
+        hospital: "CliniX",
         department: spec.dept,
         phone: generatePhoneNumber(),
         email,
-        consultationFee: spec.fee + Math.floor(Math.random() * 50),
         availability,
         workingHours: { start: "09:00", end: "17:00" },
         bio: `Dr. ${lastName} is a board-certified ${spec.spec.toLowerCase()} specialist with ${spec.exp} years of experience.`,
@@ -594,16 +569,6 @@ const seedDatabase = async () => {
       "cancelled",
       "no_show",
     ];
-    const paymentStatuses = [
-      "paid",
-      "paid",
-      "paid",
-      "paid",
-      "pending",
-      "pending",
-      "cancelled",
-    ];
-
     const appointments = [];
 
     // Generate appointments from Jan 2026 to Jun 2026
@@ -640,9 +605,6 @@ const seedDatabase = async () => {
           appointmentStatuses[
             Math.floor(Math.random() * appointmentStatuses.length)
           ],
-        fee: doctor.consultationFee,
-        paymentStatus:
-          paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)],
         notes: Math.random() > 0.7 ? "Patient reported improvement" : "",
         diagnosis:
           appointmentDate < new Date() && Math.random() > 0.3

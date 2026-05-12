@@ -44,8 +44,45 @@ def _doctor_summary(doctor: dict[str, Any]) -> DoctorSummary:
         specialization=doctor.get("specialization", "General Medicine"),
         department=doctor.get("department"),
         status=doctor.get("status"),
-        consultationFee=doctor.get("consultationFee"),
         experience=doctor.get("experience"),
+    )
+
+
+def _doctor_search_query(fields: list[str]) -> dict[str, Any]:
+    filters: list[dict[str, Any]] = []
+    for field in fields:
+        escaped = re.escape(field)
+        filters.extend(
+            [
+                {"specialization": {"$regex": escaped, "$options": "i"}},
+                {"department": {"$regex": escaped, "$options": "i"}},
+            ],
+        )
+
+    if not filters:
+        return {}
+    return {"$or": filters}
+
+
+def _doctor_field_priority(doctor: dict[str, Any], fields: list[str]) -> int:
+    specialization = str(doctor.get("specialization") or "").lower()
+    department = str(doctor.get("department") or "").lower()
+    for index, field in enumerate(fields):
+        field = field.lower()
+        if field in specialization or field in department:
+            return index
+    return len(fields)
+
+
+def _doctor_sort_key(doctor: dict[str, Any], fields: list[str]) -> tuple[int, int, float, int]:
+    status_rank = 0 if doctor.get("status") == "available" else 1
+    rating = float((doctor.get("ratings") or {}).get("average") or 0)
+    experience = int(doctor.get("experience") or 0)
+    return (
+        _doctor_field_priority(doctor, fields),
+        status_rank,
+        -rating,
+        -experience,
     )
 
 
@@ -160,33 +197,30 @@ async def list_doctors(
     db: AsyncIOMotorDatabase,
     payload: ListDoctorsInput,
 ) -> ListDoctorsOutput:
-    query: dict[str, Any] = {}
-    field = payload.field
-    if field:
-        escaped = re.escape(field)
-        query = {
-            "$or": [
-                {"specialization": {"$regex": escaped, "$options": "i"}},
-                {"department": {"$regex": escaped, "$options": "i"}},
-                {"fullName": {"$regex": escaped, "$options": "i"}},
-            ],
-        }
+    fields = [payload.field, *payload.related_fields] if payload.field else payload.related_fields
+    fields = [field for field in fields if field]
+    query = _doctor_search_query(fields)
 
-    cursor = (
-        db.doctors.find(query)
-        .sort([("status", 1), ("ratings.average", -1), ("experience", -1)])
-        .limit(payload.limit)
-    )
-    doctors = [_doctor_summary(doctor) async for doctor in cursor]
+    raw_doctors = await db.doctors.find(query).to_list(length=None)
+    if fields:
+        raw_doctors.sort(key=lambda doctor: _doctor_sort_key(doctor, fields))
+    else:
+        raw_doctors.sort(key=lambda doctor: _doctor_sort_key(doctor, []))
+
+    doctors = [_doctor_summary(doctor) for doctor in raw_doctors[: payload.limit]]
     if not doctors:
         return ListDoctorsOutput(
             success=True,
-            field=field,
+            field=payload.field,
             doctors=[],
-            message=f"No doctors found for {field}." if field else "No doctors found.",
+            message=(
+                f"No doctors found for {payload.field}."
+                if payload.field
+                else "No doctors found."
+            ),
         )
 
-    return ListDoctorsOutput(success=True, field=field, doctors=doctors)
+    return ListDoctorsOutput(success=True, field=payload.field, doctors=doctors)
 
 
 async def get_available_slots(
@@ -351,8 +385,6 @@ async def book_appointment(
         "reason": payload.reason,
         "symptoms": [],
         "status": "scheduled",
-        "fee": doctor.get("consultationFee", 0),
-        "paymentStatus": "pending",
         "reminderSent": False,
         "createdBy": ObjectId(patient_user_id),
         "createdAt": datetime.utcnow(),

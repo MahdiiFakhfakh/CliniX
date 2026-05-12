@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "chatbot": "uv run --python 3.12 --with-requirements requirements.txt uvicorn chatbot_service.main:app --host 0.0.0.0 --port 8001",
+    "chatbot": "node scripts/runChatbot.js",
     "dev:chatbot": "uv run --python 3.12 --with-requirements requirements.txt uvicorn chatbot_service.main:app --reload --host 0.0.0.0 --port 8001",
     "seed": "node scripts/seedDatabase.js"
   },

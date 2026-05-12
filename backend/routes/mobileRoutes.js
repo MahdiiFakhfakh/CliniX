@@ -369,8 +369,6 @@ router.post("/appointments", protect, authorize("patient", "admin"), async (req,
       reason,
       status: "scheduled",
       type: "consultation",
-      fee: doctor.consultationFee || 0,
-      paymentStatus: "pending",
       createdBy: req.user._id,
     });
 

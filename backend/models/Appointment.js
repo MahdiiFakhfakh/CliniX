@@ -53,16 +53,6 @@ const appointmentSchema = new mongoose.Schema({
     ],
     default: "scheduled",
   },
-  fee: {
-    type: Number,
-    default: 0,
-    min: 0,
-  },
-  paymentStatus: {
-    type: String,
-    enum: ["pending", "paid", "partial", "cancelled"],
-    default: "pending",
-  },
   notes: String,
   diagnosis: String,
   prescription: {

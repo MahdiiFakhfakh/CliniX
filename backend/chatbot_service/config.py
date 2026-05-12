@@ -17,12 +17,15 @@ class Settings(BaseSettings):
     mongo_database: str | None = Field(default=None, alias="MONGO_DATABASE")
     jwt_secret: str = Field(default="", alias="JWT_SECRET")
     chatbot_gateway_secret: str = Field(default="", alias="CHATBOT_GATEWAY_SECRET")
-    openrouter_api_key: str = Field(default="", alias="OPENROUTER_API_KEY")
-    openrouter_model: str = Field(default="openai/gpt-4o-mini", alias="OPENROUTER_MODEL")
-    openrouter_base_url: str = Field(
-        default="https://openrouter.ai/api/v1",
-        alias="OPENROUTER_BASE_URL",
+    ollama_base_url: str = Field(
+        default="http://127.0.0.1:11434",
+        alias="OLLAMA_BASE_URL",
     )
+    ollama_model: str = Field(default="qwen3:4b", alias="OLLAMA_MODEL")
+    ollama_timeout_seconds: float = Field(default=180, alias="OLLAMA_TIMEOUT_SECONDS")
+    ollama_keep_alive: str = Field(default="2h", alias="OLLAMA_KEEP_ALIVE")
+    ollama_num_ctx: int = Field(default=2048, alias="OLLAMA_NUM_CTX")
+    ollama_num_predict: int = Field(default=256, alias="OLLAMA_NUM_PREDICT")
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 import logging
 from typing import Any
@@ -10,6 +11,7 @@ from .agent import ClinixAgent
 from .auth import get_current_user_id
 from .config import get_settings
 from .database import close_database, get_database
+from .llm_planner import LLMPlanner
 from .models import (
     ChatReply,
     ChatRequest,
@@ -44,6 +46,11 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown() -> None:
     await close_database()
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    asyncio.create_task(LLMPlanner().warm_up())
 
 
 @app.get("/health")

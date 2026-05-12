@@ -4,7 +4,6 @@ import {
   HiUsers,
   HiUserGroup,
   HiCalendar,
-  HiCurrencyDollar,
   HiClipboardList,
   HiClock,
   HiTrendingUp,
@@ -66,7 +65,6 @@ const Dashboard = () => {
             pendingAppointments: 12,
             completedAppointments: 312,
             cancelledAppointments: 28,
-            revenue: 24560,
           },
           recentAppointments: [
             {
@@ -175,17 +173,6 @@ const Dashboard = () => {
       lightBg: "bg-orange-50",
       iconColor: "text-orange-600",
       borderColor: "border-orange-200",
-    },
-    {
-      title: "Revenue",
-      value: `$${data?.stats?.revenue?.toLocaleString() || "24,560"}`,
-      icon: <HiCurrencyDollar className="w-6 h-6" />,
-      change: "+22%",
-      trend: "up",
-      bgGradient: "from-indigo-500 to-indigo-600",
-      lightBg: "bg-indigo-50",
-      iconColor: "text-indigo-600",
-      borderColor: "border-indigo-200",
     },
     {
       title: "Pending",

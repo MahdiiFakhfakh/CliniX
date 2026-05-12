@@ -12,7 +12,6 @@ import {
   HiOutlineCalendar,
   HiOutlineClock,
   HiOutlineStar,
-  HiOutlineCurrencyDollar,
   HiOutlineAcademicCap,
   HiOutlineBriefcase,
   HiOutlineLocationMarker,
@@ -89,12 +88,6 @@ const Doctors = () => {
               .toUpperCase() || "DR",
           ratingStars: doctor.ratings?.average || 4.5,
           reviewCount: doctor.ratings?.totalReviews || 0,
-          formattedFee: doctor.consultationFee
-            ? new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-              }).format(doctor.consultationFee)
-            : "$0",
           experienceText: doctor.experience
             ? `${doctor.experience} ${doctor.experience === 1 ? "year" : "years"}`
             : "N/A",
@@ -288,10 +281,6 @@ const Doctors = () => {
       if (sortBy === "experience") {
         aVal = a.experience || 0;
         bVal = b.experience || 0;
-      }
-      if (sortBy === "consultationFee") {
-        aVal = a.consultationFee || 0;
-        bVal = b.consultationFee || 0;
       }
 
       if (sortOrder === "asc") {
@@ -619,17 +608,6 @@ const Doctors = () => {
             Experience{" "}
             {sortBy === "experience" && (sortOrder === "asc" ? "↑" : "↓")}
           </button>
-          <button
-            onClick={() => handleSort("consultationFee")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
-              sortBy === "consultationFee"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
-            }`}
-          >
-            Fee{" "}
-            {sortBy === "consultationFee" && (sortOrder === "asc" ? "↑" : "↓")}
-          </button>
         </div>
       </div>
     </div>
@@ -725,10 +703,6 @@ const Doctors = () => {
                 <span>{doctor.experienceText}</span>
               </div>
               <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineCurrencyDollar className="w-4 h-4 mr-2 text-gray-400" />
-                <span className="font-medium">{doctor.formattedFee}</span>
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
                 <HiOutlineAcademicCap className="w-4 h-4 mr-2 text-gray-400" />
                 <span>{doctor.qualifications?.[0] || "MD"}</span>
               </div>
@@ -782,7 +756,7 @@ const Doctors = () => {
                 Contact
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Experience & Fee
+                Experience
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Rating
@@ -841,15 +815,12 @@ const Doctors = () => {
                     {doctor.phone || "N/A"}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {doctor.hospital || "City Hospital"}
+                    {doctor.hospital || "CliniX"}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
                     {doctor.experienceText}
-                  </div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {doctor.formattedFee}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -981,14 +952,6 @@ const Doctors = () => {
                   {selectedDoctor.experience || 0} yrs
                 </p>
               </div>
-              <div className="bg-green-50 p-4 rounded-xl">
-                <p className="text-sm text-green-600 font-medium">
-                  Consultation Fee
-                </p>
-                <p className="text-2xl font-bold text-green-900">
-                  ${selectedDoctor.consultationFee || 0}
-                </p>
-              </div>
               <div className="bg-purple-50 p-4 rounded-xl">
                 <p className="text-sm text-purple-600 font-medium">License</p>
                 <p className="text-lg font-semibold text-purple-900">
@@ -1024,7 +987,7 @@ const Doctors = () => {
                   <span className="font-medium w-24 inline-block">
                     Hospital:
                   </span>
-                  {selectedDoctor.hospital || "Not provided"}
+                  {selectedDoctor.hospital || "CliniX"}
                 </p>
               </div>
             </div>

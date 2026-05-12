@@ -180,7 +180,6 @@ class DoctorSummary(BaseModel):
     specialization: str
     department: str | None = None
     status: str | None = None
-    consultation_fee: float | int | None = Field(default=None, alias="consultationFee")
     experience: int | None = None
 
     model_config = ConfigDict(populate_by_name=True)
@@ -191,7 +190,10 @@ class ListDoctorsInput(BaseModel):
         default=None,
         description="Medical specialization or department, for example Cardiology.",
     )
+    related_fields: list[str] = Field(default_factory=list, alias="relatedFields")
     limit: int = Field(default=5, ge=1, le=20)
+
+    model_config = ConfigDict(populate_by_name=True)
 
     @field_validator("field")
     @classmethod
@@ -200,6 +202,19 @@ class ListDoctorsInput(BaseModel):
             return None
         value = value.strip()
         return value or None
+
+    @field_validator("related_fields")
+    @classmethod
+    def strip_related_fields(cls, value: list[str]) -> list[str]:
+        cleaned: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            item = item.strip()
+            key = item.lower()
+            if item and key not in seen:
+                cleaned.append(item)
+                seen.add(key)
+        return cleaned
 
 
 class ListDoctorsOutput(BaseModel):

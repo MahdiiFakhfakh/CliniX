@@ -1,10 +1,10 @@
 from datetime import datetime
+import logging
 import re
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from .llm_planner import LLMPlanner
-from .medical_routing import field_from_symptom
 from .models import (
     BookAppointmentInput,
     CheckAvailableSlotsInput,
@@ -20,14 +20,72 @@ from .models import (
 from .tools import book_appointment, check_available_slots, get_available_slots, list_doctors
 
 
+logger = logging.getLogger(__name__)
+
+
 class ClinixAgent:
     """Own CliniX agent that coordinates LLM planning, tools, and memory."""
+
+    _medical_fields_cache: list[str] | None = None
+    _SYMPTOM_RELATED_SPECIALTIES = {
+        "headache": [
+            "Neurology",
+            "Family Medicine",
+            "Internal Medicine",
+            "Emergency Medicine",
+            "Ophthalmology",
+        ],
+        "migraine": [
+            "Neurology",
+            "Family Medicine",
+            "Internal Medicine",
+            "Emergency Medicine",
+            "Ophthalmology",
+        ],
+        "dizziness": [
+            "Neurology",
+            "Family Medicine",
+            "Internal Medicine",
+            "Emergency Medicine",
+            "Cardiology",
+        ],
+        "cough": [
+            "Pulmonology",
+            "Infectious Disease",
+            "Family Medicine",
+            "Internal Medicine",
+            "Emergency Medicine",
+            "Pediatrics",
+        ],
+        "fever": [
+            "Infectious Disease",
+            "Family Medicine",
+            "Internal Medicine",
+            "Emergency Medicine",
+            "Pediatrics",
+            "Pulmonology",
+        ],
+        "flu": [
+            "Infectious Disease",
+            "Family Medicine",
+            "Internal Medicine",
+            "Emergency Medicine",
+            "Pediatrics",
+            "Pulmonology",
+        ],
+    }
 
     def __init__(self, db: AsyncIOMotorDatabase) -> None:
         self.db = db
         self.planner = LLMPlanner()
 
     async def run(self, agent_input: ClinixAgentInput) -> ClinixAgentOutput:
+        if self._is_greeting(agent_input.message):
+            return ClinixAgentOutput(
+                content="Hello! How can I help you today?",
+                intent=ModelIntent.greeting,
+            )
+
         if agent_input.pending_action and self._booking_was_completed_after_pending(
             agent_input.history,
         ):
@@ -52,21 +110,21 @@ class ClinixAgent:
         if slot_selection:
             return self._with_memory_updates(slot_selection)
 
-        plan = await self.planner.plan(agent_input)
+        plan = await self.planner.plan(
+            agent_input,
+            available_specialties=await self._available_medical_fields(),
+        )
         if plan is None:
-            fallback_output = await self._known_symptom_failsafe(agent_input.message)
-            if fallback_output:
-                return self._with_memory_updates(fallback_output)
-
             return ClinixAgentOutput(
                 content=(
                     "The language model is unavailable, so I cannot understand that "
-                    "request right now. Please check OPENROUTER_API_KEY, credits, and "
-                    "OPENROUTER_MODEL in backend/.env, then restart the chatbot service."
+                    "request right now. Please check OLLAMA_BASE_URL, OLLAMA_MODEL, "
+                    "and that Ollama is running, then restart the chatbot service."
                 ),
                 intent=ModelIntent.unknown,
             )
 
+        plan = await self._prefer_current_message_symptoms(plan, agent_input.message)
         output = await self._execute_plan(plan, agent_input)
         return self._with_memory_updates(output)
 
@@ -102,14 +160,15 @@ class ClinixAgent:
         )
 
     async def _list_doctors(self, plan: ClinixPlannerOutput) -> ClinixAgentOutput:
-        field = plan.field or self._field_from_symptom(plan.symptom)
+        field = plan.field
         if not field:
             return ClinixAgentOutput(
-                content="Which medical field or symptom should I search for?",
+                content="Which medical specialty should I search for?",
                 intent=ModelIntent.doctor_search,
             )
 
-        payload = ListDoctorsInput(field=field, limit=8)
+        related_fields = await self._related_specialties_for_search(field, plan.symptom)
+        payload = ListDoctorsInput(field=field, relatedFields=related_fields, limit=12)
         result = await list_doctors(self.db, payload)
         tool_call = self._tool_call("list_doctors", payload, result)
 
@@ -120,13 +179,11 @@ class ClinixAgent:
                 toolCalls=[tool_call],
             )
 
-        lines = [f"I found these doctors for {field}:"]
+        if related_fields:
+            lines = [f"I found these doctors for {plan.symptom or field}:"]
+        else:
+            lines = [f"I found these doctors for {field}:"]
         for index, doctor in enumerate(result.doctors, start=1):
-            fee = (
-                f", fee ${doctor.consultation_fee}"
-                if doctor.consultation_fee is not None
-                else ""
-            )
             experience = (
                 f", {doctor.experience} years experience"
                 if doctor.experience is not None
@@ -134,44 +191,10 @@ class ClinixAgent:
             )
             lines.append(
                 f"{index}. Dr. {doctor.doctor_name} - {doctor.specialization} "
-                f"({doctor.status or 'status unknown'}{experience}{fee})"
+                f"({doctor.status or 'status unknown'}{experience})"
             )
         lines.append("Ask for availability if you want open time slots.")
 
-        return ClinixAgentOutput(
-            content="\n".join(lines),
-            intent=ModelIntent.doctor_search,
-            toolCalls=[tool_call],
-        )
-
-    async def _known_symptom_failsafe(self, message: str) -> ClinixAgentOutput | None:
-        field = self._field_from_symptom(message)
-        if not field:
-            return None
-
-        payload = ListDoctorsInput(field=field, limit=5)
-        result = await list_doctors(self.db, payload)
-        tool_call = self._tool_call("list_doctors", payload, result)
-        if not result.doctors:
-            return ClinixAgentOutput(
-                content=(
-                    f"That symptom is commonly handled by {field}, but I could not "
-                    "find matching doctors in the database."
-                ),
-                intent=ModelIntent.doctor_search,
-                toolCalls=[tool_call],
-            )
-
-        lines = [
-            f"For that symptom, {field} is usually the relevant field.",
-            f"I found these {field} doctors:",
-        ]
-        for index, doctor in enumerate(result.doctors, start=1):
-            lines.append(
-                f"{index}. Dr. {doctor.doctor_name} - {doctor.specialization} "
-                f"({doctor.status or 'status unknown'})"
-            )
-        lines.append("Ask for availability if you want open time slots.")
         return ClinixAgentOutput(
             content="\n".join(lines),
             intent=ModelIntent.doctor_search,
@@ -180,7 +203,7 @@ class ClinixAgent:
 
     async def _check_availability(self, plan: ClinixPlannerOutput) -> ClinixAgentOutput:
         requested = self._parse_date(plan.date)
-        field = plan.field or self._field_from_symptom(plan.symptom)
+        field = plan.field
         if not requested:
             return ClinixAgentOutput(
                 content="Which date should I check?",
@@ -224,7 +247,7 @@ class ClinixAgent:
 
     async def _prepare_booking(self, plan: ClinixPlannerOutput) -> ClinixAgentOutput:
         appointment_at = self._parse_datetime(plan.date, plan.time)
-        field = plan.field or self._field_from_symptom(plan.symptom)
+        field = plan.field
         reason = plan.reason or plan.symptom
 
         missing = []
@@ -381,6 +404,90 @@ class ClinixAgent:
             result=result.model_dump(by_alias=True),
         )
 
+    async def _available_medical_fields(self) -> list[str]:
+        if ClinixAgent._medical_fields_cache is not None:
+            return ClinixAgent._medical_fields_cache
+
+        try:
+            specializations = await self.db.doctors.distinct("specialization")
+            departments = await self.db.doctors.distinct("department")
+        except Exception as exc:
+            logger.warning("Could not load doctor specialties for planner: %s", exc)
+            return []
+
+        fields = {
+            str(value).strip()
+            for value in [*specializations, *departments]
+            if value and str(value).strip().lower() != "management"
+        }
+        ClinixAgent._medical_fields_cache = sorted(fields, key=str.lower)
+        return ClinixAgent._medical_fields_cache
+
+    async def _related_specialties_for_search(
+        self,
+        field: str,
+        symptom: str | None,
+    ) -> list[str]:
+        if not symptom:
+            return []
+
+        symptom_text = symptom.lower()
+        related: list[str] = []
+        for keyword, specialties in self._SYMPTOM_RELATED_SPECIALTIES.items():
+            if keyword in symptom_text:
+                related = specialties
+                break
+
+        if not related:
+            return []
+
+        available = {item.lower(): item for item in await self._available_medical_fields()}
+        exact_key = field.lower()
+        return [
+            available[specialty.lower()]
+            for specialty in related
+            if specialty.lower() in available and specialty.lower() != exact_key
+        ]
+
+    async def _prefer_current_message_symptoms(
+        self,
+        plan: ClinixPlannerOutput,
+        message: str,
+    ) -> ClinixPlannerOutput:
+        if plan.action not in {"list_doctors", "check_availability", "prepare_booking"}:
+            return plan
+
+        message_text = message.lower()
+        current_symptoms = [
+            keyword
+            for keyword in self._SYMPTOM_RELATED_SPECIALTIES
+            if re.search(rf"\b{re.escape(keyword)}\b", message_text)
+        ]
+        if not current_symptoms:
+            return plan
+
+        planned_symptom = (plan.symptom or "").lower()
+        if planned_symptom and all(symptom in planned_symptom for symptom in current_symptoms):
+            return plan
+
+        available = {item.lower(): item for item in await self._available_medical_fields()}
+        field = plan.field
+        for symptom in current_symptoms:
+            for specialty in self._SYMPTOM_RELATED_SPECIALTIES[symptom]:
+                if specialty.lower() in available:
+                    field = available[specialty.lower()]
+                    break
+            if field:
+                break
+
+        return plan.model_copy(
+            update={
+                "field": field,
+                "symptom": " and ".join(current_symptoms),
+                "reason": plan.reason or " and ".join(current_symptoms),
+            },
+        )
+
     def _parse_date(self, value: str | None) -> datetime | None:
         if not value:
             return None
@@ -396,9 +503,6 @@ class ClinixAgent:
             return datetime.fromisoformat(f"{date_value}T{time_value}")
         except ValueError:
             return None
-
-    def _field_from_symptom(self, symptom: str | None) -> str | None:
-        return field_from_symptom(symptom)
 
     def _booking_confirmation_text(self, pending: PendingAction) -> str:
         return (
@@ -430,6 +534,17 @@ class ClinixAgent:
             "reserve it",
         }
         return normalized in confirmation_phrases
+
+    def _is_greeting(self, message: str) -> bool:
+        normalized = re.sub(r"[!.,\s]+", " ", message.strip().lower()).strip()
+        return normalized in {
+            "hi",
+            "hello",
+            "hey",
+            "good morning",
+            "good afternoon",
+            "good evening",
+        }
 
     def _pending_booking_from_history(self, history: list) -> PendingAction | None:
         for item in reversed(history):

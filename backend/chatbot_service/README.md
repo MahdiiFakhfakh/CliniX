@@ -20,10 +20,16 @@ MONGO_URI=mongodb://127.0.0.1:27017/clinix
 JWT_SECRET=your_jwt_secret
 CHATBOT_SERVICE_URL=http://127.0.0.1:8001
 CHATBOT_GATEWAY_SECRET=optional_shared_secret
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3:4b
+OLLAMA_TIMEOUT_SECONDS=180
+OLLAMA_KEEP_ALIVE=2h
+OLLAMA_NUM_CTX=2048
+OLLAMA_NUM_PREDICT=256
 ```
 
-The chatbot uses an external LLM only for language understanding/planning, then
-keeps all real actions inside local Python code:
+The chatbot uses an LLM only for language understanding/planning, then keeps all
+real actions inside local Python code:
 
 - `LLMPlanner`: converts user language into a typed Pydantic plan.
 - `ClinixAgent`: owns the workflow, memory, validation, and tool calls.
@@ -32,8 +38,10 @@ keeps all real actions inside local Python code:
 
 The model does not directly book appointments or invent database data. The
 request, response, planner, agent, and tool contracts are all Pydantic models.
-If the LLM key is missing or the provider fails, the service falls back to a
-simple local parser so the app still works during development.
+For local models through Ollama, make sure `ollama list` shows the exact model in
+`OLLAMA_MODEL`. If Ollama is missing or the model fails, the agent can still
+handle direct confirmations and slot selections from existing chat context, but
+new natural-language medical routing needs the configured local model.
 
 ## Run
 
