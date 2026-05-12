@@ -43,4 +43,5 @@ export const config = {
     enableMockServer: (process.env.EXPO_PUBLIC_ENABLE_MOCK_SERVER ?? 'false') === 'true',
     enableMockFallback: (process.env.EXPO_PUBLIC_ENABLE_MOCK_FALLBACK ?? 'true') === 'true',
     appName: 'CliniX Mobile',
+     enableMockFallback: false,
 };
