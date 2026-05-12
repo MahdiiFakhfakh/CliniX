@@ -8,8 +8,6 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
   ArcElement,
   Title,
   Tooltip,
@@ -44,8 +42,6 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
   ArcElement,
   Title,
   Tooltip,
@@ -419,18 +415,13 @@ const Analytics = () => {
 
     // Gender Distribution - FROM DATABASE
     const genderData = {
-      labels: ["Male", "Female", "Other"],
+      labels: ["Male", "Female"],
       datasets: [
         {
-          data: [
-            data?.malePatients || 0,
-            data?.femalePatients || 0,
-            data?.otherPatients || 0,
-          ],
+          data: [data?.malePatients || 0, data?.femalePatients || 0],
           backgroundColor: [
             "rgba(59, 130, 246, 0.85)",
             "rgba(236, 72, 153, 0.85)",
-            "rgba(156, 163, 175, 0.85)",
           ],
           borderWidth: 0,
         },
@@ -444,10 +435,6 @@ const Analytics = () => {
     ).toFixed(1);
     const femalePercentage = (
       ((data?.femalePatients || 0) / (totalPatients || 1)) *
-      100
-    ).toFixed(1);
-    const otherPercentage = (
-      ((data?.otherPatients || 0) / (totalPatients || 1)) *
       100
     ).toFixed(1);
 
@@ -551,20 +538,6 @@ const Analytics = () => {
                 </span>
                 <span className="text-xs text-gray-500">
                   ({femalePercentage}%)
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
-                <span className="text-xs text-gray-700">Other</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-900">
-                  {data?.otherPatients || 0}
-                </span>
-                <span className="text-xs text-gray-500">
-                  ({otherPercentage}%)
                 </span>
               </div>
             </div>

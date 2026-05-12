@@ -1,0 +1,470 @@
+import { useRouter } from 'expo-router';
+import React, { useMemo } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { fonts } from '@/src/core/theme/tokens';
+import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
+import { useChatMessagesQuery } from '@/src/features/chat/hooks/useChatMessagesQuery';
+import { useDoctorAlertsQuery } from '@/src/features/doctor/hooks/useDoctorAlertsQuery';
+import { LoadingView } from '@/src/shared/components/LoadingView';
+import AppIcon from '@/src/shared/components/AppIcon';
+
+const palette = {
+    background: '#F3F4F8',
+    surface: '#FFFFFF',
+    primary: '#1D4ED8',
+    primaryPressed: '#1E40AF',
+    text: '#111827',
+    muted: '#6B7280',
+    border: '#E5E7EB',
+    softPrimary: '#E0E7FF',
+    danger: '#DC2626',
+    warning: '#D97706',
+};
+
+const formatDay = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return 'Today';
+    }
+    return new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+    }).format(date);
+};
+
+const buildDateTime = (appointment) => {
+    const day = formatDay(appointment.date);
+    const time = appointment.time || '09:00 AM';
+    return `${day}  ${time}`;
+};
+
+const severityStyle = (severity) => {
+    if (severity === 'high') {
+        return { color: palette.danger, icon: 'alert-circle' };
+    }
+    if (severity === 'medium') {
+        return { color: palette.warning, icon: 'warning' };
+    }
+    return { color: '#16A34A', icon: 'checkmark-circle' };
+};
+
+export function DoctorDashboardScreen() {
+    const router = useRouter();
+    const scheduleQuery = useAppointmentsQuery('doctor');
+    const alertsQuery = useDoctorAlertsQuery();
+    const messagesQuery = useChatMessagesQuery('doctor');
+
+    const isRefreshing = scheduleQuery.isRefetching || alertsQuery.isRefetching || messagesQuery.isRefetching;
+
+    const handleRefresh = () => {
+        void Promise.all([scheduleQuery.refetch(), alertsQuery.refetch(), messagesQuery.refetch()]);
+    };
+
+    const appointments = scheduleQuery.data ?? [];
+    const now = Date.now();
+    const sortedUpcoming = [...appointments]
+        .filter((item) => item.status !== 'cancelled')
+        .sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            return dateA - dateB;
+        });
+
+    const nextAppointment = sortedUpcoming.find((item) => new Date(item.date).getTime() >= now) ?? sortedUpcoming[0];
+    const todayAppointments = sortedUpcoming.filter((item) => {
+        const itemDay = new Date(item.date).toDateString();
+        return itemDay === new Date().toDateString();
+    });
+
+    const unreadCount = useMemo(
+        () => (messagesQuery.data ?? []).filter((message) => message.senderRole === 'patient').length,
+        [messagesQuery.data],
+    );
+
+    if (scheduleQuery.isLoading || alertsQuery.isLoading || messagesQuery.isLoading) {
+        return (
+            <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+                <LoadingView label="Loading doctor dashboard..." />
+            </SafeAreaView>
+        );
+    }
+
+    return (
+        <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+            <View style={styles.container}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={<RefreshControl onRefresh={handleRefresh} refreshing={isRefreshing} />}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.metricsRow}>
+                        <View style={styles.metricCard}>
+                            <Text style={styles.metricLabel}>Today's Patients</Text>
+                            <Text style={styles.metricValue}>{todayAppointments.length}</Text>
+                        </View>
+                        <View style={styles.metricCard}>
+                            <Text style={styles.metricLabel}>Unread Messages</Text>
+                            <Text style={styles.metricValue}>{unreadCount}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Next Consultation</Text>
+                        <Pressable onPress={() => router.push('/(app)/(doctor)/schedule')}>
+                            <Text style={styles.viewAll}>View Schedule</Text>
+                        </Pressable>
+                    </View>
+
+                    {nextAppointment ? (
+                        <View style={styles.appointmentCard}>
+                            <View style={styles.appointmentTopRow}>
+                                <View style={styles.chip}>
+                                    <Text style={styles.chipText}>UPCOMING</Text>
+                                </View>
+                                <Text style={styles.appointmentStatus}>{nextAppointment.status.replace('_', ' ')}</Text>
+                            </View>
+
+                            <Text style={styles.patientName}>{nextAppointment.patientName}</Text>
+                            <Text style={styles.departmentText}>{nextAppointment.department}</Text>
+                            <Text style={styles.dateLine}>{buildDateTime(nextAppointment)}</Text>
+
+                            <View style={styles.appointmentActions}>
+                                {nextAppointment.patientId ? (
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Open patient file"
+                                        onPress={() =>
+                                            router.push({
+                                                pathname: '/(app)/(doctor)/patient/[patientId]',
+                                                params: { patientId: nextAppointment.patientId },
+                                            })
+                                        }
+                                        style={({ pressed }) => [
+                                            styles.primaryButton,
+                                            pressed && styles.primaryButtonPressed,
+                                        ]}
+                                    >
+                                        <AppIcon color="#FFFFFF" name="folder-open" size={16} />
+                                        <Text style={styles.primaryButtonText}>Open File</Text>
+                                    </Pressable>
+                                ) : null}
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Open schedule"
+                                    onPress={() => router.push('/(app)/(doctor)/schedule')}
+                                    style={styles.secondaryButton}
+                                >
+                                    <AppIcon color="#374151" name="calendar-outline" size={16} />
+                                    <Text style={styles.secondaryButtonText}>Schedule</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    ) : (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>No consultations are scheduled right now.</Text>
+                        </View>
+                    )}
+
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Clinical Alerts</Text>
+                        <Pressable onPress={() => router.push('/(app)/(doctor)/notifications')}>
+                            <Text style={styles.viewAll}>Open Alerts</Text>
+                        </Pressable>
+                    </View>
+
+                    <View style={styles.alertList}>
+                        {(alertsQuery.data ?? []).length === 0 ? (
+                            <View style={styles.emptyCard}>
+                                <Text style={styles.emptyText}>No active alerts.</Text>
+                            </View>
+                        ) : (
+                            (alertsQuery.data ?? []).slice(0, 3).map((alert) => {
+                                const severity = severityStyle(alert.severity);
+                                return (
+                                    <View key={alert.id} style={styles.alertCard}>
+                                        <AppIcon color={severity.color} name={severity.icon} size={18} />
+                                        <View style={styles.alertTextWrap}>
+                                            <Text style={styles.alertTitle}>{alert.title}</Text>
+                                            <Text style={styles.alertDescription}>{alert.description}</Text>
+                                        </View>
+                                    </View>
+                                );
+                            })
+                        )}
+                    </View>
+
+                    <Text style={styles.sectionTitle}>Quick Actions</Text>
+                    <View style={styles.quickActionsRow}>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Open patient list"
+                            onPress={() => router.push('/(app)/(doctor)/patients')}
+                            style={styles.quickAction}
+                        >
+                            <View style={styles.quickIconWrap}>
+                                <AppIcon color={palette.primary} name="people" size={22} />
+                            </View>
+                            <Text style={styles.quickLabel}>Patients</Text>
+                        </Pressable>
+
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Open schedule"
+                            onPress={() => router.push('/(app)/(doctor)/schedule')}
+                            style={styles.quickAction}
+                        >
+                            <View style={styles.quickIconWrap}>
+                                <AppIcon color={palette.primary} name="calendar" size={22} />
+                            </View>
+                            <Text style={styles.quickLabel}>Schedule</Text>
+                        </Pressable>
+
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Open CliniX AI"
+                            onPress={() => router.push('/(app)/(doctor)/clinix-ai')}
+                            style={styles.quickAction}
+                        >
+                            <View style={styles.quickIconWrap}>
+                                <AppIcon color={palette.primary} name="sparkles" size={22} />
+                            </View>
+                            <Text style={styles.quickLabel}>CliniX AI</Text>
+                        </Pressable>
+                    </View>
+                </ScrollView>
+            </View>
+        </SafeAreaView>
+    );
+}
+
+const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: palette.background,
+    },
+    container: {
+        flex: 1,
+        backgroundColor: palette.background,
+    },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 110,
+    },
+    metricsRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    metricCard: {
+        flex: 1,
+        backgroundColor: palette.surface,
+        borderColor: palette.border,
+        borderWidth: 1,
+        borderRadius: 16,
+        padding: 14,
+    },
+    metricLabel: {
+        color: palette.muted,
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: fonts.bodyMedium,
+    },
+    metricValue: {
+        marginTop: 6,
+        color: palette.primary,
+        fontSize: 30,
+        lineHeight: 32,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    sectionHeader: {
+        marginTop: 22,
+        marginBottom: 8,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    sectionTitle: {
+        color: palette.text,
+        fontSize: 19,
+        lineHeight: 24,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    viewAll: {
+        color: palette.primary,
+        fontSize: 14,
+        lineHeight: 19,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    appointmentCard: {
+        backgroundColor: palette.surface,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: palette.border,
+        padding: 16,
+    },
+    appointmentTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    chip: {
+        backgroundColor: palette.softPrimary,
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+    },
+    chipText: {
+        color: palette.primary,
+        fontSize: 11,
+        lineHeight: 14,
+        letterSpacing: 0.4,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    appointmentStatus: {
+        color: palette.muted,
+        fontSize: 13,
+        lineHeight: 18,
+        textTransform: 'capitalize',
+        fontFamily: fonts.bodyMedium,
+    },
+    patientName: {
+        marginTop: 12,
+        color: palette.text,
+        fontSize: 22,
+        lineHeight: 28,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    departmentText: {
+        color: '#4B5563',
+        fontSize: 15,
+        lineHeight: 20,
+        fontFamily: fonts.bodyRegular,
+    },
+    dateLine: {
+        marginTop: 5,
+        color: palette.muted,
+        fontSize: 14,
+        lineHeight: 19,
+        fontFamily: fonts.bodyMedium,
+    },
+    appointmentActions: {
+        marginTop: 14,
+        flexDirection: 'row',
+        gap: 10,
+    },
+    primaryButton: {
+        flex: 1,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: palette.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 6,
+    },
+    primaryButtonPressed: {
+        backgroundColor: palette.primaryPressed,
+    },
+    primaryButtonText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        lineHeight: 20,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    secondaryButton: {
+        flex: 1,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: '#E5E7EB',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 6,
+    },
+    secondaryButtonText: {
+        color: '#374151',
+        fontSize: 15,
+        lineHeight: 20,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    alertList: {
+        gap: 10,
+    },
+    alertCard: {
+        backgroundColor: palette.surface,
+        borderColor: palette.border,
+        borderWidth: 1,
+        borderRadius: 14,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    alertTextWrap: {
+        marginLeft: 10,
+        flex: 1,
+    },
+    alertTitle: {
+        color: palette.text,
+        fontSize: 15,
+        lineHeight: 20,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    alertDescription: {
+        marginTop: 2,
+        color: palette.muted,
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: fonts.bodyRegular,
+    },
+    quickActionsRow: {
+        marginTop: 14,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 10,
+    },
+    quickAction: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    quickIconWrap: {
+        width: 62,
+        height: 62,
+        borderRadius: 31,
+        backgroundColor: '#D8DAF3',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
+    },
+    quickLabel: {
+        textAlign: 'center',
+        color: palette.text,
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    emptyCard: {
+        backgroundColor: palette.surface,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: palette.border,
+        padding: 14,
+    },
+    emptyText: {
+        color: palette.muted,
+        fontSize: 14,
+        lineHeight: 20,
+        fontFamily: fonts.bodyRegular,
+        textAlign: 'center',
+    },
+});

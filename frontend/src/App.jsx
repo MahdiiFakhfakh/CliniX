@@ -24,16 +24,27 @@ import Settings from "./pages/Settings";
 const queryClient = new QueryClient();
 
 function App() {
+  const hasToken = Boolean(localStorage.getItem("token"));
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
         <Toaster position="top-right" />
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/"
+            element={
+              <Navigate to={hasToken ? "/dashboard" : "/login"} replace />
+            }
+          />
           <Route path="/login" element={<Login />} />
 
           {/* Protected Routes */}
           <Route element={<PrivateRoute />}>
+            <Route
+              path="/analytics"
+              element={<Navigate to="/dashboard/analytics" replace />}
+            />
             <Route path="/dashboard" element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="patients" element={<Patients />} />

@@ -814,7 +814,7 @@ const Doctors = () => {
                     {doctor.phone || "N/A"}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {doctor.hospital || "City Hospital"}
+                    {doctor.hospital || "CliniX"}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -986,7 +986,7 @@ const Doctors = () => {
                   <span className="font-medium w-24 inline-block">
                     Hospital:
                   </span>
-                  {selectedDoctor.hospital || "Not provided"}
+                  {selectedDoctor.hospital || "CliniX"}
                 </p>
               </div>
             </div>

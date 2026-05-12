@@ -42,7 +42,10 @@ const doctorSchema = new mongoose.Schema({
     min: 0,
     default: 0,
   },
-  hospital: String,
+  hospital: {
+    type: String,
+    default: "CliniX",
+  },
   department: {
     type: String,
     required: [true, "Department is required"],
@@ -56,11 +59,6 @@ const doctorSchema = new mongoose.Schema({
     required: [true, "Email is required"],
     unique: true,
     lowercase: true,
-  },
-  consultationFee: {
-    type: Number,
-    required: [true, "Consultation fee is required"],
-    min: 0,
   },
   availability: [
     {

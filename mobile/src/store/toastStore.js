@@ -1,0 +1,41 @@
+import { create } from 'zustand';
+function createToastId() {
+    return `toast-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+export const useToastStore = create((set, get) => ({
+    toasts: [],
+    pushToast: (toast) => {
+        const id = createToastId();
+        set((state) => ({
+            toasts: [...state.toasts, { ...toast, id }],
+        }));
+        setTimeout(() => {
+            get().dismissToast(id);
+        }, toast.durationMs);
+        return id;
+    },
+    dismissToast: (id) => {
+        set((state) => ({
+            toasts: state.toasts.filter((toast) => toast.id !== id),
+        }));
+    },
+}));
+export function showToast(params) {
+    return useToastStore.getState().pushToast({
+        message: params.message,
+        type: params.type ?? 'info',
+        durationMs: params.durationMs ?? 3200,
+    });
+}
+export function showErrorToast(error, fallback = 'Something went wrong. Please try again.') {
+    const message = typeof error === 'string' && error.trim().length > 0
+        ? error
+        : error instanceof Error && error.message.trim().length > 0
+            ? error.message
+            : fallback;
+    return showToast({
+        message,
+        type: 'error',
+        durationMs: 3600,
+    });
+}
