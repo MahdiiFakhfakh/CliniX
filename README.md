@@ -12,7 +12,6 @@ doctors, nurses, and IoT devices into a single intelligent platform.
 ## Main Actors
 - Patient
 - Doctor
-- Nurse
 
 ## Key Features
 - Appointment booking and management
