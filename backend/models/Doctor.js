@@ -59,8 +59,8 @@ const doctorSchema = new mongoose.Schema({
   },
   consultationFee: {
     type: Number,
-    required: [true, "Consultation fee is required"],
     min: 0,
+    default: 0,
   },
   availability: [
     {
@@ -114,7 +114,7 @@ const doctorSchema = new mongoose.Schema({
   ],
   status: {
     type: String,
-    enum: ["available", "on_leave", "unavailable"],
+    enum: ["pending", "available", "on_leave", "unavailable"],
     default: "available",
   },
   notes: String,

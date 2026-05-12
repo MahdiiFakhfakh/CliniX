@@ -77,6 +77,12 @@ const mapRoleProfile = async (user) => {
 const mapAuthUser = async (user) => {
   const profile = await mapRoleProfile(user);
 
+  let status = null;
+  if (user.role === "doctor") {
+    const doctor = await Doctor.findOne({ user: user._id }).lean();
+    status = doctor?.status ?? null;
+  }
+
   return {
     id: user._id.toString(),
     email: user.email,
@@ -84,6 +90,7 @@ const mapAuthUser = async (user) => {
     name: profile.fullName,
     department: profile.department,
     phone: profile.phone,
+    status,
     profile,
   };
 };

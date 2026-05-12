@@ -114,8 +114,6 @@ export function DoctorNotificationsScreen() {
         <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
             <View style={styles.container}>
                 <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false}>
-                    <Text style={styles.title}>Notifications</Text>
-
                     <View style={styles.filterRow}>
                         {FILTERS.map((item) => {
                             const active = filter === item.key;
@@ -222,13 +220,7 @@ const styles = StyleSheet.create({
     content: {
         paddingHorizontal: spacing.md,
         paddingTop: spacing.sm,
-        flexGrow: 1,
-    },
-    title: {
-        color: colors.text,
-        fontSize: typography.h3,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
+        paddingBottom: 16,
     },
     filterRow: {
         marginTop: spacing.sm,

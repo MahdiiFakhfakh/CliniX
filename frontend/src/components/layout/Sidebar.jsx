@@ -8,7 +8,9 @@ import {
   HiChartBar,
   HiCog,
   HiClipboardList,
+  HiChatAlt2,
   HiBell,
+  HiOutlineClock,
 } from "react-icons/hi";
 
 const Sidebar = ({
@@ -44,9 +46,19 @@ const Sidebar = ({
       icon: <HiClipboardList className="w-5 h-5" />,
     },
     {
+      path: "/dashboard/messages",
+      label: "Messages",
+      icon: <HiChatAlt2 className="w-5 h-5" />,
+    },
+    {
       path: "/dashboard/analytics",
       label: "Analytics",
       icon: <HiChartBar className="w-5 h-5" />,
+    },
+    {
+      path: "/dashboard/approvals",
+      label: "Doctor Approvals",
+      icon: <HiOutlineClock className="w-5 h-5" />,
     },
     {
       path: "/dashboard/settings",

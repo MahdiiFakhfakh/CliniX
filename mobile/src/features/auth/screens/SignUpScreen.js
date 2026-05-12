@@ -154,10 +154,13 @@ export function SignUpScreen() {
             } else {
                 setStep(3);
             }
+        } else if (step === 3) {
+            handleCreateAccount();
         }
     };
 
     const handleBack = () => {
+        if (loading) return;
         if (step > 1) {
             setStep((s) => s - 1);
             setErrors({});
@@ -416,6 +419,8 @@ export function SignUpScreen() {
                 />
                 {errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}
             </View>
+
+            {errors.submit ? <Text style={[styles.errorText, styles.submitError]}>{errors.submit}</Text> : null}
         </>
     );
 
@@ -622,7 +627,7 @@ export function SignUpScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={isLastStep ? 'Create Account' : 'Next'}
                         disabled={loading}
-                        onPress={isLastStep ? handleCreateAccount : handleNext}
+                        onPress={handleNext}
                         style={({ pressed }) => [
                             styles.primaryButton,
                             pressed && styles.primaryButtonPressed,

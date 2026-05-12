@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
     },
     content: {
-        flexGrow: 1,
+        paddingBottom: 16,
     },
     toolbarRow: {
         paddingHorizontal: spacing.md,

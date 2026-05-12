@@ -2,14 +2,24 @@ import { config } from '@/src/core/config/env';
 import { getMockDoctorAlerts, getMockDoctorPatientDetail, getMockDoctorPatients, getMockLabResults, getMockMedicalSummary, getMockPatientProfile, getMockPrescriptions, } from '@/src/mocks/records';
 import { apiRequest } from '@/src/services/api/client';
 const mapRiskFromStatus = (status) => {
-    if (status === 'inactive') {
-        return 'high';
-    }
-    if (status === 'pending') {
-        return 'medium';
-    }
+    if (status === 'inactive') return 'high';
+    if (status === 'pending') return 'medium';
     return 'low';
 };
+
+const calcAge = (dateOfBirth) => {
+    if (!dateOfBirth) return null;
+    const dob = new Date(dateOfBirth);
+    if (Number.isNaN(dob.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return age;
+};
+
+const cleanPhone = (phone) =>
+    !phone || phone === '00000000' ? null : phone;
 const ensureFallbackEnabled = (message) => {
     if (!config.enableMockFallback) {
         throw new Error(message);
@@ -175,8 +185,8 @@ export async function fetchDoctorPatients() {
         return response.patients.map((item) => ({
             id: item._id,
             fullName: (item.fullName ?? `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim()) || 'Unknown Patient',
-            age: item.age ?? 0,
-            condition: 'Follow-up assessment',
+            age: item.age ?? calcAge(item.dateOfBirth) ?? 0,
+            condition: item.condition ?? item.medicalHistory?.[0]?.condition ?? 'General care',
             riskLevel: mapRiskFromStatus(item.status),
             lastVisit: item.updatedAt ?? item.createdAt ?? new Date().toISOString(),
         }));
@@ -213,9 +223,9 @@ export async function fetchDoctorPatientDetail(patientId) {
             fullName: (response.patient.fullName ??
                 `${response.patient.firstName ?? ''} ${response.patient.lastName ?? ''}`.trim()) ||
                 fallback.profile.fullName,
-            age: response.patient.age ?? fallback.profile.age,
+            age: response.patient.age ?? calcAge(response.patient.dateOfBirth) ?? fallback.profile.age,
             gender: response.patient.gender ?? fallback.profile.gender,
-            phone: response.patient.phone ?? fallback.profile.phone,
+            phone: cleanPhone(response.patient.phone) ?? fallback.profile.phone,
             email: response.patient.email ?? fallback.profile.email,
         };
         return {

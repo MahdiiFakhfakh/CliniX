@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { useAuthStore } from '@/src/store/authStore';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppIcon from '@/src/shared/components/AppIcon';
@@ -20,6 +21,7 @@ const palette = {
 
 export function DoctorPendingScreen() {
     const router = useRouter();
+    const signOut = useAuthStore((state) => state.signOut);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -66,7 +68,7 @@ export function DoctorPendingScreen() {
                 <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Go to Log In"
-                    onPress={() => router.replace('/(auth)/login')}
+                    onPress={async () => { await signOut(); router.replace('/(auth)/login'); }}
                     style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
                 >
                     <Text style={styles.buttonText}>Back to Log In</Text>

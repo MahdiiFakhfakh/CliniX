@@ -19,6 +19,8 @@ import Appointments from "./pages/Appointments";
 import Prescriptions from "./pages/Prescriptions"; // Add this import
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import Messages from "./pages/Messages";
+import DoctorApprovals from "./pages/DoctorApprovals";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -53,6 +55,8 @@ function App() {
               <Route path="prescriptions" element={<Prescriptions />} />{" "}
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="messages" element={<Messages />} />
+              <Route path="approvals" element={<DoctorApprovals />} />
             </Route>
           </Route>
 

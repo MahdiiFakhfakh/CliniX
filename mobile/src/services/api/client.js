@@ -13,7 +13,7 @@ let sessionToken = null;
 let onUnauthorized = null;
 export const apiClient = axios.create({
     baseURL: config.apiBaseUrl,
-    timeout: 30000,
+    timeout: 10000,
 });
 export const setApiToken = (token) => {
     sessionToken = token;

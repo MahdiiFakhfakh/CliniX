@@ -134,9 +134,6 @@ export function NotificationsScreen() {
                 </View>
 
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <Text style={styles.heading}>Vital Alerts</Text>
-                    <Text style={styles.subtitle}>Real-time health monitoring notifications</Text>
-
                     <View style={styles.segmentedControl}>
                         {TABS.map((tab) => {
                             const active = activeTab === tab.key;

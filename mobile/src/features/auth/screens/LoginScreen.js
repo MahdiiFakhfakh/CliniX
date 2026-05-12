@@ -75,9 +75,16 @@ export function LoginScreen() {
         }).start();
     }, [cardFade]);
 
+    const resolveDestination = (user) => {
+        if (user?.role === 'doctor' && user?.status === 'pending') {
+            return '/(auth)/doctor-pending';
+        }
+        return roleHomePaths[user?.role] ?? '/(auth)/login';
+    };
+
     useEffect(() => {
         if (session) {
-            router.replace(roleHomePaths[session.user.role]);
+            router.replace(resolveDestination(session.user));
         }
     }, [router, session]);
 
@@ -88,9 +95,9 @@ export function LoginScreen() {
                 email: values.email.trim().toLowerCase(),
                 password: values.password,
             });
-            const role = useAuthStore.getState().session?.user.role;
-            if (role) {
-                router.replace(roleHomePaths[role]);
+            const user = useAuthStore.getState().session?.user;
+            if (user) {
+                router.replace(resolveDestination(user));
             }
         } catch {
             // Error is already stored in auth store.

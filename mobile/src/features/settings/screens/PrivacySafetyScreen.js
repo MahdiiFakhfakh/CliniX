@@ -1,306 +1,308 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, radius, typography } from '@/src/core/theme/tokens';
 import { useAuthStore } from '@/src/store/authStore';
 import { usePreferencesStore } from '@/src/store/preferencesStore';
 import AppIcon from '@/src/shared/components/AppIcon';
 
-const palette = {
-    screen: '#EEF1F4',
-    surface: '#FFFFFF',
-    section: '#DCE2E7',
-    text: '#111827',
-    muted: '#5B6775',
-    border: '#DEE4EA',
-    blue: '#1D9BF0',
-};
+function Divider() {
+    return <View style={styles.divider} />;
+}
 
-function SectionHeader({ title }) {
+function Section({ title, children }) {
+    const items = React.Children.toArray(children);
     return (
-        <View style={styles.sectionHeader}>
-            <Text style={styles.sectionHeaderText}>{title}</Text>
+        <View style={styles.section}>
+            {title ? <Text style={styles.sectionLabel}>{title}</Text> : null}
+            <View style={styles.sectionCard}>
+                {items.map((child, i) => (
+                    <React.Fragment key={i}>
+                        {child}
+                        {i < items.length - 1 && <Divider />}
+                    </React.Fragment>
+                ))}
+            </View>
         </View>
     );
 }
 
-function SimpleRow({ title, subtitle }) {
+function ToggleRow({ icon, iconBg = colors.primarySoft, iconColor = colors.primary, title, description, value, onValueChange }) {
     return (
         <View style={styles.row}>
-            <View style={styles.rowTextWrap}>
-                <Text style={styles.rowTitle}>{title}</Text>
-                {subtitle ? <Text style={styles.rowSubtitle}>{subtitle}</Text> : null}
+            <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>
+                <AppIcon color={iconColor} name={icon} size={18} />
             </View>
-            <AppIcon color="#A3AAB3" name="chevron-forward" size={18} />
+            <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{title}</Text>
+                {description ? <Text style={styles.rowDesc}>{description}</Text> : null}
+            </View>
+            <Switch
+                accessibilityLabel={title}
+                value={value}
+                onValueChange={onValueChange}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor={colors.border}
+            />
         </View>
+    );
+}
+
+function NavRow({ icon, iconBg = colors.primarySoft, iconColor = colors.primary, title, subtitle }) {
+    return (
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={title}
+            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        >
+            <View style={[styles.rowIcon, { backgroundColor: iconBg }]}>
+                <AppIcon color={iconColor} name={icon} size={18} />
+            </View>
+            <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{title}</Text>
+                {subtitle ? <Text style={styles.rowDesc}>{subtitle}</Text> : null}
+            </View>
+            <AppIcon color={colors.textSubtle} name="chevron-forward" size={16} />
+        </Pressable>
     );
 }
 
 export function PrivacySafetyScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const session = useAuthStore((state) => state.session);
-    const handleText = session?.user.email ? `@${session.user.email.split('@')[0]}` : '@clinix_user';
 
-    const protectAccount = usePreferencesStore((state) => state.protectAccount);
-    const setProtectAccount = usePreferencesStore((state) => state.setProtectAccount);
-    const photoTaggingEnabled = usePreferencesStore((state) => state.photoTaggingEnabled);
-    const setPhotoTaggingEnabled = usePreferencesStore((state) => state.setPhotoTaggingEnabled);
-    const directMessagesEnabled = usePreferencesStore((state) => state.directMessagesEnabled);
-    const setDirectMessagesEnabled = usePreferencesStore((state) => state.setDirectMessagesEnabled);
-    const discoverabilityEnabled = usePreferencesStore((state) => state.discoverabilityEnabled);
-    const setDiscoverabilityEnabled = usePreferencesStore((state) => state.setDiscoverabilityEnabled);
+    const protectAccount = usePreferencesStore((s) => s.protectAccount);
+    const setProtectAccount = usePreferencesStore((s) => s.setProtectAccount);
+    const photoTaggingEnabled = usePreferencesStore((s) => s.photoTaggingEnabled);
+    const setPhotoTaggingEnabled = usePreferencesStore((s) => s.setPhotoTaggingEnabled);
+    const directMessagesEnabled = usePreferencesStore((s) => s.directMessagesEnabled);
+    const setDirectMessagesEnabled = usePreferencesStore((s) => s.setDirectMessagesEnabled);
+    const discoverabilityEnabled = usePreferencesStore((s) => s.discoverabilityEnabled);
+    const setDiscoverabilityEnabled = usePreferencesStore((s) => s.setDiscoverabilityEnabled);
+
+    const email = session?.user.email ?? '';
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                        onPress={() => router.back()}
-                        style={styles.backButton}
-                    >
-                        <AppIcon color={palette.blue} name="arrow-back" size={24} />
-                    </Pressable>
-                    <View style={styles.headerTextWrap}>
-                        <Text style={styles.headerTitle}>Privacy and safety</Text>
-                        <Text style={styles.handleText}>{handleText}</Text>
+        <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+            showsVerticalScrollIndicator={false}
+        >
+            {/* Hero header */}
+            <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+                <Pressable
+                    style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+                    onPress={() => router.back()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                    hitSlop={8}
+                >
+                    <AppIcon color="#FFFFFF" name="arrow-back" size={22} />
+                </Pressable>
+
+                <View style={styles.heroIconRing}>
+                    <View style={styles.heroIconCircle}>
+                        <AppIcon color={colors.primary} name="shield-checkmark" size={28} />
                     </View>
                 </View>
 
-                <SectionHeader title="Account" />
-                <View style={styles.listBlock}>
-                    <View style={styles.protectRow}>
-                        <View style={styles.protectTextWrap}>
-                            <Text style={styles.protectTitle}>Protect your account</Text>
-                            <Text style={styles.protectDescription}>
-                                Only approved followers will be able to view your profile activity.{' '}
-                                <Text style={styles.learnMore}>Learn more</Text>
-                            </Text>
-                        </View>
-                        <Switch
-                            accessibilityLabel="Protect your account"
-                            onValueChange={setProtectAccount}
-                            trackColor={{ false: '#C7D1DB', true: '#9FD1F8' }}
-                            thumbColor={protectAccount ? palette.blue : '#FFFFFF'}
-                            value={protectAccount}
-                        />
-                    </View>
-
-                    <View style={styles.toggleRow}>
-                        <View style={styles.rowTextWrap}>
-                            <Text style={styles.rowTitle}>Photo tagging</Text>
-                            <Text style={styles.rowSubtitle}>{photoTaggingEnabled ? 'On' : 'Off'}</Text>
-                        </View>
-                        <Switch
-                            accessibilityLabel="Photo tagging"
-                            onValueChange={setPhotoTaggingEnabled}
-                            trackColor={{ false: '#C7D1DB', true: '#9FD1F8' }}
-                            thumbColor={photoTaggingEnabled ? palette.blue : '#FFFFFF'}
-                            value={photoTaggingEnabled}
-                        />
-                    </View>
-                </View>
-
-                <SectionHeader title="Direct messages" />
-                <View style={styles.listBlock}>
-                    <View style={styles.toggleRow}>
-                        <View style={styles.rowTextWrap}>
-                            <Text style={styles.rowTitle}>Direct Messages</Text>
-                            <Text style={styles.rowSubtitle}>
-                                {directMessagesEnabled ? 'Allow messages' : 'Blocked'}
-                            </Text>
-                        </View>
-                        <Switch
-                            accessibilityLabel="Direct messages"
-                            onValueChange={setDirectMessagesEnabled}
-                            trackColor={{ false: '#C7D1DB', true: '#9FD1F8' }}
-                            thumbColor={directMessagesEnabled ? palette.blue : '#FFFFFF'}
-                            value={directMessagesEnabled}
-                        />
-                    </View>
-                </View>
-
-                <SectionHeader title="Discoverability and contacts" />
-                <View style={styles.listBlock}>
-                    <View style={styles.toggleRow}>
-                        <View style={styles.rowTextWrap}>
-                            <Text style={styles.rowTitle}>Discoverability and contacts</Text>
-                            <Text style={styles.rowSubtitle}>
-                                Control how your data is used to connect you with people.
-                            </Text>
-                        </View>
-                        <Switch
-                            accessibilityLabel="Discoverability and contacts"
-                            onValueChange={setDiscoverabilityEnabled}
-                            trackColor={{ false: '#C7D1DB', true: '#9FD1F8' }}
-                            thumbColor={discoverabilityEnabled ? palette.blue : '#FFFFFF'}
-                            value={discoverabilityEnabled}
-                        />
-                    </View>
-
-                    <View style={styles.learnRow}>
-                        <Text style={styles.learnMore}>Learn more</Text>
-                        <Text style={styles.learnText}> about how this data is used to connect you with people.</Text>
-                    </View>
-                </View>
-
-                <SectionHeader title="Safety" />
-                <View style={styles.listBlock}>
-                    <SimpleRow title="Muted keywords" subtitle="Manage hidden words and phrases" />
-                    <SimpleRow title="Blocked accounts" subtitle="Review blocked profiles" />
-                </View>
+                <Text style={styles.heroTitle}>Privacy & Safety</Text>
+                {email ? <Text style={styles.heroEmail}>{email}</Text> : null}
             </View>
-        </SafeAreaView>
+
+            <View style={styles.content}>
+                <Section title="Account Privacy">
+                    <ToggleRow
+                        icon="lock-closed-outline"
+                        title="Protect Account"
+                        description="Only approved contacts can view your profile activity."
+                        value={protectAccount}
+                        onValueChange={setProtectAccount}
+                    />
+                    <ToggleRow
+                        icon="image-outline"
+                        iconBg="#F3F0FF"
+                        iconColor="#7C3AED"
+                        title="Photo Tagging"
+                        description="Allow others to tag you in photos."
+                        value={photoTaggingEnabled}
+                        onValueChange={setPhotoTaggingEnabled}
+                    />
+                </Section>
+
+                <Section title="Messaging">
+                    <ToggleRow
+                        icon="chatbubble-ellipses-outline"
+                        iconBg={colors.successSoft}
+                        iconColor={colors.success}
+                        title="Direct Messages"
+                        description="Allow other users to send you messages."
+                        value={directMessagesEnabled}
+                        onValueChange={setDirectMessagesEnabled}
+                    />
+                </Section>
+
+                <Section title="Discoverability">
+                    <ToggleRow
+                        icon="people-outline"
+                        iconBg={colors.warningSoft}
+                        iconColor={colors.warning}
+                        title="Discoverability"
+                        description="Allow the app to suggest your profile to others based on your data."
+                        value={discoverabilityEnabled}
+                        onValueChange={setDiscoverabilityEnabled}
+                    />
+                </Section>
+
+                <Section title="Safety">
+                    <NavRow
+                        icon="volume-mute-outline"
+                        title="Muted Keywords"
+                        subtitle="Manage hidden words and phrases"
+                    />
+                    <NavRow
+                        icon="ban-outline"
+                        iconBg={colors.dangerSoft}
+                        iconColor={colors.danger}
+                        title="Blocked Accounts"
+                        subtitle="Review blocked profiles"
+                    />
+                </Section>
+            </View>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
+    scroll: {
         flex: 1,
-        backgroundColor: palette.screen,
+        backgroundColor: colors.background,
     },
-    container: {
-        flex: 1,
-        backgroundColor: palette.screen,
-    },
-    headerRow: {
-        minHeight: 64,
-        backgroundColor: palette.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-        flexDirection: 'row',
+
+    /* Hero */
+    hero: {
+        backgroundColor: colors.primary,
+        paddingBottom: 32,
+        paddingHorizontal: 24,
         alignItems: 'center',
-        paddingHorizontal: 8,
     },
-    backButton: {
-        width: 44,
-        height: 44,
+    backBtn: {
+        position: 'absolute',
+        top: 16,
+        left: 16,
+        width: 40,
+        height: 40,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 4,
     },
-    headerTextWrap: {
-        flex: 1,
+    heroIconRing: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 16,
+        marginBottom: 12,
     },
-    headerTitle: {
-        color: palette.text,
-        fontSize: 22,
-        lineHeight: 28,
+    heroIconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroTitle: {
+        color: '#FFFFFF',
+        fontSize: 20,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
+        textAlign: 'center',
+        marginBottom: 6,
     },
-    handleText: {
-        color: palette.muted,
-        fontSize: 15,
-        lineHeight: 19,
+    heroEmail: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 13,
         fontFamily: fonts.bodyRegular,
+        textAlign: 'center',
     },
-    sectionHeader: {
-        marginTop: 12,
-        backgroundColor: palette.section,
+
+    /* Content */
+    content: {
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: palette.border,
+        paddingTop: 20,
     },
-    sectionHeaderText: {
-        color: '#617283',
-        fontSize: 17,
-        lineHeight: 22,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
+
+    /* Sections */
+    section: {
+        marginBottom: 20,
     },
-    listBlock: {
-        backgroundColor: palette.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
+    sectionLabel: {
+        color: colors.textSubtle,
+        fontSize: 11,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        letterSpacing: 0.8,
+        textTransform: 'uppercase',
+        marginBottom: 8,
+        paddingHorizontal: 4,
     },
+    sectionCard: {
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        overflow: 'hidden',
+        shadowColor: '#142850',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 1,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: colors.border,
+        marginLeft: 62,
+    },
+
+    /* Row */
     row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 13,
         minHeight: 56,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        flexDirection: 'row',
+        gap: 12,
+    },
+    rowPressed: {
+        backgroundColor: colors.surfaceTint,
+    },
+    rowIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
+        flexShrink: 0,
     },
-    protectRow: {
-        minHeight: 96,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    protectTextWrap: {
+    rowText: {
         flex: 1,
-        marginRight: 12,
-    },
-    protectTitle: {
-        color: palette.text,
-        fontSize: 18,
-        lineHeight: 24,
-        fontFamily: fonts.bodyMedium,
-        fontWeight: '500',
-        marginBottom: 2,
-    },
-    protectDescription: {
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 20,
-        fontFamily: fonts.bodyRegular,
-    },
-    rowTextWrap: {
-        flex: 1,
-        marginRight: 10,
     },
     rowTitle: {
-        color: palette.text,
-        fontSize: 18,
-        lineHeight: 24,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
         fontFamily: fonts.bodyMedium,
         fontWeight: '500',
     },
-    rowSubtitle: {
+    rowDesc: {
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodyRegular,
         marginTop: 2,
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 19,
-        fontFamily: fonts.bodyRegular,
-    },
-    toggleRow: {
-        minHeight: 60,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    learnRow: {
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    learnMore: {
-        color: palette.blue,
-        fontSize: 14,
-        lineHeight: 19,
-        fontFamily: fonts.bodyMedium,
-        fontWeight: '500',
-    },
-    learnText: {
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 19,
-        fontFamily: fonts.bodyRegular,
+        lineHeight: 18,
     },
 });

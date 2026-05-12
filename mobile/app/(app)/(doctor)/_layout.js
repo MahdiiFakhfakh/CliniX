@@ -49,10 +49,6 @@ export default function DoctorTabsLayout() {
                 title: 'Home',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="home-outline"/>,
             }}/>
-            <Tabs.Screen name="messages" options={{
-                title: 'Messages',
-                tabBarIcon: ({ color }) => <TabIcon color={color} name="chatbubble-outline"/>,
-            }}/>
             <Tabs.Screen name="notifications" options={{
                 title: 'Notifications',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="notifications-outline"/>,
@@ -61,6 +57,7 @@ export default function DoctorTabsLayout() {
                 title: 'Settings',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="ellipsis-horizontal"/>,
             }}/>
+            <Tabs.Screen name="messages" options={{ href: null }}/>
 
             <Tabs.Screen name="schedule" options={{ href: null }}/>
             <Tabs.Screen name="patients" options={{ href: null }}/>

@@ -18,6 +18,7 @@ const mapBackendSession = (response, fallbackRole) => {
             id: response.user.id,
             email: response.user.email,
             role: mapRole(response.user.role, fallbackRole),
+            status: response.user.status ?? null,
             profile: {
                 fullName: response.user.profile?.fullName ??
                     response.user.name ??
@@ -37,6 +38,16 @@ export async function register(payload) {
                 email: payload.email,
                 password: payload.password,
                 role: payload.role,
+                firstName: payload.firstName,
+                lastName: payload.lastName,
+                dateOfBirth: payload.dateOfBirth,
+                gender: payload.gender,
+                phone: payload.phone,
+                bloodGroup: payload.bloodGroup,
+                height: payload.height,
+                weight: payload.weight,
+                address: payload.address,
+                emergencyContact: payload.emergencyContact,
             },
         });
         if (!backendResponse.success || !backendResponse.token) {

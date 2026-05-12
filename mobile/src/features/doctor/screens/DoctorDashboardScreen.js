@@ -87,17 +87,6 @@ export function DoctorDashboardScreen() {
                     refreshControl={<RefreshControl onRefresh={handleRefresh} refreshing={isRefreshing} />}
                     showsVerticalScrollIndicator={false}
                 >
-                    <View style={styles.metricsRow}>
-                        <View style={styles.metricCard}>
-                            <Text style={styles.metricLabel}>Today's Patients</Text>
-                            <Text style={styles.metricValue}>{todayAppointments.length}</Text>
-                        </View>
-                        <View style={styles.metricCard}>
-                            <Text style={styles.metricLabel}>Unread Messages</Text>
-                            <Text style={styles.metricValue}>{unreadCount}</Text>
-                        </View>
-                    </View>
-
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Next Consultation</Text>
                         <Pressable onPress={() => router.push('/(app)/(doctor)/schedule')}>
@@ -116,7 +105,11 @@ export function DoctorDashboardScreen() {
 
                             <Text style={styles.patientName}>{nextAppointment.patientName}</Text>
                             <Text style={styles.departmentText}>{nextAppointment.department}</Text>
-                            <Text style={styles.dateLine}>{buildDateTime(nextAppointment)}</Text>
+                            <View style={styles.timeRow}>
+                                <AppIcon color={colors.primary} name="time-outline" size={18} />
+                                <Text style={styles.timeText}>{nextAppointment.time || '09:00 AM'}</Text>
+                                <Text style={styles.dateLine}>{formatDay(nextAppointment.date)}</Text>
+                            </View>
 
                             <View style={styles.appointmentActions}>
                                 {nextAppointment.patientId ? (
@@ -238,8 +231,8 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: 16,
-        flexGrow: 1,
+        paddingTop: 4,
+        paddingBottom: 16,
     },
     metricsRow: {
         flexDirection: 'row',
@@ -268,7 +261,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     sectionHeader: {
-        marginTop: 22,
+        marginTop: 12,
         marginBottom: 8,
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -335,8 +328,25 @@ const styles = StyleSheet.create({
         lineHeight: 20,
         fontFamily: fonts.bodyRegular,
     },
+    timeRow: {
+        marginTop: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: colors.primarySoft,
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        alignSelf: 'flex-start',
+    },
+    timeText: {
+        color: colors.primary,
+        fontSize: 17,
+        lineHeight: 22,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
     dateLine: {
-        marginTop: 5,
         color: colors.textMuted,
         fontSize: 14,
         lineHeight: 19,
