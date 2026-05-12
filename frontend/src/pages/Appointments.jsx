@@ -5,7 +5,6 @@ import { toast } from "react-hot-toast";
 import {
   HiOutlineSearch,
   HiOutlineFilter,
-  HiOutlinePlus,
   HiOutlineDownload,
   HiOutlineCalendar,
   HiOutlineClock,
@@ -484,7 +483,7 @@ const Appointments = () => {
   // STATS CARDS COMPONENT
   // ============================================
   const StatsCards = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
@@ -625,10 +624,6 @@ const Appointments = () => {
               <span className="hidden sm:inline">Export</span>
             </button>
 
-            <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span className="hidden sm:inline">New Appointment</span>
-            </button>
           </div>
         </div>
 
@@ -1193,10 +1188,6 @@ const Appointments = () => {
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export CSV</span>
             </button>
-            <button className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span>New Appointment</span>
-            </button>
           </div>
         </div>
 
@@ -1221,7 +1212,7 @@ const Appointments = () => {
               selectedType !== "all" ||
               selectedDate !== "all"
                 ? "Try adjusting your search or filters"
-                : "Start by scheduling a new appointment"}
+                : "No appointments to display"}
             </p>
             {searchTerm ||
             selectedStatus !== "all" ||
@@ -1234,12 +1225,7 @@ const Appointments = () => {
                 <HiOutlineRefresh className="w-5 h-5" />
                 Clear all filters
               </button>
-            ) : (
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg">
-                <HiOutlinePlus className="w-5 h-5" />
-                Schedule Appointment
-              </button>
-            )}
+            ) : null}
           </div>
         ) : (
           <>

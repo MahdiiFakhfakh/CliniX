@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bar, Doughnut } from "react-chartjs-2";
+import { Bar, Doughnut } from "react-chartjs-2";
 import axios from "axios";
 import Loader from "../components/common/Loader";
 import {
@@ -267,7 +268,7 @@ const Analytics = () => {
     ];
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {stats.map((stat, idx) => (
           <div
             key={idx}
@@ -343,6 +344,7 @@ const Analytics = () => {
 
     return (
       <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         {/* Appointments Chart */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
@@ -417,8 +419,10 @@ const Analytics = () => {
     // Gender Distribution - FROM DATABASE
     const genderData = {
       labels: ["Male", "Female"],
+      labels: ["Male", "Female"],
       datasets: [
         {
+          data: [data?.malePatients || 0, data?.femalePatients || 0],
           data: [data?.malePatients || 0, data?.femalePatients || 0],
           backgroundColor: [
             "rgba(59, 130, 246, 0.85)",
@@ -663,7 +667,7 @@ const Analytics = () => {
     };
 
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         {/* Top Conditions */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">

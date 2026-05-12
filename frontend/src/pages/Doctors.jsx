@@ -5,7 +5,6 @@ import { toast } from "react-hot-toast";
 import {
   HiOutlineSearch,
   HiOutlineFilter,
-  HiOutlinePlus,
   HiOutlineDownload,
   HiOutlineMail,
   HiOutlinePhone,
@@ -496,10 +495,6 @@ const Doctors = () => {
               )}
             </button>
 
-            <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span className="hidden sm:inline">Add Doctor</span>
-            </button>
           </div>
         </div>
 
@@ -622,13 +617,13 @@ const Doctors = () => {
         <div
           key={doctor._id}
           onClick={() => fetchDoctorDetails(doctor._id)}
-          className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 overflow-hidden cursor-pointer"
+          className="group overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-200 hover:shadow-xl hover:shadow-teal-900/10 cursor-pointer"
         >
           {/* Header with Gradient */}
-          <div className="relative h-32 bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 p-5">
+          <div className="relative h-28 bg-gradient-to-r from-slate-900 via-teal-800 to-emerald-600 p-5">
             <div className="absolute top-4 right-4">
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${
+                className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm ring-1 ring-white/25 ${
                   doctor.status === "available"
                     ? "bg-green-500"
                     : doctor.status === "on_leave"
@@ -644,10 +639,10 @@ const Doctors = () => {
             <div className="absolute -bottom-12 left-5">
               <div
                 className={`
-                w-24 h-24 rounded-2xl border-4 border-white shadow-xl flex items-center justify-center
+                w-20 h-20 rounded-lg border-4 border-white shadow-xl flex items-center justify-center
                 ${
                   doctor.status === "available"
-                    ? "bg-gradient-to-br from-green-500 to-green-600"
+                    ? "bg-gradient-to-br from-teal-500 to-emerald-600"
                     : doctor.status === "on_leave"
                       ? "bg-gradient-to-br from-yellow-500 to-yellow-600"
                       : "bg-gradient-to-br from-gray-500 to-gray-600"
@@ -662,44 +657,44 @@ const Doctors = () => {
           </div>
 
           {/* Content */}
-          <div className="pt-16 p-5">
+          <div className="pt-14 p-5">
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-lg font-black text-slate-950 group-hover:text-teal-700 transition-colors">
                   {doctor.fullName}
                 </h3>
-                <p className="text-sm font-medium text-blue-600">
+                <p className="text-sm font-bold text-teal-700">
                   {doctor.specialization}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   {doctor.department || "General Medicine"}
                 </p>
               </div>
 
               {doctor.licenseNumber && (
-                <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 rounded-lg">
-                  <HiOutlineBadgeCheck className="w-4 h-4 text-blue-600" />
+                <div className="flex items-center gap-1 px-2 py-1 bg-teal-50 rounded-lg ring-1 ring-teal-100">
+                  <HiOutlineBadgeCheck className="w-4 h-4 text-teal-700" />
                 </div>
               )}
             </div>
 
             {/* Rating */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-4">
               <div className="flex items-center">
                 <HiOutlineStar className="w-4 h-4 text-yellow-400 fill-current" />
-                <span className="text-sm font-semibold text-gray-700 ml-1">
+                <span className="text-sm font-bold text-slate-700 ml-1">
                   {doctor.ratings?.average || 4.5}
                 </span>
               </div>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-slate-500">
                 ({doctor.ratings?.totalReviews || 0} reviews)
               </span>
             </div>
 
             {/* Details Grid */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="flex items-center text-sm text-gray-600">
-                <HiOutlineBriefcase className="w-4 h-4 mr-2 text-gray-400" />
+            <div className="grid grid-cols-2 gap-3 mb-4 rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+              <div className="flex items-center text-sm text-slate-600">
+                <HiOutlineBriefcase className="w-4 h-4 mr-2 text-teal-600" />
                 <span>{doctor.experienceText}</span>
               </div>
               <div className="flex items-center text-sm text-gray-600">
@@ -713,10 +708,10 @@ const Doctors = () => {
             </div>
 
             {/* Contact Preview */}
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-              <div className="flex items-center text-xs text-gray-500">
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              <div className="flex min-w-0 items-center text-xs text-slate-500">
                 <HiOutlineMail className="w-3 h-3 mr-1" />
-                <span className="truncate max-w-[120px]">{doctor.email}</span>
+                <span className="truncate">{doctor.email}</span>
               </div>
               <button
                 onClick={(e) => {
@@ -726,7 +721,7 @@ const Doctors = () => {
                     doctor.status === "available" ? "on_leave" : "available",
                   );
                 }}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                className="flex-shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"
               >
                 {doctor.status === "available" ? "Set Leave" : "Set Available"}
               </button>
@@ -1099,10 +1094,6 @@ const Doctors = () => {
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export</span>
             </button>
-            <button className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span>Add Doctor</span>
-            </button>
           </div>
         </div>
 
@@ -1127,7 +1118,7 @@ const Doctors = () => {
               selectedStatus !== "all" ||
               selectedDepartment !== "all"
                 ? "Try adjusting your search or filters"
-                : "Start by adding your first doctor"}
+                : "No doctors to display"}
             </p>
             {searchTerm ||
             selectedSpecialization !== "all" ||
@@ -1140,12 +1131,7 @@ const Doctors = () => {
                 <HiOutlineRefresh className="w-5 h-5" />
                 Clear all filters
               </button>
-            ) : (
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg">
-                <HiOutlinePlus className="w-5 h-5" />
-                Add Doctor
-              </button>
-            )}
+            ) : null}
           </div>
         ) : (
           <>

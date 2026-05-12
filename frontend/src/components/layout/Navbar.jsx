@@ -6,6 +6,7 @@ import {
   HiX,
   HiUser,
   HiChevronDown,
+  HiSearch,
 } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -53,13 +54,13 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
   ).toUpperCase();
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-4 py-2.5 shadow-sm sticky top-0 z-20">
-      <div className="flex items-center justify-between">
+    <nav className="sticky top-0 z-20 border-b border-teal-100/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur-xl">
+      <div className="flex items-center justify-between gap-4">
         {/* Left: Menu Toggle (Mobile) */}
         <div className="flex items-center">
           <button
             onClick={onMenuToggle}
-            className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 mr-3 transition-colors"
+            className="mr-3 rounded-lg p-2 text-slate-600 transition-colors hover:bg-teal-50 hover:text-teal-800 lg:hidden"
             aria-label="Toggle menu"
           >
             {isSidebarOpen ? (
@@ -70,9 +71,13 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
           </button>
         </div>
 
-        {/* Center: Logo or Title (optional) */}
-        <div className="flex-1 flex justify-center lg:justify-start">
-          <span className="text-lg font-semibold text-gray-800 lg:hidden">
+        {/* Center: Search */}
+        <div className="flex flex-1 justify-center lg:justify-start">
+          <div className="hidden w-full max-w-md items-center rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-500 lg:flex">
+            <HiSearch className="mr-2 h-5 w-5 text-teal-700" />
+            <span>Search patients, doctors, appointments...</span>
+          </div>
+          <span className="text-lg font-bold tracking-tight text-teal-800 lg:hidden">
             CliniX
           </span>
         </div>
@@ -82,31 +87,31 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
           {/* Notifications */}
           <button
             onClick={() => toast.success("No new notifications")}
-            className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            className="relative rounded-lg p-2 text-slate-600 transition-colors hover:bg-teal-50 hover:text-teal-800"
             aria-label="Notifications"
           >
             <HiBell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
           </button>
 
           {/* Profile dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none"
+              className="flex items-center space-x-2 rounded-lg border border-transparent p-1.5 transition-colors hover:border-teal-100 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-sm font-medium">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-700 text-sm font-bold text-white shadow-sm shadow-teal-900/20">
                 {initials}
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-semibold text-slate-900">
                   {displayName}
                 </p>
-                <p className="text-xs text-gray-500 capitalize">
+                <p className="text-xs text-slate-500 capitalize">
                   {user.role || "Admin"}
                 </p>
               </div>
-              <HiChevronDown className="w-4 h-4 text-gray-500 hidden md:block" />
+              <HiChevronDown className="w-4 h-4 text-slate-500 hidden md:block" />
             </button>
 
             {/* Dropdown menu */}
@@ -116,23 +121,25 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
                   className="fixed inset-0 z-30"
                   onClick={() => setShowProfileMenu(false)}
                 ></div>
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-1 z-40">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-900">
+                <div className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl shadow-slate-900/10">
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <p className="text-sm font-semibold text-slate-900">
                       {displayName}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {user.email}
+                    </p>
                   </div>
                   <button
                     onClick={handleProfileClick}
-                    className="w-full flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex w-full items-center px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-teal-50 hover:text-teal-800"
                   >
-                    <HiUser className="w-4 h-4 mr-3 text-gray-500" />
+                    <HiUser className="w-4 h-4 mr-3 text-teal-700" />
                     Profile & Settings
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="flex w-full items-center px-4 py-2.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
                   >
                     <HiLogout className="w-4 h-4 mr-3" />
                     Logout
@@ -145,7 +152,7 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
           {/* Logout button (visible on small screens) */}
           <button
             onClick={handleLogout}
-            className="md:hidden p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="rounded-lg p-2 text-rose-600 transition-colors hover:bg-rose-50 md:hidden"
             aria-label="Logout"
           >
             <HiLogout className="w-5 h-5" />
