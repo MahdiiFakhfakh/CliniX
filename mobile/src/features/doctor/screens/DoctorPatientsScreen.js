@@ -47,9 +47,9 @@ export function DoctorPatientsScreen() {
             const filterMatch = activeFilter === 'all' || patient.riskLevel === activeFilter;
             const searchMatch =
                 !q ||
-                patient.fullName.toLowerCase().includes(q) ||
-                String(patient.age).includes(q) ||
-                patient.condition.toLowerCase().includes(q);
+                (patient.fullName ?? '').toLowerCase().includes(q) ||
+                String(patient.age ?? '').includes(q) ||
+                (patient.condition ?? '').toLowerCase().includes(q);
             return filterMatch && searchMatch;
         });
     }, [activeFilter, patients, searchQuery]);
@@ -123,7 +123,7 @@ export function DoctorPatientsScreen() {
                                     <View style={styles.cardTop}>
                                         <View style={[styles.avatar, { backgroundColor: riskStyle[patient.riskLevel]?.bg ?? colors.surfaceTint }]}>
                                             <Text style={{ fontSize: 15, fontFamily: fonts.bodyBold, fontWeight: '700', color: riskStyle[patient.riskLevel]?.text ?? colors.textMuted }}>
-                                                {patient.fullName.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')}
+                                                {(patient.fullName ?? '').split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')}
                                             </Text>
                                         </View>
                                         <View style={styles.cardTextWrap}>

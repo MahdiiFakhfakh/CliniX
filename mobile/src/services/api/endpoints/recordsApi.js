@@ -208,7 +208,7 @@ export async function fetchDoctorPatientDetail(patientId) {
             ensureFallbackEnabled('Invalid doctor patient detail response');
             return getMockDoctorPatientDetail(patientId);
         }
-        if (response.detail) {
+        if (response.detail?.profile) {
             return response.detail;
         }
         if (!response.patient) {

@@ -60,7 +60,7 @@ export function DoctorPatientDetailScreen() {
 
     const detail = detailQuery.data;
 
-    if (!detail) {
+    if (!detail || !detail.profile) {
         return (
             <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
                 <View style={styles.centered}>
@@ -141,13 +141,13 @@ export function DoctorPatientDetailScreen() {
                         <View style={styles.avatar}>
                             <AppIcon color="#64748B" name="person" size={42} />
                         </View>
-                        <Text style={styles.patientName}>{detail.profile.fullName}</Text>
-                        <Text style={styles.patientSub}>ID: {detail.profile.patientId}</Text>
+                        <Text style={styles.patientName}>{detail.profile.fullName ?? 'Unknown Patient'}</Text>
+                        <Text style={styles.patientSub}>ID: {detail.profile.patientId ?? '—'}</Text>
                         <Text style={styles.patientSub}>
-                            {detail.profile.age} yrs  |  {detail.profile.gender}
+                            {detail.profile.age != null ? `${detail.profile.age} yrs` : 'Age N/A'}  |  {detail.profile.gender ?? 'N/A'}
                         </Text>
-                        <Text style={styles.patientSub}>{detail.profile.phone}</Text>
-                        <Text style={styles.patientSub}>{detail.profile.email}</Text>
+                        {detail.profile.phone ? <Text style={styles.patientSub}>{detail.profile.phone}</Text> : null}
+                        {detail.profile.email ? <Text style={styles.patientSub}>{detail.profile.email}</Text> : null}
                     </View>
 
                     <View style={styles.segmentedControl}>
