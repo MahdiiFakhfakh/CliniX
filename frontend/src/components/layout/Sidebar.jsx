@@ -8,7 +8,6 @@ import {
   HiChartBar,
   HiCog,
   HiClipboardList,
-  HiChatAlt2,
   HiBell,
   HiOutlineClock,
   HiHeart,
@@ -45,11 +44,6 @@ const Sidebar = ({
       path: "/dashboard/prescriptions",
       label: "Prescriptions",
       icon: <HiClipboardList className="w-5 h-5" />,
-    },
-    {
-      path: "/dashboard/messages",
-      label: "Messages",
-      icon: <HiChatAlt2 className="w-5 h-5" />,
     },
     {
       path: "/dashboard/analytics",
@@ -139,7 +133,7 @@ const Sidebar = ({
                 <div>
                   <p className="text-sm font-medium">Notifications</p>
                   <p className="text-xs mt-1">
-                    {notifications.length} unread messages
+                    {notifications.length} unread notifications
                   </p>
                 </div>
                 <HiBell className="w-5 h-5 text-teal-700" />

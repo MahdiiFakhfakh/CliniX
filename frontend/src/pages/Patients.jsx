@@ -5,7 +5,6 @@ import { toast } from "react-hot-toast";
 import {
   HiOutlineSearch,
   HiOutlineFilter,
-  HiOutlinePlus,
   HiOutlineDownload,
   HiOutlineMail,
   HiOutlinePhone,
@@ -534,9 +533,6 @@ const Patients = () => {
                 {stats.female}F
               </p>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Avg. Age: {stats.avgAge} years
-            </p>
           </div>
           <div className="bg-purple-100 p-3 rounded-2xl">
             <HiOutlineUsers className="w-6 h-6 text-purple-600" />
@@ -646,10 +642,6 @@ const Patients = () => {
               <span className="hidden sm:inline">Export</span>
             </button>
 
-            <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span className="hidden sm:inline">Add Patient</span>
-            </button>
           </div>
         </div>
 
@@ -884,16 +876,16 @@ const Patients = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-auto flex gap-2 pt-3 border-t border-slate-100">
+            <div className="mt-auto grid grid-cols-[0.75fr_1.35fr_2rem] items-center gap-1.5 border-t border-slate-100 pt-3">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   fetchPatientDetails(patient._id);
                 }}
-                className="flex-1 px-3 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+                className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-md bg-teal-700 px-1.5 text-[11px] font-bold text-white transition-all hover:bg-teal-800"
               >
-                <HiOutlineEye className="w-4 h-4" />
-                View
+                <HiOutlineEye className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">View</span>
               </button>
               <button
                 onClick={(e) => {
@@ -903,19 +895,21 @@ const Patients = () => {
                     patient.status === "active" ? "inactive" : "active",
                   );
                 }}
-                className="flex-1 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+                className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-md bg-slate-100 px-1.5 text-[11px] font-bold text-slate-700 transition-all hover:bg-slate-200"
               >
-                <HiOutlinePencil className="w-4 h-4" />
-                {patient.status === "active" ? "Deactivate" : "Activate"}
+                <HiOutlinePencil className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">
+                  {patient.status === "active" ? "Deactivate" : "Activate"}
+                </span>
               </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDeletePatient(patient._id);
                 }}
-                className="px-3 py-2 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-md bg-rose-50 p-0 text-rose-600 leading-none transition-all hover:bg-rose-100"
               >
-                <HiOutlineTrash className="w-4 h-4" />
+                <HiOutlineTrash className="block h-3 w-3" />
               </button>
             </div>
           </div>
@@ -1547,10 +1541,6 @@ const Patients = () => {
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export CSV</span>
             </button>
-            <button className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span>Add Patient</span>
-            </button>
           </div>
         </div>
 
@@ -1576,7 +1566,7 @@ const Patients = () => {
               selectedBloodGroup !== "all" ||
               selectedAgeGroup !== "all"
                 ? "Try adjusting your search or filters"
-                : "Start by adding your first patient"}
+                : "No patient records are available yet"}
             </p>
             {searchTerm ||
             selectedStatus !== "all" ||
@@ -1590,12 +1580,7 @@ const Patients = () => {
                 <HiOutlineRefresh className="w-5 h-5" />
                 Clear all filters
               </button>
-            ) : (
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg">
-                <HiOutlinePlus className="w-5 h-5" />
-                Add Patient
-              </button>
-            )}
+            ) : null}
           </div>
         ) : (
           <>

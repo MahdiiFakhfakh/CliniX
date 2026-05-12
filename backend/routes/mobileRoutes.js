@@ -7,6 +7,7 @@ const Notification = require("../models/Notifications");
 const Patient = require("../models/Patient");
 const Prescription = require("../models/Prescription");
 const { authorize, protect } = require("../middlewares/authMiddleware");
+const { notifyAdmins } = require("../utils/notifications");
 
 const router = express.Router();
 
@@ -403,6 +404,21 @@ router.post("/appointments", protect, authorize("patient", "admin"), async (req,
       Doctor.findByIdAndUpdate(doctor._id, { $addToSet: { appointments: appointment._id, patients: patient._id } }),
     ]);
 
+    await notifyAdmins({
+      type: "appointment",
+      title: "Appointment scheduled",
+      message: `${asFullName(patient, "A patient")} scheduled an appointment with Dr. ${asFullName(doctor, "Doctor")}.`,
+      priority: "medium",
+      actor: req.user._id,
+      data: {
+        action: "created",
+        resource: "appointment",
+        appointmentId: appointment._id,
+        patientId: patient._id,
+        doctorId: doctor._id,
+      },
+    });
+
     const hydrated = await Appointment.findById(appointment._id)
       .populate("patient", "firstName lastName fullName")
       .populate("doctor", "firstName lastName fullName specialization department");
@@ -718,6 +734,21 @@ router.post("/patients/:id/prescriptions", protect, authorize("doctor", "admin")
 
     await Patient.findByIdAndUpdate(patient._id, {
       $addToSet: { prescriptions: prescription._id },
+    });
+
+    await notifyAdmins({
+      type: "prescription",
+      title: "Prescription created",
+      message: `Dr. ${asFullName(doctor, "Doctor")} created a prescription for ${asFullName(patient, "a patient")}.`,
+      priority: "medium",
+      actor: req.user._id,
+      data: {
+        action: "created",
+        resource: "prescription",
+        prescriptionId: prescription._id,
+        patientId: patient._id,
+        doctorId: doctor._id,
+      },
     });
 
     res.status(201).json({

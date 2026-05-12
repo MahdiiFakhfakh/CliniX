@@ -6,7 +6,9 @@ const Appointment = require("../models/Appointment");
 const Prescription = require("../models/Prescription");
 const Admin = require("../models/Admin");
 const User = require("../models/User");
+const Notification = require("../models/Notifications");
 const { protect, authorize } = require("../middlewares/authMiddleware");
+const { notifyAdmins } = require("../utils/notifications");
 const {
   format,
   subDays,
@@ -18,6 +20,86 @@ const {
 // ============================================
 // DASHBOARD STATS – FULL REAL DATA
 // ============================================
+// ============================================
+// NOTIFICATIONS
+// ============================================
+router.get("/notifications", protect, authorize("admin"), async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const unreadOnly = req.query.unreadOnly === "true";
+    const query = { user: req.user._id };
+
+    if (unreadOnly) {
+      query.isRead = false;
+    }
+
+    const [notifications, unreadCount] = await Promise.all([
+      Notification.find(query).sort({ createdAt: -1 }).limit(limit).lean(),
+      Notification.countDocuments({ user: req.user._id, isRead: false }),
+    ]);
+
+    res.json({ success: true, notifications, unreadCount });
+  } catch (error) {
+    console.error("GET /notifications error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch notifications",
+    });
+  }
+});
+
+router.put(
+  "/notifications/:id/read",
+  protect,
+  authorize("admin"),
+  async (req, res) => {
+    try {
+      const notification = await Notification.findOneAndUpdate(
+        { _id: req.params.id, user: req.user._id },
+        { isRead: true, readAt: new Date() },
+        { new: true },
+      );
+
+      if (!notification) {
+        return res.status(404).json({
+          success: false,
+          message: "Notification not found",
+        });
+      }
+
+      res.json({ success: true, notification });
+    } catch (error) {
+      console.error("PUT /notifications/:id/read error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to mark notification as read",
+      });
+    }
+  },
+);
+
+router.put(
+  "/notifications/read-all",
+  protect,
+  authorize("admin"),
+  async (req, res) => {
+    try {
+      await Notification.updateMany(
+        { user: req.user._id, isRead: false },
+        { isRead: true, readAt: new Date() },
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("PUT /notifications/read-all error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to mark notifications as read",
+      });
+    }
+  },
+);
+
 router.get(
   "/dashboard/stats",
   protect,
@@ -742,12 +824,10 @@ router.post("/patients", protect, authorize("admin"), async (req, res) => {
     const patientId = `PAT${(patientCount + 1001).toString().padStart(4, "0")}`;
 
     // Create user account
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash("Welcome123!", salt);
-
     const user = await User.create({
+      name: `${firstName} ${lastName}`.trim(),
       email,
-      password: hashedPassword,
+      password: "Welcome123!",
       role: "patient",
       isActive: true,
     });
@@ -771,6 +851,19 @@ router.post("/patients", protect, authorize("admin"), async (req, res) => {
       primaryDoctor,
       notes,
       status: "active",
+    });
+
+    await notifyAdmins({
+      type: "patient",
+      title: "Patient created",
+      message: `${patient.fullName} was added to the database.`,
+      priority: "medium",
+      actor: req.user._id,
+      data: {
+        action: "created",
+        resource: "patient",
+        patientId: patient._id,
+      },
     });
 
     res.status(201).json({
@@ -809,6 +902,19 @@ router.put("/patients/:id", protect, authorize("admin"), async (req, res) => {
       });
     }
 
+    await notifyAdmins({
+      type: "patient",
+      title: "Patient updated",
+      message: `${patient.fullName} was updated.`,
+      priority: "low",
+      actor: req.user._id,
+      data: {
+        action: "updated",
+        resource: "patient",
+        patientId: patient._id,
+      },
+    });
+
     res.status(200).json({
       success: true,
       message: "Patient updated successfully",
@@ -845,6 +951,20 @@ router.put(
         });
       }
 
+      await notifyAdmins({
+        type: "patient",
+        title: "Patient status changed",
+        message: `${patient.fullName} is now ${status}.`,
+        priority: "medium",
+        actor: req.user._id,
+        data: {
+          action: "status_changed",
+          resource: "patient",
+          patientId: patient._id,
+          status,
+        },
+      });
+
       res.status(200).json({
         success: true,
         message: `Patient status updated to ${status}`,
@@ -876,13 +996,36 @@ router.delete(
         });
       }
 
+      const patientName = patient.fullName || patient.email || "A patient";
+      const patientRecordId = patient.patientId;
+
       if (patient.user) {
         await User.findByIdAndDelete(patient.user);
       }
 
-      await Appointment.deleteMany({ patient: patient._id });
-      await Prescription.deleteMany({ patient: patient._id });
+      const deletedAppointments = await Appointment.deleteMany({
+        patient: patient._id,
+      });
+      const deletedPrescriptions = await Prescription.deleteMany({
+        patient: patient._id,
+      });
       await patient.deleteOne();
+
+      await notifyAdmins({
+        type: "patient",
+        title: "Patient deleted",
+        message: `${patientName} was deleted from the database.`,
+        priority: "high",
+        actor: req.user._id,
+        data: {
+          action: "deleted",
+          resource: "patient",
+          patientId: req.params.id,
+          patientRecordId,
+          deletedAppointments: deletedAppointments.deletedCount || 0,
+          deletedPrescriptions: deletedPrescriptions.deletedCount || 0,
+        },
+      });
 
       res.status(200).json({
         success: true,
@@ -1080,12 +1223,10 @@ router.post("/doctors", protect, authorize("admin"), async (req, res) => {
     const doctorCount = await Doctor.countDocuments();
     const doctorId = `DOC${(doctorCount + 1001).toString().padStart(4, "0")}`;
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash("password123", salt);
-
     const user = await User.create({
+      name: `${firstName} ${lastName}`.trim(),
       email,
-      password: hashedPassword,
+      password: "password123",
       role: "doctor",
       isActive: true,
     });
@@ -1109,6 +1250,20 @@ router.post("/doctors", protect, authorize("admin"), async (req, res) => {
       bio: bio || `Dr. ${lastName} is a specialist in ${specialization}.`,
       ratings: { average: 0, totalReviews: 0 },
       status: status || "available",
+    });
+
+    await notifyAdmins({
+      type: "doctor",
+      title: "Doctor created",
+      message: `Dr. ${doctor.fullName} was added to the database.`,
+      priority: "medium",
+      actor: req.user._id,
+      data: {
+        action: "created",
+        resource: "doctor",
+        doctorId: doctor._id,
+        status: doctor.status,
+      },
     });
 
     res.status(201).json({
@@ -1148,6 +1303,19 @@ router.put("/doctors/:id", protect, authorize("admin"), async (req, res) => {
       });
     }
 
+    await notifyAdmins({
+      type: "doctor",
+      title: "Doctor updated",
+      message: `Dr. ${doctor.fullName} was updated.`,
+      priority: "low",
+      actor: req.user._id,
+      data: {
+        action: "updated",
+        resource: "doctor",
+        doctorId: doctor._id,
+      },
+    });
+
     res.status(200).json({
       success: true,
       message: "Doctor updated successfully",
@@ -1184,6 +1352,23 @@ router.put(
         });
       }
 
+      await notifyAdmins({
+        type: status === "available" ? "doctor_request" : "doctor",
+        title:
+          status === "available"
+            ? "Doctor approved"
+            : "Doctor status changed",
+        message: `Dr. ${doctor.fullName} is now ${status}.`,
+        priority: status === "available" ? "high" : "medium",
+        actor: req.user._id,
+        data: {
+          action: "status_changed",
+          resource: "doctor",
+          doctorId: doctor._id,
+          status,
+        },
+      });
+
       res.status(200).json({
         success: true,
         message: `Doctor status updated to ${status}`,
@@ -1211,6 +1396,10 @@ router.delete("/doctors/:id", protect, authorize("admin"), async (req, res) => {
       });
     }
 
+    const doctorName = doctor.fullName || doctor.email || "A doctor";
+    const doctorRecordId = doctor.doctorId;
+    const wasPendingRequest = doctor.status === "pending";
+
     if (doctor.user) {
       await User.findByIdAndDelete(doctor.user);
     }
@@ -1226,6 +1415,20 @@ router.delete("/doctors/:id", protect, authorize("admin"), async (req, res) => {
     );
 
     await doctor.deleteOne();
+
+    await notifyAdmins({
+      type: wasPendingRequest ? "doctor_request" : "doctor",
+      title: wasPendingRequest ? "Doctor request rejected" : "Doctor deleted",
+      message: `Dr. ${doctorName} was removed from the database.`,
+      priority: "high",
+      actor: req.user._id,
+      data: {
+        action: wasPendingRequest ? "rejected" : "deleted",
+        resource: "doctor",
+        doctorId: req.params.id,
+        doctorRecordId,
+      },
+    });
 
     res.status(200).json({
       success: true,
@@ -1311,6 +1514,19 @@ router.put(
           message: "Doctor not found",
         });
       }
+
+      await notifyAdmins({
+        type: "doctor",
+        title: "Doctor availability updated",
+        message: `Dr. ${doctor.fullName}'s availability was updated.`,
+        priority: "low",
+        actor: req.user._id,
+        data: {
+          action: "availability_updated",
+          resource: "doctor",
+          doctorId: doctor._id,
+        },
+      });
 
       res.status(200).json({
         success: true,
@@ -1509,6 +1725,20 @@ router.put(
         });
       }
 
+      await notifyAdmins({
+        type: "appointment",
+        title: "Appointment status changed",
+        message: `Appointment ${appointment._id} is now ${status}.`,
+        priority: "medium",
+        actor: req.user._id,
+        data: {
+          action: "status_changed",
+          resource: "appointment",
+          appointmentId: appointment._id,
+          status,
+        },
+      });
+
       res.status(200).json({
         success: true,
         message: `Appointment status updated to ${status}`,
@@ -1624,6 +1854,20 @@ router.put(
         });
       }
 
+      await notifyAdmins({
+        type: "prescription",
+        title: "Prescription status changed",
+        message: `Prescription ${prescription.prescriptionId || prescription._id} is now ${status}.`,
+        priority: "medium",
+        actor: req.user._id,
+        data: {
+          action: "status_changed",
+          resource: "prescription",
+          prescriptionId: prescription._id,
+          status,
+        },
+      });
+
       res.status(200).json({
         success: true,
         message: `Prescription status updated to ${status}`,
@@ -1655,7 +1899,22 @@ router.delete(
         });
       }
 
+      const prescriptionLabel = prescription.prescriptionId || prescription._id;
+
       await prescription.deleteOne();
+
+      await notifyAdmins({
+        type: "prescription",
+        title: "Prescription deleted",
+        message: `Prescription ${prescriptionLabel} was deleted from the database.`,
+        priority: "high",
+        actor: req.user._id,
+        data: {
+          action: "deleted",
+          resource: "prescription",
+          prescriptionId: req.params.id,
+        },
+      });
 
       res.status(200).json({
         success: true,

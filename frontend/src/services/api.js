@@ -90,4 +90,11 @@ export const prescriptionsAPI = {
     api.put(`/prescriptions/${id}/status`, { status }),
 };
 
+// Notifications API
+export const notificationsAPI = {
+  getAll: (params) => api.get("/admin/notifications", { params }),
+  markRead: (id) => api.put(`/admin/notifications/${id}/read`),
+  markAllRead: () => api.put("/admin/notifications/read-all"),
+};
+
 export default api;

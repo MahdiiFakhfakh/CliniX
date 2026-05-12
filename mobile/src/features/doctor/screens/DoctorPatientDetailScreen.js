@@ -201,20 +201,6 @@ export function DoctorPatientDetailScreen() {
 
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Create prescription"
-                            onPress={() =>
-                                router.push({
-                                    pathname: '/(app)/(doctor)/patient/[patientId]/prescription',
-                                    params: { patientId },
-                                })
-                            }
-                            style={styles.secondaryAction}
-                        >
-                            <Text style={styles.secondaryActionText}>Create Prescription</Text>
-                        </Pressable>
-
-                        <Pressable
-                            accessibilityRole="button"
                             accessibilityLabel="Create lab request"
                             onPress={() =>
                                 router.push({

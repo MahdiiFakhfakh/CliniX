@@ -4,6 +4,7 @@ const Admin = require("../models/Admin");
 const Doctor = require("../models/Doctor");
 const Patient = require("../models/Patient");
 const User = require("../models/User");
+const { notifyAdmins } = require("../utils/notifications");
 
 const tokenize = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -161,7 +162,7 @@ exports.register = async (req, res) => {
     const user = await User.create({ name: fullName, email, password, role });
 
     if (role === "patient") {
-      await Patient.create({
+      const patient = await Patient.create({
         user: user._id,
         firstName,
         lastName,
@@ -177,8 +178,21 @@ exports.register = async (req, res) => {
         emergencyContact: emergencyContact || {},
         status: "active",
       });
+
+      await notifyAdmins({
+        type: "patient",
+        title: "New patient registered",
+        message: `${patient.fullName} created a patient account.`,
+        priority: "medium",
+        data: {
+          action: "created",
+          resource: "patient",
+          patientId: patient._id,
+          userId: user._id,
+        },
+      });
     } else {
-      await Doctor.create({
+      const doctor = await Doctor.create({
         user: user._id,
         firstName,
         lastName,
@@ -189,6 +203,20 @@ exports.register = async (req, res) => {
         licenseNumber: `PENDING-${user._id}`,
         department: "Pending",
         status: "pending",
+      });
+
+      await notifyAdmins({
+        type: "doctor_request",
+        title: "New doctor approval request",
+        message: `Dr. ${doctor.fullName} registered and is waiting for approval.`,
+        priority: "high",
+        data: {
+          action: "created",
+          resource: "doctor",
+          doctorId: doctor._id,
+          userId: user._id,
+          status: doctor.status,
+        },
       });
     }
 

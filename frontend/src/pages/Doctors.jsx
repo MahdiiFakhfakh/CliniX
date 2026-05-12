@@ -5,7 +5,6 @@ import { toast } from "react-hot-toast";
 import {
   HiOutlineSearch,
   HiOutlineFilter,
-  HiOutlinePlus,
   HiOutlineDownload,
   HiOutlineMail,
   HiOutlinePhone,
@@ -495,10 +494,6 @@ const Doctors = () => {
               )}
             </button>
 
-            <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span className="hidden sm:inline">Add Doctor</span>
-            </button>
           </div>
         </div>
 
@@ -712,7 +707,7 @@ const Doctors = () => {
             </div>
 
             {/* Contact Preview */}
-            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_2rem] items-center gap-2 border-t border-slate-100 pt-3">
               <div className="flex min-w-0 items-center text-xs text-slate-500">
                 <HiOutlineMail className="w-3 h-3 mr-1" />
                 <span className="truncate">{doctor.email}</span>
@@ -725,9 +720,19 @@ const Doctors = () => {
                     doctor.status === "available" ? "on_leave" : "available",
                   );
                 }}
-                className="flex-shrink-0 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"
+                className="h-8 rounded-md bg-slate-100 px-2 text-[11px] font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"
               >
                 {doctor.status === "available" ? "Set Leave" : "Set Available"}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteDoctor(doctor._id);
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-md bg-rose-50 p-0 text-rose-600 transition-all hover:bg-rose-100"
+                aria-label={`Delete ${doctor.fullName}`}
+              >
+                <HiOutlineTrash className="block h-3.5 w-3.5" />
               </button>
             </div>
           </div>
@@ -1098,10 +1103,6 @@ const Doctors = () => {
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export</span>
             </button>
-            <button className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg">
-              <HiOutlinePlus className="w-5 h-5" />
-              <span>Add Doctor</span>
-            </button>
           </div>
         </div>
 
@@ -1126,7 +1127,7 @@ const Doctors = () => {
               selectedStatus !== "all" ||
               selectedDepartment !== "all"
                 ? "Try adjusting your search or filters"
-                : "Start by adding your first doctor"}
+                : "No doctor records are available yet"}
             </p>
             {searchTerm ||
             selectedSpecialization !== "all" ||
@@ -1139,12 +1140,7 @@ const Doctors = () => {
                 <HiOutlineRefresh className="w-5 h-5" />
                 Clear all filters
               </button>
-            ) : (
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg">
-                <HiOutlinePlus className="w-5 h-5" />
-                Add Doctor
-              </button>
-            )}
+            ) : null}
           </div>
         ) : (
           <>
