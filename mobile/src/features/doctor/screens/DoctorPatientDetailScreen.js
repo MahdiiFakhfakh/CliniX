@@ -161,7 +161,25 @@ export function DoctorPatientDetailScreen() {
                     </View>
 
                     <View style={styles.contentCard}>
-                        <Text style={styles.sectionTitle}>{activeTab}</Text>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionTitle}>{activeTab}</Text>
+                            {activeTab === 'Prescriptions' ? (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Add prescription"
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: '/(app)/(doctor)/patient/[patientId]/prescription',
+                                            params: { patientId },
+                                        })
+                                    }
+                                    style={styles.addButton}
+                                >
+                                    <AppIcon color="#FFFFFF" name="add" size={16} />
+                                    <Text style={styles.addButtonText}>Add</Text>
+                                </Pressable>
+                            ) : null}
+                        </View>
                         {content.length === 0 ? (
                             <Text style={styles.emptyText}>No records in this section.</Text>
                         ) : (
@@ -293,13 +311,34 @@ const styles = StyleSheet.create({
         borderColor: palette.border,
         padding: 14,
     },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
     sectionTitle: {
         color: palette.text,
         fontSize: 18,
         lineHeight: 24,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
-        marginBottom: 8,
+    },
+    addButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: palette.primary,
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    addButtonText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        lineHeight: 18,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
     },
     itemCard: {
         borderRadius: 12,
