@@ -202,17 +202,6 @@ export function DoctorDashboardScreen() {
                             <Text style={styles.quickLabel}>Schedule</Text>
                         </Pressable>
 
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel="Open CliniX AI"
-                            onPress={() => router.push('/(app)/(doctor)/clinix-ai')}
-                            style={styles.quickAction}
-                        >
-                            <View style={styles.quickIconWrap}>
-                                <AppIcon color={colors.primary} name="sparkles" size={22} />
-                            </View>
-                            <Text style={styles.quickLabel}>CliniX AI</Text>
-                        </Pressable>
                     </View>
                 </ScrollView>
             </View>
