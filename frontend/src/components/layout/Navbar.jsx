@@ -8,10 +8,13 @@ import {
   HiUser,
   HiChevronDown,
   HiSearch,
+  HiUserGroup,
+  HiCalendar,
+  HiClipboardList,
 } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { notificationsAPI } from "../../services/api";
+import { adminAPI, notificationsAPI } from "../../services/api";
 
 const formatNotificationTime = (value) => {
   if (!value) return "";
@@ -36,11 +39,21 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
   const [user, setUser] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchResults, setSearchResults] = useState({
+    patients: [],
+    doctors: [],
+    appointments: [],
+    prescriptions: [],
+  });
+  const [searchLoading, setSearchLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const latestNotificationIdRef = useRef(null);
   const hasLoadedNotificationsRef = useRef(false);
+  const searchContainerRef = useRef(null);
 
   // Load user from localStorage
   useEffect(() => {
@@ -96,6 +109,71 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
     };
   }, [user]);
 
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  useEffect(() => {
+    const query = searchTerm.trim();
+
+    if (query.length < 2) {
+      setSearchResults({
+        patients: [],
+        doctors: [],
+        appointments: [],
+        prescriptions: [],
+      });
+      setSearchLoading(false);
+      return undefined;
+    }
+
+    let isActive = true;
+    setSearchLoading(true);
+
+    const timeout = window.setTimeout(async () => {
+      try {
+        const response = await adminAPI.search(query);
+        if (!isActive) return;
+
+        setSearchResults(
+          response.data?.results || {
+            patients: [],
+            doctors: [],
+            appointments: [],
+            prescriptions: [],
+          },
+        );
+        setShowSearchResults(true);
+      } catch (error) {
+        if (!isActive) return;
+        console.error("Global search failed:", error);
+        setSearchResults({
+          patients: [],
+          doctors: [],
+          appointments: [],
+          prescriptions: [],
+        });
+      } finally {
+        if (isActive) setSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeout);
+    };
+  }, [searchTerm]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -106,6 +184,93 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
   const handleProfileClick = () => {
     navigate("/dashboard/settings");
     setShowProfileMenu(false);
+  };
+
+  const getResultGroups = () => [
+    {
+      key: "patients",
+      label: "Patients",
+      path: "/dashboard/patients",
+      icon: <HiUser className="h-4 w-4" />,
+      items: searchResults.patients || [],
+      formatTitle: (item) => item.fullName || `${item.firstName || ""} ${item.lastName || ""}`.trim() || "Patient",
+      formatMeta: (item) => [item.patientId, item.email, item.status].filter(Boolean).join(" - "),
+    },
+    {
+      key: "doctors",
+      label: "Doctors",
+      path: "/dashboard/doctors",
+      icon: <HiUserGroup className="h-4 w-4" />,
+      items: searchResults.doctors || [],
+      formatTitle: (item) => item.fullName || `${item.firstName || ""} ${item.lastName || ""}`.trim() || "Doctor",
+      formatMeta: (item) =>
+        [item.specialization || item.department, item.email, item.status]
+          .filter(Boolean)
+          .join(" - "),
+    },
+    {
+      key: "appointments",
+      label: "Appointments",
+      path: "/dashboard/appointments",
+      icon: <HiCalendar className="h-4 w-4" />,
+      items: searchResults.appointments || [],
+      formatTitle: (item) =>
+        item.patient?.fullName ||
+        `${item.patient?.firstName || ""} ${item.patient?.lastName || ""}`.trim() ||
+        item.appointmentId ||
+        "Appointment",
+      formatMeta: (item) =>
+        [
+          item.appointmentId,
+          item.doctor?.fullName ||
+            `${item.doctor?.firstName || ""} ${item.doctor?.lastName || ""}`.trim(),
+          item.status,
+        ]
+          .filter(Boolean)
+          .join(" - "),
+    },
+    {
+      key: "prescriptions",
+      label: "Prescriptions",
+      path: "/dashboard/prescriptions",
+      icon: <HiClipboardList className="h-4 w-4" />,
+      items: searchResults.prescriptions || [],
+      formatTitle: (item) =>
+        item.prescriptionId ||
+        item.medications?.[0]?.name ||
+        "Prescription",
+      formatMeta: (item) =>
+        [
+          item.patient?.fullName ||
+            `${item.patient?.firstName || ""} ${item.patient?.lastName || ""}`.trim(),
+          item.doctor?.fullName ||
+            `${item.doctor?.firstName || ""} ${item.doctor?.lastName || ""}`.trim(),
+          item.status,
+        ]
+          .filter(Boolean)
+          .join(" - "),
+    },
+  ];
+
+  const totalSearchResults = getResultGroups().reduce(
+    (sum, group) => sum + group.items.length,
+    0,
+  );
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    const query = searchTerm.trim();
+    if (!query) return;
+
+    setShowSearchResults(false);
+    navigate(`/dashboard/patients?search=${encodeURIComponent(query)}`);
+  };
+
+  const handleResultSelect = (path) => {
+    const query = searchTerm.trim();
+    setShowSearchResults(false);
+    setSearchTerm("");
+    navigate(query ? `${path}?search=${encodeURIComponent(query)}` : path);
   };
 
   const refreshNotifications = async () => {
@@ -211,9 +376,80 @@ const Navbar = ({ onMenuToggle, isSidebarOpen }) => {
 
         {/* Center: Search */}
         <div className="flex flex-1 justify-center lg:justify-start">
-          <div className="hidden w-full max-w-md items-center rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-500 lg:flex">
-            <HiSearch className="mr-2 h-5 w-5 text-teal-700" />
-            <span>Search patients, doctors, appointments...</span>
+          <div ref={searchContainerRef} className="relative hidden w-full max-w-md lg:block">
+            <form onSubmit={handleSearchSubmit}>
+              <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-500 transition focus-within:border-teal-400 focus-within:bg-white focus-within:ring-4 focus-within:ring-teal-100">
+                <HiSearch className="mr-2 h-5 w-5 text-teal-700" />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value);
+                    setShowSearchResults(true);
+                  }}
+                  onFocus={() => setShowSearchResults(true)}
+                  placeholder="Search patients, doctors, appointments..."
+                  className="w-full bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </form>
+
+            {showSearchResults && searchTerm.trim().length >= 2 && (
+              <div className="absolute left-0 z-40 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+                <div className="border-b border-slate-100 px-4 py-3">
+                  <p className="text-sm font-bold text-slate-900">
+                    Search results
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {searchLoading
+                      ? "Searching clinic records..."
+                      : `${totalSearchResults} result${totalSearchResults === 1 ? "" : "s"}`}
+                  </p>
+                </div>
+
+                <div className="max-h-96 overflow-y-auto py-2">
+                  {searchLoading ? (
+                    <div className="px-4 py-8 text-center text-sm text-slate-500">
+                      Searching...
+                    </div>
+                  ) : totalSearchResults === 0 ? (
+                    <div className="px-4 py-8 text-center text-sm text-slate-500">
+                      No matching records found.
+                    </div>
+                  ) : (
+                    getResultGroups().map((group) =>
+                      group.items.length > 0 ? (
+                        <div key={group.key} className="py-1">
+                          <div className="px-4 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-teal-700">
+                            {group.label}
+                          </div>
+                          {group.items.map((item) => (
+                            <button
+                              key={item._id}
+                              type="button"
+                              onClick={() => handleResultSelect(group.path)}
+                              className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition hover:bg-teal-50"
+                            >
+                              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+                                {group.icon}
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm font-semibold text-slate-900">
+                                  {group.formatTitle(item)}
+                                </span>
+                                <span className="mt-0.5 block truncate text-xs text-slate-500">
+                                  {group.formatMeta(item) || group.label}
+                                </span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null,
+                    )
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <span className="text-lg font-bold tracking-tight text-teal-800 lg:hidden">
             CliniX

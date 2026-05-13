@@ -4,7 +4,6 @@ import {
   HiUsers,
   HiUserGroup,
   HiCalendar,
-  HiClipboardList,
   HiClock,
   HiTrendingUp,
   HiOutlineUserAdd,
@@ -12,7 +11,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineXCircle,
 } from "react-icons/hi";
-import { Line, Bar } from "react-chartjs-2";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -27,7 +26,6 @@ import {
 } from "chart.js";
 import axios from "axios";
 import { format } from "date-fns";
-import Loader from "../components/common/Loader";
 
 // Register ChartJS components
 ChartJS.register(
@@ -111,42 +109,39 @@ const Dashboard = () => {
     },
   });
 
+  const stats = data?.stats || {};
+  const totalAppointments = stats.totalAppointments || 0;
+  const percentOfAppointments = (value) =>
+    totalAppointments ? Math.round((value / totalAppointments) * 100) : 0;
+
   // Calculate derived stats
   const completionRate =
-    data?.stats?.completedAppointments && data?.stats?.totalAppointments
-      ? (
-          (data.stats.completedAppointments / data.stats.totalAppointments) *
-          100
-        ).toFixed(1)
-      : "72.3";
+    totalAppointments && stats.completedAppointments
+      ? ((stats.completedAppointments / totalAppointments) * 100).toFixed(1)
+      : "0.0";
 
   const pendingRate =
-    data?.stats?.pendingAppointments && data?.stats?.totalAppointments
-      ? (
-          (data.stats.pendingAppointments / data.stats.totalAppointments) *
-          100
-        ).toFixed(1)
-      : "2.8";
+    totalAppointments && stats.pendingAppointments
+      ? ((stats.pendingAppointments / totalAppointments) * 100).toFixed(1)
+      : "0.0";
 
   // Stats cards configuration
   const statCards = [
     {
       title: "Total Patients",
-      value: data?.stats?.totalPatients || 0,
+      value: stats.totalPatients ?? 0,
       icon: <HiUsers className="w-6 h-6" />,
-      change: "+12%",
-      trend: "up",
-      bgGradient: "from-blue-500 to-blue-600",
-      lightBg: "bg-blue-50",
-      iconColor: "text-blue-600",
-      borderColor: "border-blue-200",
+      meta: "Registered records",
+      bgGradient: "from-teal-600 to-teal-700",
+      lightBg: "bg-teal-50",
+      iconColor: "text-teal-700",
+      borderColor: "border-teal-200",
     },
     {
       title: "Total Doctors",
-      value: data?.stats?.totalDoctors || 0,
+      value: stats.totalDoctors ?? 0,
       icon: <HiUserGroup className="w-6 h-6" />,
-      change: "+5%",
-      trend: "up",
+      meta: "Clinical team",
       bgGradient: "from-emerald-500 to-emerald-600",
       lightBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
@@ -154,21 +149,19 @@ const Dashboard = () => {
     },
     {
       title: "Total Appointments",
-      value: data?.stats?.totalAppointments || 0,
+      value: stats.totalAppointments ?? 0,
       icon: <HiCalendar className="w-6 h-6" />,
-      change: "+18%",
-      trend: "up",
-      bgGradient: "from-purple-500 to-purple-600",
-      lightBg: "bg-purple-50",
-      iconColor: "text-purple-600",
-      borderColor: "border-purple-200",
+      meta: `${completionRate}% completed`,
+      bgGradient: "from-sky-500 to-sky-600",
+      lightBg: "bg-sky-50",
+      iconColor: "text-sky-700",
+      borderColor: "border-sky-200",
     },
     {
       title: "Today's Appointments",
-      value: data?.stats?.todayAppointments || 0,
+      value: stats.todayAppointments ?? 0,
       icon: <HiClock className="w-6 h-6" />,
-      change: "+3%",
-      trend: "up",
+      meta: `${percentOfAppointments(stats.todayAppointments || 0)}% of all visits`,
       bgGradient: "from-orange-500 to-orange-600",
       lightBg: "bg-orange-50",
       iconColor: "text-orange-600",
@@ -176,10 +169,9 @@ const Dashboard = () => {
     },
     {
       title: "Pending",
-      value: data?.stats?.pendingAppointments || 12,
+      value: stats.pendingAppointments ?? 0,
       icon: <HiOutlineXCircle className="w-6 h-6" />,
-      change: "-2%",
-      trend: "down",
+      meta: `${pendingRate}% awaiting action`,
       bgGradient: "from-yellow-500 to-yellow-600",
       lightBg: "bg-yellow-50",
       iconColor: "text-yellow-600",
@@ -189,8 +181,7 @@ const Dashboard = () => {
       title: "Completion Rate",
       value: `${completionRate}%`,
       icon: <HiOutlineCheckCircle className="w-6 h-6" />,
-      change: "+5%",
-      trend: "up",
+      meta: `${stats.completedAppointments || 0} completed`,
       bgGradient: "from-green-500 to-green-600",
       lightBg: "bg-green-50",
       iconColor: "text-green-600",
@@ -198,14 +189,13 @@ const Dashboard = () => {
     },
     {
       title: "Prescriptions",
-      value: data?.stats?.totalPrescriptions || 328,
+      value: stats.totalPrescriptions ?? 0,
       icon: <HiOutlineDocumentText className="w-6 h-6" />,
-      change: "+8%",
-      trend: "up",
-      bgGradient: "from-pink-500 to-pink-600",
-      lightBg: "bg-pink-50",
-      iconColor: "text-pink-600",
-      borderColor: "border-pink-200",
+      meta: "Medication orders",
+      bgGradient: "from-rose-500 to-rose-600",
+      lightBg: "bg-rose-50",
+      iconColor: "text-rose-600",
+      borderColor: "border-rose-200",
     },
   ];
 
@@ -285,12 +275,12 @@ const Dashboard = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600 mx-auto"></div>
+            <div className="w-20 h-20 border-4 border-teal-200 rounded-full animate-spin border-t-teal-700 mx-auto"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <HiTrendingUp className="w-8 h-8 text-blue-600 animate-pulse" />
+              <HiTrendingUp className="w-8 h-8 text-teal-700 animate-pulse" />
             </div>
           </div>
-          <p className="mt-4 text-lg text-gray-600 animate-pulse">
+          <p className="mt-4 text-lg text-slate-600 animate-pulse">
             Loading dashboard...
           </p>
         </div>
@@ -303,53 +293,53 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-700 via-emerald-600 to-sky-600 bg-clip-text text-transparent">
             Dashboard
           </h1>
-          <p className="text-gray-600 mt-2 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+          <p className="text-slate-600 mt-2 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse"></span>
             Welcome back,{" "}
             {JSON.parse(localStorage.getItem("user") || "{}")?.firstName ||
               "Admin"}
             !
           </p>
         </div>
-        <div className="px-4 py-2 bg-white rounded-xl border border-gray-200 text-sm text-gray-700 shadow-sm">
+        <div className="px-4 py-2 bg-white rounded-lg border border-slate-200 text-sm text-slate-700 shadow-sm">
           {format(new Date(), "EEEE, MMMM d, yyyy")}
         </div>
       </div>
 
       {/* Stats Grid – 8 Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {statCards.map((stat, idx) => (
           <div
             key={idx}
-            className="group relative bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            className="group relative min-h-[142px] bg-white rounded-lg border border-slate-200 p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
           >
             <div className="absolute top-0 right-0 w-16 h-16 opacity-5 group-hover:opacity-10 transition-opacity">
               <div
                 className={`w-full h-full bg-gradient-to-br ${stat.bgGradient} rounded-bl-full`}
               ></div>
             </div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-2">
-                <div className={`p-2 rounded-xl ${stat.lightBg}`}>
+            <div className="relative z-10 flex h-full flex-col justify-between gap-4">
+              <div className="flex items-start justify-between gap-3">
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${stat.lightBg}`}
+                >
                   <div className={stat.iconColor}>{stat.icon}</div>
                 </div>
-                <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                    stat.trend === "up"
-                      ? "bg-green-50 text-green-700"
-                      : "bg-red-50 text-red-700"
-                  }`}
-                >
-                  {stat.change}
-                </div>
+                <span className="max-w-[9rem] rounded-full bg-slate-50 px-2.5 py-1 text-right text-[11px] font-semibold leading-4 text-slate-600 ring-1 ring-slate-100">
+                  {stat.meta}
+                </span>
               </div>
-              <h3 className="text-xs font-medium text-gray-500 mb-1">
-                {stat.title}
-              </h3>
-              <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  {stat.title}
+                </h3>
+                <p className="mt-2 text-2xl font-black text-slate-950">
+                  {stat.value}
+                </p>
+              </div>
             </div>
           </div>
         ))}
@@ -357,16 +347,16 @@ const Dashboard = () => {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-950">
                 Appointments
               </h3>
-              <p className="text-sm text-gray-500">Last 7 days</p>
+              <p className="text-sm text-slate-500">Last 7 days</p>
             </div>
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <HiCalendar className="w-5 h-5 text-blue-600" />
+            <div className="bg-teal-50 p-2 rounded-lg">
+              <HiCalendar className="w-5 h-5 text-teal-700" />
             </div>
           </div>
           <div className="h-64">
@@ -374,13 +364,13 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-950">
                 Patient Growth
               </h3>
-              <p className="text-sm text-gray-500">Last 6 months</p>
+              <p className="text-sm text-slate-500">Last 6 months</p>
             </div>
             <div className="bg-emerald-100 p-2 rounded-lg">
               <HiTrendingUp className="w-5 h-5 text-emerald-600" />
@@ -393,22 +383,22 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <HiOutlineUserAdd className="w-5 h-5 text-blue-600" />
+      <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-950 mb-4 flex items-center gap-2">
+          <HiOutlineUserAdd className="w-5 h-5 text-teal-700" />
           Quick Actions
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <a
             href="/dashboard/patients"
-            className="group flex flex-col items-center p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors border border-blue-200"
+            className="group flex flex-col items-center p-4 bg-teal-50 rounded-lg hover:bg-teal-50 transition-colors border border-teal-200"
           >
-            <HiUsers className="w-8 h-8 text-blue-600 mb-2" />
-            <span className="text-sm font-medium text-blue-900">Patients</span>
+            <HiUsers className="w-8 h-8 text-teal-700 mb-2" />
+            <span className="text-sm font-medium text-teal-950">Patients</span>
           </a>
           <a
             href="/dashboard/doctors"
-            className="group flex flex-col items-center p-4 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-colors border border-emerald-200"
+            className="group flex flex-col items-center p-4 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200"
           >
             <HiUserGroup className="w-8 h-8 text-emerald-600 mb-2" />
             <span className="text-sm font-medium text-emerald-900">
@@ -417,16 +407,16 @@ const Dashboard = () => {
           </a>
           <a
             href="/dashboard/appointments"
-            className="group flex flex-col items-center p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors border border-purple-200"
+            className="group flex flex-col items-center p-4 bg-sky-50 rounded-lg hover:bg-sky-50 transition-colors border border-sky-200"
           >
-            <HiCalendar className="w-8 h-8 text-purple-600 mb-2" />
-            <span className="text-sm font-medium text-purple-900">
+            <HiCalendar className="w-8 h-8 text-sky-700 mb-2" />
+            <span className="text-sm font-medium text-sky-950">
               Appointments
             </span>
           </a>
           <a
             href="/dashboard/prescriptions"
-            className="group flex flex-col items-center p-4 bg-orange-50 rounded-xl hover:bg-orange-100 transition-colors border border-orange-200"
+            className="group flex flex-col items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors border border-orange-200"
           >
             <HiOutlineDocumentText className="w-8 h-8 text-orange-600 mb-2" />
             <span className="text-sm font-medium text-orange-900">
@@ -437,76 +427,76 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Appointments Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-950">
             Recent Appointments
           </h3>
           <a
             href="/dashboard/appointments"
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            className="text-sm text-teal-700 hover:text-teal-900 font-medium"
           >
             View All →
           </a>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Patient
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Doctor
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Date & Time
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Status
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-slate-200">
               {data?.recentAppointments?.length > 0 ? (
                 data.recentAppointments.slice(0, 5).map((apt) => (
                   <tr
                     key={apt._id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-slate-50 transition-colors"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 text-sm font-medium">
+                        <div className="flex-shrink-0 h-8 w-8 bg-teal-50 rounded-full flex items-center justify-center">
+                          <span className="text-teal-700 text-sm font-medium">
                             {apt.patient?.firstName?.charAt(0)}
                             {apt.patient?.lastName?.charAt(0)}
                           </span>
                         </div>
                         <div className="ml-3">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-slate-950">
                             {apt.patient?.firstName} {apt.patient?.lastName}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-slate-500">
                             {apt.patient?.patientId}
                           </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-slate-950">
                         Dr. {apt.doctor?.firstName} {apt.doctor?.lastName}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-slate-500">
                         {apt.doctor?.specialization}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-slate-950">
                         {apt.date
                           ? new Date(apt.date).toLocaleDateString()
                           : "N/A"}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-slate-500">
                         {apt.time || "N/A"}
                       </div>
                     </td>
@@ -516,7 +506,7 @@ const Dashboard = () => {
                           apt.status === "completed"
                             ? "bg-green-100 text-green-800"
                             : apt.status === "scheduled"
-                              ? "bg-blue-100 text-blue-800"
+                              ? "bg-teal-50 text-teal-900"
                               : apt.status === "cancelled"
                                 ? "bg-red-100 text-red-800"
                                 : "bg-yellow-100 text-yellow-800"
@@ -532,7 +522,7 @@ const Dashboard = () => {
                 <tr>
                   <td
                     colSpan="4"
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-6 py-8 text-center text-slate-500"
                   >
                     No recent appointments found.
                   </td>

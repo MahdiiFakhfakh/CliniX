@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 import { useLabResultsQuery } from '@/src/features/patient/hooks/useLabResultsQuery';
 import { usePatientMedicalSummaryQuery } from '@/src/features/patient/hooks/usePatientMedicalSummaryQuery';
 import { usePatientProfileQuery } from '@/src/features/patient/hooks/usePatientProfileQuery';
@@ -10,26 +10,26 @@ import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    text: '#111827',
-    muted: '#6B7280',
-    label: '#9CA3AF',
-    border: '#E5E7EB',
-    divider: '#F3F4F8',
-    successBg: '#DCFCE7',
+    background: colors.background,
+    surface: colors.surface,
+    primary: colors.primary,
+    text: colors.text,
+    muted: colors.textMuted,
+    label: colors.textSubtle,
+    border: colors.border,
+    divider: colors.background,
+    successBg: colors.successSoft,
     successText: '#15803D',
-    infoBg: '#EFF6FF',
-    infoText: '#1D4ED8',
-    infoBorder: '#BFDBFE',
-    warnBg: '#FEF3C7',
-    warnText: '#92400E',
+    infoBg: colors.infoSoft,
+    infoText: colors.primary,
+    infoBorder: colors.infoBorder,
+    warnBg: colors.warningSoft,
+    warnText: colors.warningText,
     warnBorder: '#FDE68A',
-    dangerBg: '#FEE2E2',
-    dangerText: '#B91C1C',
-    tagBg: '#F1F5F9',
-    tagText: '#475569',
+    dangerBg: colors.dangerSoft,
+    dangerText: colors.danger,
+    tagBg: colors.surfaceTint,
+    tagText: colors.textMuted,
 };
 
 function SectionCard({ title, icon, children }) {
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
         backgroundColor: palette.infoBg,
     },
     kindImaging: {
-        backgroundColor: '#F3E8FF',
+        backgroundColor: colors.primarySoft,
     },
     kindBadgeText: {
         fontSize: 10,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
         color: palette.infoText,
     },
     kindImagingText: {
-        color: '#7C3AED',
+        color: colors.primary,
     },
     emptyRow: {
         flexDirection: 'row',

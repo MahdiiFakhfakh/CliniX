@@ -18,25 +18,25 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { roleHomePaths } from '@/src/core/navigation/paths';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 import { loginSchema } from '@/src/features/auth/schemas/loginSchema';
 import { useAuthStore } from '@/src/store/authStore';
 
 const palette = {
-    screenBg: '#F2F3F7',
-    cardBg: '#FFFFFF',
-    primary: '#2A2ACF',
-    primaryPressed: '#1F1FAF',
-    accentTint: '#E6E9FF',
-    inputBg: '#F5F6FA',
-    inputFocusBg: '#F8FAFF',
-    text: '#111111',
-    textDark: '#333333',
-    textMuted: '#6B7280',
-    textPlaceholder: '#9CA3AF',
-    borderSoft: '#E5E7EB',
-    disabledBg: '#A5B4FC',
-    disabledText: '#E5E7EB',
+    screenBg: colors.background,
+    cardBg: colors.surface,
+    primary: colors.primary,
+    primaryPressed: colors.primaryMid,
+    accentTint: colors.primarySoft,
+    inputBg: colors.background,
+    inputFocusBg: colors.surfaceTint,
+    text: colors.text,
+    textDark: colors.text,
+    textMuted: colors.textMuted,
+    textPlaceholder: colors.textSubtle,
+    borderSoft: colors.border,
+    disabledBg: colors.disabled,
+    disabledText: colors.border,
     shadow: '#000000',
 };
 

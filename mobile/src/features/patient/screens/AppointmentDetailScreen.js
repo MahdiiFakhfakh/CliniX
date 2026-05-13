@@ -2,21 +2,21 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
 import { useCancelAppointmentMutation } from '@/src/features/appointments/hooks/useCancelAppointmentMutation';
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    primaryPressed: '#1E40AF',
-    text: '#111827',
-    muted: '#6366A1',
-    border: '#D1D5DB',
-    danger: '#EF4444',
+    background: colors.background,
+    surface: colors.surface,
+    primary: colors.primary,
+    primaryPressed: colors.primaryMid,
+    text: colors.text,
+    muted: colors.textMuted,
+    border: colors.border,
+    danger: colors.danger,
 };
 
 const formatDateLabel = (isoDate) => {
@@ -195,8 +195,8 @@ const styles = StyleSheet.create({
         height: 186,
         borderRadius: 93,
         borderWidth: 6,
-        borderColor: '#D8DAF3',
-        backgroundColor: '#EEF2FF',
+        borderColor: palette.border,
+        backgroundColor: colors.primarySoft,
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     },
     dateCard: {
         marginTop: 20,
-        backgroundColor: '#ECECFA',
+        backgroundColor: colors.surfaceTint,
         borderRadius: 18,
         padding: 16,
         flexDirection: 'row',
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
         width: 54,
         height: 54,
         borderRadius: 14,
-        backgroundColor: '#D8DAF3',
+        backgroundColor: colors.primarySoft,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 14,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
         height: 58,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#C4B5FD',
+        borderColor: colors.primaryLight,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

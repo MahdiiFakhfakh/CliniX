@@ -10,8 +10,8 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, radius, shadows, spacing, typography } from '@/src/core/theme/tokens';
 import { remindersStore } from '@/src/features/patient/remindersStore';
 import AppIcon from '@/src/shared/components/AppIcon';
 
@@ -29,6 +29,7 @@ const SLOTS = [
 
 export function CreateReminderScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [title, setTitle] = useState('');
     const [note, setNote] = useState('');
     const [type, setType] = useState('vitamin');
@@ -43,7 +44,6 @@ export function CreateReminderScreen() {
             return;
         }
 
-        const selectedType = TYPES.find((t) => t.key === type) ?? TYPES[0];
         const timeLabel = time.trim() ? time.trim() : slot === 'morning' ? '08:00 AM' : '02:00 PM';
         const subtitle = note.trim() ? `${timeLabel} - ${note.trim()}` : timeLabel;
 
@@ -55,7 +55,7 @@ export function CreateReminderScreen() {
             primaryAction: type === 'bp' ? 'Log Data' : 'Mark Done',
         });
 
-        router.back();
+        router.replace('/(app)/(patient)/reminders');
     };
 
     return (
@@ -64,26 +64,31 @@ export function CreateReminderScreen() {
                 style={styles.flex}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-                {/* Header */}
-                <View style={styles.headerRow}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                        onPress={() => router.back()}
-                        style={styles.backButton}
-                    >
-                        <AppIcon color={colors.text} name="chevron-back" size={24} />
-                    </Pressable>
-                    <Text style={styles.headerTitle}>New Reminder</Text>
-                    <View style={styles.headerSpacer} />
-                </View>
-
                 <ScrollView
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.xxl }]}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    {/* Type picker */}
+                    <View style={styles.heroCard}>
+                        <View style={styles.heroTopRow}>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Return to care"
+                                onPress={() => router.replace('/(app)/(patient)/reminders')}
+                                style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}
+                            >
+                                <AppIcon color={colors.text} name="chevron-back" size={22} />
+                            </Pressable>
+                            <View style={styles.heroBadge}>
+                                <AppIcon color={colors.primary} name="favorite" size={15} />
+                                <Text style={styles.heroBadgeText}>Daily care</Text>
+                            </View>
+                        </View>
+                        <Text style={styles.heroTitle}>New Reminder</Text>
+                        <Text style={styles.heroSubtitle}>Create a medication, vitals, hydration, or exercise task.</Text>
+                    </View>
+
+                    <View style={styles.formCard}>
                     <Text style={styles.label}>Type</Text>
                     <View style={styles.typeGrid}>
                         {TYPES.map((t) => {
@@ -110,7 +115,6 @@ export function CreateReminderScreen() {
                         })}
                     </View>
 
-                    {/* Title */}
                     <Text style={styles.label}>Title</Text>
                     <TextInput
                         style={[styles.input, error ? styles.inputError : null]}
@@ -122,7 +126,6 @@ export function CreateReminderScreen() {
                     />
                     {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-                    {/* Time */}
                     <Text style={styles.label}>Time (optional)</Text>
                     <TextInput
                         style={styles.input}
@@ -133,7 +136,6 @@ export function CreateReminderScreen() {
                         returnKeyType="next"
                     />
 
-                    {/* Note */}
                     <Text style={styles.label}>Note (optional)</Text>
                     <TextInput
                         style={[styles.input, styles.inputMulti]}
@@ -146,7 +148,6 @@ export function CreateReminderScreen() {
                         returnKeyType="done"
                     />
 
-                    {/* Slot */}
                     <Text style={styles.label}>Time of Day</Text>
                     <View style={styles.slotRow}>
                         {SLOTS.map((s) => {
@@ -172,7 +173,6 @@ export function CreateReminderScreen() {
                         })}
                     </View>
 
-                    {/* Save */}
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Save reminder"
@@ -186,11 +186,12 @@ export function CreateReminderScreen() {
                     <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Cancel"
-                        onPress={() => router.back()}
+                        onPress={() => router.replace('/(app)/(patient)/reminders')}
                         style={styles.cancelButton}
                     >
                         <Text style={styles.cancelButtonText}>Cancel</Text>
                     </Pressable>
+                    </View>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -203,33 +204,73 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    headerRow: {
-        height: 64,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-        paddingHorizontal: spacing.md,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitle: {
-        color: colors.text,
-        fontSize: typography.heading,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
-    headerSpacer: { width: 44 },
     scrollContent: {
         paddingHorizontal: spacing.md,
         paddingTop: spacing.md,
-        paddingBottom: spacing.xxl,
+        gap: spacing.md,
+    },
+    heroCard: {
+        borderRadius: radius.lg,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.md,
+        ...shadows.card,
+    },
+    heroTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: spacing.md,
+    },
+    backButton: {
+        width: 42,
+        height: 42,
+        borderRadius: 15,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroBadge: {
+        minHeight: 34,
+        borderRadius: radius.full,
+        backgroundColor: colors.primarySoft,
+        borderWidth: 1,
+        borderColor: colors.infoBorder,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: spacing.sm,
+    },
+    heroBadgeText: {
+        color: colors.primary,
+        fontSize: typography.caption,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    heroTitle: {
+        color: colors.text,
+        fontSize: 30,
+        lineHeight: 36,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    heroSubtitle: {
+        marginTop: spacing.xs,
+        color: colors.textMuted,
+        fontSize: typography.body,
+        lineHeight: 22,
+        fontFamily: fonts.bodyRegular,
+    },
+    formCard: {
+        borderRadius: radius.md,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.md,
+        ...shadows.card,
     },
     label: {
         color: colors.text,

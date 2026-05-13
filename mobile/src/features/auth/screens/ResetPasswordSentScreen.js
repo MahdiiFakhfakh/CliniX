@@ -3,20 +3,20 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 import { forgotPassword } from '@/src/services/api/endpoints/authApi';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const palette = {
-    background: '#F3F4F8',
-    primary: '#1D4ED8',
-    primaryPressed: '#1E40AF',
-    primarySoft: '#E8EAFD',
-    primaryDot: '#C7D2FE',
-    text: '#111827',
-    muted: '#6B7280',
-    bubbleBg: '#ECEFF5',
-    white: '#FFFFFF',
+    background: colors.background,
+    primary: colors.primary,
+    primaryPressed: colors.primaryMid,
+    primarySoft: colors.primarySoft,
+    primaryDot: colors.infoBorder,
+    text: colors.text,
+    muted: colors.textMuted,
+    bubbleBg: colors.surfaceTint,
+    white: colors.surface,
 };
 
 export function ResetLinkSentScreen() {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
         borderRadius: 11,
         backgroundColor: palette.primaryDot,
         borderWidth: 1,
-        borderColor: '#A5B4FC',
+        borderColor: colors.primaryLight,
     },
     decorDotSmall: {
         position: 'absolute',

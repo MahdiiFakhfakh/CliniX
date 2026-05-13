@@ -2,24 +2,24 @@ import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts, radius, shadows, spacing, typography } from '@/src/core/theme/tokens';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    primaryPressed: '#1E40AF',
-    text: '#111827',
-    muted: '#6B7280',
-    segmentBg: '#DDE1E7',
-    border: '#E5E7EB',
-    successTint: '#DCFCE7',
-    successText: '#047857',
-    dangerTint: '#FEE2E2',
-    dangerText: '#B91C1C',
-    neutralTint: '#EDE9FE',
-    neutralText: '#3730A3',
+    background: colors.background,
+    surface: colors.surface,
+    primary: colors.primary,
+    primaryPressed: colors.primaryMid,
+    text: colors.text,
+    muted: colors.textMuted,
+    segmentBg: colors.background,
+    border: colors.border,
+    successTint: colors.successSoft,
+    successText: '#15803D',
+    dangerTint: colors.dangerSoft,
+    dangerText: colors.danger,
+    neutralTint: colors.primarySoft,
+    neutralText: colors.primary,
 };
 
 const RANGE_OPTIONS = ['24h', '7d', '30d'];
@@ -45,8 +45,8 @@ const VITAL_CARDS = [
         trendLabel: 'Stable',
         trendTone: 'stable',
         icon: 'pulse',
-        iconColor: '#4F46E5',
-        iconBg: '#EDE9FE',
+        iconColor: colors.primary,
+        iconBg: colors.primarySoft,
         miniChart: 'analytics',
     },
     {
@@ -57,8 +57,8 @@ const VITAL_CARDS = [
         trendLabel: '1%',
         trendTone: 'down',
         icon: 'airplane',
-        iconColor: '#2563EB',
-        iconBg: '#E6EEF8',
+        iconColor: colors.info,
+        iconBg: colors.infoSoft,
         miniChart: 'stats-chart',
     },
     {
@@ -102,28 +102,29 @@ export function PatientResultsListScreen() {
     return (
         <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
             <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                        hitSlop={10}
-                        onPress={() => router.back()}
-                        style={styles.headerIconButton}
-                    >
-                        <AppIcon color={palette.text} name="chevron-back" size={30} />
-                    </Pressable>
-
+                <View style={styles.heroCard}>
+                    <View style={styles.heroTopRow}>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Go back"
+                            hitSlop={10}
+                            onPress={() => router.back()}
+                            style={styles.headerIconButton}
+                        >
+                            <AppIcon color={palette.text} name="chevron-back" size={22} />
+                        </Pressable>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Open calendar"
+                            hitSlop={10}
+                            onPress={() => router.push('/(app)/(patient)/appointments')}
+                            style={styles.headerIconButton}
+                        >
+                            <AppIcon color={palette.text} name="calendar-outline" size={22} />
+                        </Pressable>
+                    </View>
                     <Text style={styles.headerTitle}>My Vitals</Text>
-
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Open calendar"
-                        hitSlop={10}
-                        onPress={() => router.push('/(app)/(patient)/appointments')}
-                        style={styles.headerIconButton}
-                    >
-                        <AppIcon color={palette.text} name="calendar-outline" size={30} />
-                    </Pressable>
+                    <Text style={styles.heroSubtitle}>Track your latest readings and health trends.</Text>
                 </View>
 
                 <View style={styles.segmentedControl}>
@@ -222,40 +223,58 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: palette.background,
     },
-    headerRow: {
-        height: 76,
-        paddingHorizontal: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
+    heroCard: {
+        marginHorizontal: spacing.md,
+        marginTop: spacing.md,
+        borderRadius: radius.lg,
+        backgroundColor: palette.surface,
+        borderWidth: 1,
+        borderColor: palette.border,
+        padding: spacing.md,
+        ...shadows.card,
+    },
+    heroTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
     headerIconButton: {
-        width: 46,
-        height: 46,
+        width: 42,
+        height: 42,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: palette.border,
+        backgroundColor: palette.background,
         alignItems: 'center',
         justifyContent: 'center',
     },
     headerTitle: {
+        marginTop: spacing.md,
         color: palette.text,
-        fontSize: 42,
-        lineHeight: 46,
+        fontSize: 30,
+        lineHeight: 36,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
+    },
+    heroSubtitle: {
+        marginTop: spacing.xs,
+        color: palette.muted,
+        fontSize: typography.body,
+        lineHeight: 22,
+        fontFamily: fonts.bodyRegular,
     },
     segmentedControl: {
         marginTop: 16,
         marginHorizontal: 28,
         backgroundColor: palette.segmentBg,
-        borderRadius: 20,
+        borderRadius: radius.sm,
         padding: 6,
         flexDirection: 'row',
         alignItems: 'center',
     },
     segmentButton: {
         flex: 1,
-        borderRadius: 14,
+        borderRadius: radius.sm,
         paddingVertical: 11,
         alignItems: 'center',
         justifyContent: 'center',
@@ -292,13 +311,11 @@ const styles = StyleSheet.create({
     vitalCard: {
         marginTop: 12,
         backgroundColor: palette.surface,
-        borderRadius: 20,
+        borderRadius: radius.md,
         padding: 18,
-        shadowColor: '#000000',
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 3,
+        borderWidth: 1,
+        borderColor: palette.border,
+        ...shadows.card,
     },
     vitalCardPressed: {
         opacity: 0.9,
@@ -334,7 +351,7 @@ const styles = StyleSheet.create({
         fontFamily: fonts.bodyRegular,
     },
     trendChip: {
-        borderRadius: 16,
+        borderRadius: radius.sm,
         paddingHorizontal: 12,
         paddingVertical: 8,
         flexDirection: 'row',
@@ -376,7 +393,7 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 12,
-        backgroundColor: '#EEF2FF',
+        backgroundColor: colors.primarySoft,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -386,12 +403,12 @@ const styles = StyleSheet.create({
         right: 28,
         bottom: 20,
         height: 60,
-        borderRadius: 16,
+        borderRadius: radius.sm,
         backgroundColor: palette.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#1D4ED8',
+        shadowColor: palette.primary,
         shadowOpacity: 0.3,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 5 },

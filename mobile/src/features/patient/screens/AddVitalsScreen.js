@@ -13,17 +13,17 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 
 const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    primaryPressed: '#1E40AF',
-    text: '#111827',
-    muted: '#6B7280',
-    border: '#D1D5DB',
-    success: '#16A34A',
+    background: colors.background,
+    surface: colors.surface,
+    primary: colors.primary,
+    primaryPressed: colors.primaryMid,
+    text: colors.text,
+    muted: colors.textMuted,
+    border: colors.border,
+    success: colors.success,
 };
 
 export function AddVitalsScreen() {
@@ -79,7 +79,7 @@ export function AddVitalsScreen() {
                         <Switch
                             accessibilityLabel="Toggle device sync"
                             onValueChange={setDeviceSync}
-                            trackColor={{ false: '#CBD5E1', true: palette.primary }}
+                            trackColor={{ false: colors.border, true: palette.primary }}
                             thumbColor="#FFFFFF"
                             value={deviceSync}
                         />
@@ -93,11 +93,11 @@ export function AddVitalsScreen() {
                                 keyboardType="numeric"
                                 onChangeText={setHeartRate}
                                 placeholder="e.g. 72"
-                                placeholderTextColor="#6366A1"
+                                placeholderTextColor={colors.textSubtle}
                                 style={styles.input}
                                 value={heartRate}
                             />
-                            <AppIcon color="#6366A1" name="heart-half" size={22} />
+                            <AppIcon color={colors.textMuted} name="heart-half" size={22} />
                         </View>
                     </View>
 
@@ -109,11 +109,11 @@ export function AddVitalsScreen() {
                                 keyboardType="numeric"
                                 onChangeText={setSpo2}
                                 placeholder="e.g. 98"
-                                placeholderTextColor="#6366A1"
+                                placeholderTextColor={colors.textSubtle}
                                 style={styles.input}
                                 value={spo2}
                             />
-                            <AppIcon color="#6366A1" name="medkit" size={22} />
+                            <AppIcon color={colors.textMuted} name="medkit" size={22} />
                         </View>
                     </View>
 
@@ -124,11 +124,11 @@ export function AddVitalsScreen() {
                                 accessibilityLabel="Blood pressure"
                                 onChangeText={setBloodPressure}
                                 placeholder="e.g. 120/80"
-                                placeholderTextColor="#6366A1"
+                                placeholderTextColor={colors.textSubtle}
                                 style={styles.input}
                                 value={bloodPressure}
                             />
-                            <AppIcon color="#6366A1" name="speedometer" size={22} />
+                            <AppIcon color={colors.textMuted} name="speedometer" size={22} />
                         </View>
                     </View>
 
@@ -140,11 +140,11 @@ export function AddVitalsScreen() {
                                 keyboardType="numeric"
                                 onChangeText={setTemperature}
                                 placeholder="e.g. 36.6"
-                                placeholderTextColor="#6366A1"
+                                placeholderTextColor={colors.textSubtle}
                                 style={styles.input}
                                 value={temperature}
                             />
-                            <AppIcon color="#6366A1" name="thermometer" size={22} />
+                            <AppIcon color={colors.textMuted} name="thermometer" size={22} />
                         </View>
                     </View>
 
@@ -155,7 +155,7 @@ export function AddVitalsScreen() {
                             multiline
                             onChangeText={setNotes}
                             placeholder="Add any additional context..."
-                            placeholderTextColor="#6366A1"
+                            placeholderTextColor={colors.textSubtle}
                             style={styles.notesInput}
                             value={notes}
                         />
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#1D4ED8',
+        shadowColor: palette.primary,
         shadowOpacity: 0.28,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 5 },

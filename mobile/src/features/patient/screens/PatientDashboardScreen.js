@@ -1,27 +1,24 @@
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
 import { isUpcomingAppointment, sortAppointmentsAscending } from '@/src/features/appointments/utils/appointmentDates';
+import { remindersStore } from '@/src/features/patient/remindersStore';
 import AppIcon from '@/src/shared/components/AppIcon';
-
-
-
-
 
 const QUICK_ACTIONS = [
     { id: 'book', label: 'Book Appt', icon: 'add-circle', path: '/(app)/(patient)/book-appointment' },
     { id: 'chat', label: 'Health Chat', icon: 'chatbubble-ellipses', path: '/(app)/(patient)/chat' },
     { id: 'vitals', label: 'Detailed Vitals', icon: 'stats-chart', path: '/(app)/(patient)/results' },
-    { id: 'alerts', label: 'Vital Alerts', icon: 'notifications', path: '/(app)/notifications' },
+    { id: 'reminders', label: 'Reminders', icon: 'notifications', path: '/(app)/(patient)/reminders' },
 ];
 
 const formatDateLabel = (isoDate) => {
     const date = new Date(isoDate);
     if (Number.isNaN(date.getTime())) {
-        return 'Today, Oct 24';
+        return 'Today';
     }
     const dateText = new Intl.DateTimeFormat('en-US', {
         month: 'short',
@@ -34,7 +31,7 @@ const formatDateLabel = (isoDate) => {
 const buildCountdown = (isoDate) => {
     const date = new Date(isoDate);
     if (Number.isNaN(date.getTime())) {
-        return 'In 2 hours';
+        return 'Upcoming';
     }
     const diffMs = date.getTime() - Date.now();
     if (diffMs <= 0) {
@@ -47,11 +44,17 @@ const buildCountdown = (isoDate) => {
 export function PatientHomeScreen() {
     const router = useRouter();
     const appointmentsQuery = useAppointmentsQuery('patient');
+    const insets = useSafeAreaInsets();
 
-    const [reminders, setReminders] = useState([]);
+    const [reminders, setReminders] = useState(remindersStore.get());
     const [showAddReminder, setShowAddReminder] = useState(false);
     const [reminderTitle, setReminderTitle] = useState('');
     const [reminderTime, setReminderTime] = useState('');
+
+    useEffect(() => {
+        void remindersStore.hydrate();
+        return remindersStore.subscribe(setReminders);
+    }, []);
 
     const nextAppointment = useMemo(() => {
         const upcomingAppointments = sortAppointmentsAscending(
@@ -64,42 +67,57 @@ export function PatientHomeScreen() {
             specialty: `${next.department ?? 'General'} Specialist`,
             date: next.date ?? new Date().toISOString(),
             time: next.time ?? '',
-            countdown: next.date ? buildCountdown(next.date) : '',
+            countdown: next.date ? buildCountdown(next.date) : 'Upcoming',
         };
     }, [appointmentsQuery.data]);
 
-    const reminderCount = useMemo(
-        () => reminders.filter((item) => !item.completed).length,
+    const todayReminders = useMemo(
+        () => [...reminders.morning, ...reminders.afternoon].filter((item) => item.bucket === 'today'),
         [reminders],
     );
 
-    const handleAddReminder = () => {
+    const addQuickReminder = () => {
         if (!reminderTitle.trim()) return;
-        const newReminder = {
-            id: `r-${Date.now()}`,
+
+        remindersStore.add({
             title: reminderTitle.trim(),
-            subtitle: reminderTime.trim() ? `REMINDER • ${reminderTime.trim()}` : 'REMINDER',
+            subtitle: reminderTime.trim() ? `${reminderTime.trim()} - Quick reminder` : 'Today',
             icon: 'notifications-outline',
-            completed: false,
-        };
-        setReminders((prev) => [...prev, newReminder]);
+            type: 'vitamin',
+            slot: 'morning',
+            primaryAction: 'Mark Done',
+        });
         setReminderTitle('');
         setReminderTime('');
         setShowAddReminder(false);
     };
 
-    const toggleReminder = (id) => {
-        setReminders((current) =>
-            current.map((item) => (item.id === id ? { ...item, completed: !item.completed } : item)),
-        );
+    const completeReminder = (item) => {
+        const current = remindersStore.get();
+        const source = current[item.section] ?? [];
+        remindersStore.set({
+            ...current,
+            [item.section]: source.filter((entry) => entry.id !== item.id),
+            completed: [
+                {
+                    id: `${item.id}-done`,
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    type: item.type,
+                    status: 'done',
+                },
+                ...current.completed,
+            ],
+        });
     };
-
-    const insets = useSafeAreaInsets();
 
     return (
         <SafeAreaView edges={['left', 'right']} style={styles.safeArea}>
             <View style={styles.container}>
-                <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+                    showsVerticalScrollIndicator={false}
+                >
                     {nextAppointment ? (
                         <View style={styles.appointmentCard}>
                             <View style={styles.cardTopRow}>
@@ -124,7 +142,7 @@ export function PatientHomeScreen() {
                                     <AppIcon color={colors.primary} name="calendar-outline" size={22} />
                                     <Text style={styles.dateMain}>{formatDateLabel(nextAppointment.date)}</Text>
                                 </View>
-                                <Text style={styles.dateSub}>{nextAppointment.time}</Text>
+                                <Text style={styles.dateSub}>{nextAppointment.time || 'Time to be confirmed'}</Text>
                             </View>
                         </View>
                     ) : (
@@ -150,7 +168,7 @@ export function PatientHomeScreen() {
                     )}
 
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Today&apos;s Reminders</Text>
+                        <Text style={styles.sectionTitle}>Today's Reminders</Text>
                         <Pressable
                             accessibilityRole="button"
                             accessibilityLabel="Add reminder"
@@ -162,33 +180,42 @@ export function PatientHomeScreen() {
                         </Pressable>
                     </View>
 
-                    {reminders.length > 0 ? (
+                    {todayReminders.length > 0 ? (
                         <>
-                            <Text style={styles.reminderCounter}>{reminderCount} pending</Text>
-                            {reminders.map((item) => (
-                                <View key={item.id} style={[styles.reminderCard, item.completed && styles.reminderCompleted]}>
+                            <Text style={styles.reminderCounter}>{todayReminders.length} pending</Text>
+                            {todayReminders.slice(0, 3).map((item) => (
+                                <View key={item.id} style={styles.reminderCard}>
                                     <Pressable
                                         accessibilityRole="checkbox"
-                                        accessibilityState={{ checked: item.completed }}
-                                        accessibilityLabel={`Toggle ${item.title}`}
-                                        onPress={() => toggleReminder(item.id)}
-                                        style={[styles.checkbox, item.completed && styles.checkboxChecked]}
+                                        accessibilityState={{ checked: false }}
+                                        accessibilityLabel={`Mark ${item.title} done`}
+                                        onPress={() => completeReminder(item)}
+                                        style={styles.checkbox}
                                     >
-                                        {item.completed ? <AppIcon color="#FFFFFF" name="checkmark" size={15} /> : null}
+                                        <AppIcon color="#CBD5E1" name="checkmark" size={15} />
                                     </Pressable>
                                     <View style={styles.reminderTextWrap}>
-                                        <Text style={[styles.reminderTitle, item.completed && styles.reminderTitleDone]}>
-                                            {item.title}
-                                        </Text>
+                                        <Text style={styles.reminderTitle}>{item.title}</Text>
                                         <Text style={styles.reminderSubtitle}>{item.subtitle}</Text>
                                     </View>
-                                    <AppIcon color="#9CA3AF" name={item.icon} size={22} />
+                                    <AppIcon color="#9CA3AF" name={item.icon ?? 'notifications-outline'} size={22} />
                                 </View>
                             ))}
+                            {todayReminders.length > 3 ? (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Open all reminders"
+                                    onPress={() => router.push('/(app)/(patient)/reminders')}
+                                    style={({ pressed }) => [styles.viewRemindersButton, pressed && { opacity: 0.72 }]}
+                                >
+                                    <Text style={styles.viewRemindersText}>View all reminders</Text>
+                                    <AppIcon color={colors.primary} name="chevron-forward" size={18} />
+                                </Pressable>
+                            ) : null}
                         </>
                     ) : (
                         <View style={styles.emptyReminders}>
-                            <AppIcon color={colors.textMuted} name="notifications-off-outline" size={32} />
+                            <AppIcon color={colors.textMuted} name="notifications-outline" size={32} />
                             <Text style={styles.emptyRemindersText}>No reminders for today</Text>
                         </View>
                     )}
@@ -235,7 +262,9 @@ export function PatientHomeScreen() {
                             value={reminderTitle}
                         />
 
-                        <Text style={styles.modalLabel}>Time <Text style={styles.modalOptional}>(optional)</Text></Text>
+                        <Text style={styles.modalLabel}>
+                            Time <Text style={styles.modalOptional}>(optional)</Text>
+                        </Text>
                         <TextInput
                             onChangeText={setReminderTime}
                             placeholder="e.g. 8:00 AM"
@@ -245,16 +274,13 @@ export function PatientHomeScreen() {
                         />
 
                         <View style={styles.modalActions}>
-                            <Pressable
-                                onPress={() => setShowAddReminder(false)}
-                                style={styles.modalCancelButton}
-                            >
+                            <Pressable onPress={() => setShowAddReminder(false)} style={styles.modalCancelButton}>
                                 <Text style={styles.modalCancelText}>Cancel</Text>
                             </Pressable>
                             <Pressable
-                                onPress={handleAddReminder}
-                                style={[styles.modalSaveButton, !reminderTitle.trim() && styles.modalSaveDisabled]}
                                 disabled={!reminderTitle.trim()}
+                                onPress={addQuickReminder}
+                                style={[styles.modalSaveButton, !reminderTitle.trim() && styles.modalSaveDisabled]}
                             >
                                 <Text style={styles.modalSaveText}>Add Reminder</Text>
                             </Pressable>
@@ -401,7 +427,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#1D4ED8',
+        shadowColor: colors.primary,
         shadowOpacity: 0.25,
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 4 },
@@ -432,13 +458,6 @@ const styles = StyleSheet.create({
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    viewAll: {
-        color: colors.primary,
-        fontSize: 17,
-        lineHeight: 22,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
-    },
     emptyReminders: {
         alignItems: 'center',
         paddingVertical: 20,
@@ -465,9 +484,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    reminderCompleted: {
-        opacity: 0.65,
-    },
     checkbox: {
         width: 30,
         height: 30,
@@ -479,10 +495,6 @@ const styles = StyleSheet.create({
         marginRight: 12,
         backgroundColor: '#FFFFFF',
     },
-    checkboxChecked: {
-        backgroundColor: colors.primary,
-        borderColor: colors.primary,
-    },
     reminderTextWrap: {
         flex: 1,
     },
@@ -493,14 +505,25 @@ const styles = StyleSheet.create({
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
-    reminderTitleDone: {
-        textDecorationLine: 'line-through',
-    },
     reminderSubtitle: {
         color: colors.textMuted,
         fontSize: 13,
         lineHeight: 18,
         fontFamily: fonts.bodyRegular,
+    },
+    viewRemindersButton: {
+        marginTop: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        paddingVertical: 8,
+    },
+    viewRemindersText: {
+        color: colors.primary,
+        fontSize: 14,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
     },
     addReminderButton: {
         flexDirection: 'row',
@@ -592,7 +615,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     modalSaveDisabled: {
-        backgroundColor: '#A5B4FC',
+        backgroundColor: colors.disabled,
     },
     modalSaveText: {
         fontSize: 15,

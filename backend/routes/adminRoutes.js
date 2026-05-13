@@ -7,6 +7,7 @@ const Prescription = require("../models/Prescription");
 const Admin = require("../models/Admin");
 const User = require("../models/User");
 const Notification = require("../models/Notifications");
+const Setting = require("../models/Setting");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 const { notifyAdmins } = require("../utils/notifications");
 const {
@@ -22,6 +23,22 @@ const toCleanString = (value) =>
 
 const buildFullName = (firstName, lastName) =>
   [toCleanString(firstName), toCleanString(lastName)].filter(Boolean).join(" ");
+
+const escapeRegex = (value) =>
+  String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const getOrCreateSettings = async (userId) =>
+  Setting.findOneAndUpdate(
+    { user: userId },
+    {
+      $setOnInsert: {
+        user: userId,
+        clinic: {},
+        preferences: {},
+      },
+    },
+    { new: true, upsert: true, setDefaultsOnInsert: true },
+  );
 
 const calculateAge = (dateOfBirth) => {
   if (!dateOfBirth) return undefined;
@@ -128,6 +145,141 @@ router.put(
     }
   },
 );
+
+router.get("/search", protect, authorize("admin"), async (req, res) => {
+  try {
+    const rawQuery = toCleanString(req.query.query);
+    if (!rawQuery) {
+      return res.json({
+        success: true,
+        results: {
+          patients: [],
+          doctors: [],
+          appointments: [],
+          prescriptions: [],
+        },
+        total: 0,
+      });
+    }
+
+    const regex = new RegExp(escapeRegex(rawQuery), "i");
+
+    const [patients, doctors, appointments, prescriptions] = await Promise.all([
+      Patient.find({
+        $or: [
+          { firstName: regex },
+          { lastName: regex },
+          { fullName: regex },
+          { email: regex },
+          { phone: regex },
+          { patientId: regex },
+        ],
+      })
+        .select("firstName lastName fullName email phone patientId status")
+        .sort({ updatedAt: -1 })
+        .limit(6)
+        .lean(),
+
+      Doctor.find({
+        $or: [
+          { firstName: regex },
+          { lastName: regex },
+          { fullName: regex },
+          { email: regex },
+          { phone: regex },
+          { doctorId: regex },
+          { specialization: regex },
+          { department: regex },
+        ],
+      })
+        .select(
+          "firstName lastName fullName email phone doctorId specialization department status",
+        )
+        .sort({ updatedAt: -1 })
+        .limit(6)
+        .lean(),
+
+      Appointment.find({
+        $or: [{ appointmentId: regex }, { reason: regex }, { status: regex }],
+      })
+        .populate("patient", "firstName lastName fullName patientId")
+        .populate("doctor", "firstName lastName fullName specialization")
+        .select("appointmentId patient doctor date time status reason")
+        .sort({ date: -1 })
+        .limit(6)
+        .lean(),
+
+      Prescription.find({
+        $or: [
+          { prescriptionId: regex },
+          { instructions: regex },
+          { status: regex },
+          { "medications.name": regex },
+        ],
+      })
+        .populate("patient", "firstName lastName fullName patientId")
+        .populate("doctor", "firstName lastName fullName specialization")
+        .select("prescriptionId patient doctor date status medications")
+        .sort({ date: -1 })
+        .limit(6)
+        .lean(),
+    ]);
+
+    const appointmentNameMatches = await Appointment.find()
+      .populate("patient", "firstName lastName fullName patientId")
+      .populate("doctor", "firstName lastName fullName specialization")
+      .select("appointmentId patient doctor date time status reason")
+      .sort({ date: -1 })
+      .limit(50)
+      .lean();
+
+    const matchedAppointmentsByName = appointmentNameMatches
+      .filter((appointment) => {
+        const patientName =
+          appointment.patient?.fullName ||
+          buildFullName(
+            appointment.patient?.firstName,
+            appointment.patient?.lastName,
+          );
+        const doctorName =
+          appointment.doctor?.fullName ||
+          buildFullName(
+            appointment.doctor?.firstName,
+            appointment.doctor?.lastName,
+          );
+
+        return regex.test(patientName) || regex.test(doctorName);
+      })
+      .slice(0, 6);
+
+    const appointmentMap = new Map(
+      [...appointments, ...matchedAppointmentsByName].map((appointment) => [
+        appointment._id.toString(),
+        appointment,
+      ]),
+    );
+
+    const results = {
+      patients,
+      doctors,
+      appointments: Array.from(appointmentMap.values()).slice(0, 6),
+      prescriptions,
+    };
+
+    const total = Object.values(results).reduce(
+      (sum, group) => sum + group.length,
+      0,
+    );
+
+    res.json({ success: true, results, total });
+  } catch (error) {
+    console.error("GET /admin/search error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to search clinic records",
+    });
+  }
+});
 
 router.get(
   "/dashboard/stats",
@@ -252,6 +404,8 @@ router.get(
           fullName: admin.fullName,
           phone: admin.phone,
           department: admin.department,
+          notes: admin.notes || "",
+          role: req.user.role,
           email: req.user.email, // from User model
         },
       });
@@ -270,7 +424,7 @@ router.put(
   authorize("admin"),
   async (req, res) => {
     try {
-      const { firstName, lastName, phone, department, email } = req.body;
+      const { firstName, lastName, phone, department, email, notes } = req.body;
 
       // Update Admin
       const admin = await Admin.findOneAndUpdate(
@@ -281,6 +435,7 @@ router.put(
           fullName: `${firstName} ${lastName}`.trim(),
           phone,
           department,
+          notes,
           updatedAt: new Date(),
         },
         { new: true, runValidators: true },
@@ -305,6 +460,8 @@ router.put(
           fullName: admin.fullName,
           phone: admin.phone,
           department: admin.department,
+          notes: admin.notes || "",
+          role: req.user.role,
           email: email || req.user.email,
         },
       });
@@ -313,6 +470,121 @@ router.put(
       res
         .status(500)
         .json({ success: false, message: "Failed to update profile" });
+    }
+  },
+);
+
+router.get(
+  "/settings/clinic",
+  protect,
+  authorize("admin"),
+  async (req, res) => {
+    try {
+      const settings = await getOrCreateSettings(req.user._id);
+      res.json({ success: true, clinic: settings.clinic });
+    } catch (error) {
+      console.error("GET /settings/clinic error:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to fetch clinic settings" });
+    }
+  },
+);
+
+router.put(
+  "/settings/clinic",
+  protect,
+  authorize("admin"),
+  async (req, res) => {
+    try {
+      const allowedFields = [
+        "name",
+        "address",
+        "phone",
+        "email",
+        "website",
+        "hours",
+        "timezone",
+        "appointmentDuration",
+      ];
+      const clinic = {};
+
+      allowedFields.forEach((field) => {
+        if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+          clinic[`clinic.${field}`] = req.body[field];
+        }
+      });
+
+      const settings = await Setting.findOneAndUpdate(
+        { user: req.user._id },
+        { $set: clinic, $setOnInsert: { user: req.user._id } },
+        { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+      );
+
+      res.json({ success: true, clinic: settings.clinic });
+    } catch (error) {
+      console.error("PUT /settings/clinic error:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to update clinic settings" });
+    }
+  },
+);
+
+router.get(
+  "/settings/preferences",
+  protect,
+  authorize("admin"),
+  async (req, res) => {
+    try {
+      const settings = await getOrCreateSettings(req.user._id);
+      res.json({ success: true, preferences: settings.preferences });
+    } catch (error) {
+      console.error("GET /settings/preferences error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch preferences",
+      });
+    }
+  },
+);
+
+router.put(
+  "/settings/preferences",
+  protect,
+  authorize("admin"),
+  async (req, res) => {
+    try {
+      const allowedFields = [
+        "notifications",
+        "emailNotifications",
+        "appointmentReminders",
+        "doctorApprovalAlerts",
+        "prescriptionAlerts",
+        "compactTables",
+        "defaultDashboardRange",
+      ];
+      const preferences = {};
+
+      allowedFields.forEach((field) => {
+        if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+          preferences[`preferences.${field}`] = req.body[field];
+        }
+      });
+
+      const settings = await Setting.findOneAndUpdate(
+        { user: req.user._id },
+        { $set: preferences, $setOnInsert: { user: req.user._id } },
+        { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+      );
+
+      res.json({ success: true, preferences: settings.preferences });
+    } catch (error) {
+      console.error("PUT /settings/preferences error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update preferences",
+      });
     }
   },
 );
@@ -1835,6 +2107,59 @@ router.put(
       res.status(500).json({
         success: false,
         message: "Failed to update appointment status",
+      });
+    }
+  },
+);
+
+// DELETE appointment
+router.delete(
+  "/appointments/:id",
+  protect,
+  authorize("admin"),
+  async (req, res) => {
+    try {
+      const appointment = await Appointment.findById(req.params.id);
+
+      if (!appointment) {
+        return res.status(404).json({
+          success: false,
+          message: "Appointment not found",
+        });
+      }
+
+      await Promise.all([
+        appointment.deleteOne(),
+        Patient.findByIdAndUpdate(appointment.patient, {
+          $pull: { appointments: appointment._id },
+        }),
+        Doctor.findByIdAndUpdate(appointment.doctor, {
+          $pull: { appointments: appointment._id },
+        }),
+      ]);
+
+      await notifyAdmins({
+        type: "appointment",
+        title: "Appointment deleted",
+        message: `Appointment ${appointment.appointmentId || appointment._id} was deleted from the database.`,
+        priority: "high",
+        actor: req.user._id,
+        data: {
+          action: "deleted",
+          resource: "appointment",
+          appointmentId: appointment._id,
+        },
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Appointment deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to delete appointment",
       });
     }
   },

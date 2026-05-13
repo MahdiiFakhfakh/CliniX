@@ -46,6 +46,7 @@ export const authAPI = {
 // Admin API
 export const adminAPI = {
   getDashboardStats: () => api.get("/admin/dashboard/stats"),
+  search: (query) => api.get("/admin/search", { params: { query } }),
 };
 
 // Patients API

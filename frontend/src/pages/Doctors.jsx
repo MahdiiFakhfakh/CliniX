@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { matchesSearch } from "../utils/search";
 import {
   HiOutlineSearch,
   HiOutlineFilter,
@@ -58,6 +59,7 @@ const Doctors = () => {
   });
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const toListText = (value) =>
     Array.isArray(value) ? value.filter(Boolean).join(", ") : value || "";
@@ -68,10 +70,30 @@ const Doctors = () => {
       .map((item) => item.trim())
       .filter(Boolean);
 
+  const calculateDoctorStats = (doctorList) => {
+    const total = doctorList.length;
+    const ratingTotal = doctorList.reduce(
+      (sum, d) => sum + (d.ratings?.average || 4.5),
+      0,
+    );
+
+    return {
+      total,
+      available: doctorList.filter((d) => d.status === "available").length,
+      onLeave: doctorList.filter((d) => d.status === "on_leave").length,
+      avgRating: total ? (ratingTotal / total).toFixed(1) : "0.0",
+    };
+  };
+
   // Fetch doctors on component mount
   useEffect(() => {
     fetchDoctors();
   }, []);
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search).get("search") || "";
+    setSearchTerm(query);
+  }, [location.search]);
 
   const fetchDoctors = async () => {
     try {
@@ -122,20 +144,7 @@ const Doctors = () => {
       setFilteredDoctors(transformedDoctors);
 
       // Update stats
-      setStats({
-        total: transformedDoctors.length,
-        available: transformedDoctors.filter((d) => d.status === "available")
-          .length,
-        onLeave: transformedDoctors.filter((d) => d.status === "on_leave")
-          .length,
-        avgRating:
-          (
-            transformedDoctors.reduce(
-              (sum, d) => sum + (d.ratings?.average || 4.5),
-              0,
-            ) / transformedDoctors.length
-          ).toFixed(1) || 4.5,
-      });
+      setStats(calculateDoctorStats(transformedDoctors));
     } catch (err) {
       console.error("Error fetching doctors:", err);
       toast.error("Failed to load doctors");
@@ -165,20 +174,22 @@ const Doctors = () => {
   const handleStatusChange = async (doctorId, newStatus) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.put(
+      await axios.put(
         `http://localhost:5000/api/admin/doctors/${doctorId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
       // Update local state
-      setDoctors((prev) =>
-        prev.map((d) =>
+      setDoctors((prev) => {
+        const updatedDoctors = prev.map((d) =>
           d._id === doctorId
             ? { ...d, status: newStatus, statusText: getStatusText(newStatus) }
             : d,
-        ),
-      );
+        );
+        setStats(calculateDoctorStats(updatedDoctors));
+        return updatedDoctors;
+      });
       setFilteredDoctors((prev) =>
         prev.map((d) =>
           d._id === doctorId
@@ -186,14 +197,6 @@ const Doctors = () => {
             : d,
         ),
       );
-
-      // Update stats
-      setStats((prev) => ({
-        ...prev,
-        available:
-          newStatus === "available" ? prev.available + 1 : prev.available - 1,
-        onLeave: newStatus === "on_leave" ? prev.onLeave + 1 : prev.onLeave - 1,
-      }));
 
       // Update selected doctor if modal is open
       if (selectedDoctor && selectedDoctor._id === doctorId) {
@@ -228,8 +231,16 @@ const Doctors = () => {
         },
       );
 
-      setDoctors((prev) => prev.filter((d) => d._id !== doctorId));
+      setDoctors((prev) => {
+        const remainingDoctors = prev.filter((d) => d._id !== doctorId);
+        setStats(calculateDoctorStats(remainingDoctors));
+        return remainingDoctors;
+      });
       setFilteredDoctors((prev) => prev.filter((d) => d._id !== doctorId));
+      if (selectedDoctor?._id === doctorId) {
+        setSelectedDoctor(null);
+        setShowDetailsModal(false);
+      }
       toast.success("Doctor removed successfully");
     } catch (error) {
       console.error("Failed to delete doctor:", error);
@@ -314,15 +325,26 @@ const Doctors = () => {
   useEffect(() => {
     let filtered = [...doctors];
 
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (doc) =>
-          doc.fullName?.toLowerCase().includes(q) ||
-          doc.specialization?.toLowerCase().includes(q) ||
-          doc.department?.toLowerCase().includes(q) ||
-          doc.email?.toLowerCase().includes(q) ||
-          doc.hospital?.toLowerCase().includes(q),
+    if (searchTerm.trim()) {
+      filtered = filtered.filter((doc) =>
+        matchesSearch(searchTerm, [
+          doc.fullName,
+          doc.firstName,
+          doc.lastName,
+          doc.doctorId,
+          doc.email,
+          doc.phone,
+          doc.specialization,
+          doc.department,
+          doc.hospital,
+          doc.licenseNumber,
+          doc.status,
+          doc.statusText,
+          doc.qualifications,
+          doc.experienceText,
+          doc.bio,
+          doc.notes,
+        ]),
       );
     }
 
@@ -386,6 +408,9 @@ const Doctors = () => {
     setSelectedStatus("all");
     setSelectedDepartment("all");
     setCurrentPage(1);
+    if (location.search) {
+      navigate(location.pathname, { replace: true });
+    }
   };
 
   const handleSort = (field) => {
@@ -400,15 +425,15 @@ const Doctors = () => {
   // Loading State
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#f8fffd] via-[#eef8f7] to-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600 mx-auto"></div>
+            <div className="w-20 h-20 border-4 border-teal-200 rounded-full animate-spin border-t-teal-700 mx-auto"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <HiOutlineUserGroup className="w-8 h-8 text-blue-600 animate-pulse" />
+              <HiOutlineUserGroup className="w-8 h-8 text-teal-700 animate-pulse" />
             </div>
           </div>
-          <p className="mt-4 text-lg text-gray-600 animate-pulse">
+          <p className="mt-4 text-lg text-slate-600 animate-pulse">
             Loading doctors...
           </p>
         </div>
@@ -421,74 +446,74 @@ const Doctors = () => {
   // ============================================
   const StatsCards = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Total Doctors</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-sm font-medium text-slate-500">Total Doctors</p>
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.total}
             </p>
             <p className="text-xs text-green-600 mt-1">
               Active: {stats.available}
             </p>
           </div>
-          <div className="bg-blue-100 p-3 rounded-2xl">
-            <HiOutlineUserGroup className="w-6 h-6 text-blue-600" />
+          <div className="bg-teal-50 p-3 rounded-lg">
+            <HiOutlineUserGroup className="w-6 h-6 text-teal-700" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Available Now</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-sm font-medium text-slate-500">Available Now</p>
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.available}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {Math.round((stats.available / (stats.total || 1)) * 100)}% of
               staff
             </p>
           </div>
-          <div className="bg-green-100 p-3 rounded-2xl">
+          <div className="bg-green-100 p-3 rounded-lg">
             <HiOutlineCheckCircle className="w-6 h-6 text-green-600" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">On Leave</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-sm font-medium text-slate-500">On Leave</p>
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.onLeave}
             </p>
             <p className="text-xs text-yellow-600 mt-1">
               Temporarily unavailable
             </p>
           </div>
-          <div className="bg-yellow-100 p-3 rounded-2xl">
+          <div className="bg-yellow-100 p-3 rounded-lg">
             <HiOutlineClock className="w-6 h-6 text-yellow-600" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Average Rating</p>
+            <p className="text-sm font-medium text-slate-500">Average Rating</p>
             <div className="flex items-center mt-2">
-              <p className="text-3xl font-bold text-gray-900 mr-2">
+              <p className="text-3xl font-bold text-slate-950 mr-2">
                 {stats.avgRating}
               </p>
               <HiOutlineStar className="w-6 h-6 text-yellow-400 fill-current" />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Based on patient reviews
             </p>
           </div>
-          <div className="bg-purple-100 p-3 rounded-2xl">
-            <HiOutlineStar className="w-6 h-6 text-purple-600" />
+          <div className="bg-sky-50 p-3 rounded-lg">
+            <HiOutlineStar className="w-6 h-6 text-sky-700" />
           </div>
         </div>
       </div>
@@ -499,23 +524,23 @@ const Doctors = () => {
   // SEARCH AND FILTERS COMPONENT
   // ============================================
   const SearchAndFilters = () => (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 mb-8 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-lg border border-slate-200 mb-8 overflow-hidden">
       <div className="p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Search Bar */}
           <div className="flex-1 relative">
-            <HiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <HiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Search doctors by name, specialization, department..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+              className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-slate-50 hover:bg-white transition-colors"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 ✕
               </button>
@@ -526,10 +551,10 @@ const Doctors = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 py-3 rounded-xl flex items-center gap-2 transition-all ${
+              className={`px-4 py-3 rounded-lg flex items-center gap-2 transition-all ${
                 showFilters
-                  ? "bg-blue-100 text-blue-700 border-2 border-blue-300"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-transparent"
+                  ? "bg-teal-50 text-teal-800 border-2 border-teal-300"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200 border-2 border-transparent"
               }`}
             >
               <HiOutlineFilter className="w-5 h-5" />
@@ -537,7 +562,7 @@ const Doctors = () => {
               {(selectedSpecialization !== "all" ||
                 selectedStatus !== "all" ||
                 selectedDepartment !== "all") && (
-                <span className="ml-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                <span className="ml-1 px-2 py-0.5 bg-teal-500 text-white text-xs rounded-full">
                   {
                     [
                       selectedSpecialization,
@@ -553,7 +578,7 @@ const Doctors = () => {
               onClick={() =>
                 setViewMode(viewMode === "grid" ? "table" : "grid")
               }
-              className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all flex items-center gap-2"
+              className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-all flex items-center gap-2"
             >
               {viewMode === "grid" ? (
                 <>
@@ -573,15 +598,15 @@ const Doctors = () => {
 
         {/* Expandable Filters */}
         {showFilters && (
-          <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4 animate-slideDown">
+          <div className="mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 animate-slideDown">
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
                 Specialization
               </label>
               <select
                 value={selectedSpecialization}
                 onChange={(e) => setSelectedSpecialization(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 bg-slate-50"
               >
                 {specializations.map((spec) => (
                   <option key={spec} value={spec}>
@@ -592,13 +617,13 @@ const Doctors = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
                 Status
               </label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 bg-slate-50"
               >
                 <option value="all">All Status</option>
                 <option value="available">Available</option>
@@ -608,13 +633,13 @@ const Doctors = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
                 Department
               </label>
               <select
                 value={selectedDepartment}
                 onChange={(e) => setSelectedDepartment(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 bg-slate-50"
               >
                 {departments.map((dept) => (
                   <option key={dept} value={dept}>
@@ -627,7 +652,7 @@ const Doctors = () => {
             <div className="flex items-end">
               <button
                 onClick={clearFilters}
-                className="w-full px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                className="w-full px-4 py-2.5 border-2 border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
               >
                 <HiOutlineRefresh className="w-4 h-4" />
                 Clear Filters
@@ -638,17 +663,17 @@ const Doctors = () => {
       </div>
 
       {/* Results Summary */}
-      <div className="bg-gray-50 px-6 py-3 flex flex-wrap items-center justify-between text-sm border-t border-gray-200">
-        <div className="flex items-center gap-2 text-gray-600">
+      <div className="bg-slate-50 px-6 py-3 flex flex-wrap items-center justify-between text-sm border-t border-slate-200">
+        <div className="flex items-center gap-2 text-slate-600">
           <HiOutlineInformationCircle className="w-4 h-4" />
           <span>
             Showing{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-slate-950">
               {indexOfFirstItem + 1}-
               {Math.min(indexOfLastItem, filteredDoctors.length)}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-slate-950">
               {filteredDoctors.length}
             </span>{" "}
             doctors
@@ -657,20 +682,20 @@ const Doctors = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => handleSort("fullName")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
+            className={`flex items-center gap-1 hover:text-teal-700 transition-colors ${
               sortBy === "fullName"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
+                ? "text-teal-700 font-semibold"
+                : "text-slate-600"
             }`}
           >
             Name {sortBy === "fullName" && (sortOrder === "asc" ? "↑" : "↓")}
           </button>
           <button
             onClick={() => handleSort("experience")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
+            className={`flex items-center gap-1 hover:text-teal-700 transition-colors ${
               sortBy === "experience"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
+                ? "text-teal-700 font-semibold"
+                : "text-slate-600"
             }`}
           >
             Experience{" "}
@@ -701,7 +726,7 @@ const Doctors = () => {
                     ? "bg-green-500"
                     : doctor.status === "on_leave"
                       ? "bg-yellow-500"
-                      : "bg-gray-500"
+                      : "bg-slate-500"
                 }`}
               >
                 {doctor.statusText}
@@ -718,7 +743,7 @@ const Doctors = () => {
                     ? "bg-gradient-to-br from-teal-500 to-emerald-600"
                     : doctor.status === "on_leave"
                       ? "bg-gradient-to-br from-yellow-500 to-yellow-600"
-                      : "bg-gradient-to-br from-gray-500 to-gray-600"
+                      : "bg-gradient-to-br from-slate-500 to-slate-600"
                 }
               `}
               >
@@ -816,40 +841,40 @@ const Doctors = () => {
   // TABLE VIEW COMPONENT
   // ============================================
   const TableView = () => (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Doctor
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Specialization
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Contact
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Experience
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Rating
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-slate-200">
             {currentItems.map((doctor) => (
               <tr
                 key={doctor._id}
                 onClick={() => fetchDoctorDetails(doctor._id)}
-                className="hover:bg-gray-50 transition-colors cursor-pointer"
+                className="hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
@@ -861,50 +886,50 @@ const Doctors = () => {
                           ? "bg-green-100 text-green-700"
                           : doctor.status === "on_leave"
                             ? "bg-yellow-100 text-yellow-700"
-                            : "bg-gray-100 text-gray-700"
+                            : "bg-slate-100 text-slate-700"
                       }
                     `}
                     >
                       <span className="font-bold">{doctor.initials}</span>
                     </div>
                     <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-slate-950">
                         {doctor.fullName}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-slate-500">
                         {doctor.email}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-slate-950">
                     {doctor.specialization}
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-slate-500">
                     {doctor.department || "General"}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-slate-950">
                     {doctor.phone || "N/A"}
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-slate-500">
                     {doctor.hospital || "CliniX"}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-slate-950">
                     {doctor.experienceText}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <HiOutlineStar className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm font-medium text-gray-900 ml-1">
+                    <span className="text-sm font-medium text-slate-950 ml-1">
                       {doctor.ratings?.average || 4.5}
                     </span>
-                    <span className="text-xs text-gray-500 ml-1">
+                    <span className="text-xs text-slate-500 ml-1">
                       ({doctor.ratings?.totalReviews || 0})
                     </span>
                   </div>
@@ -924,7 +949,7 @@ const Doctors = () => {
                           ? "bg-green-100 text-green-700"
                           : doctor.status === "on_leave"
                             ? "bg-yellow-100 text-yellow-700"
-                            : "bg-gray-100 text-gray-700"
+                            : "bg-slate-100 text-slate-700"
                       }
                     `}
                   >
@@ -940,7 +965,7 @@ const Doctors = () => {
                         e.stopPropagation();
                         fetchDoctorDetails(doctor._id);
                       }}
-                      className="text-blue-600 hover:text-blue-900 transition-colors"
+                      className="text-teal-700 hover:text-teal-950 transition-colors"
                     >
                       <HiOutlineEye className="w-5 h-5" />
                     </button>
@@ -980,40 +1005,40 @@ const Doctors = () => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center">
                 <div
                   className={`
-                  w-20 h-20 rounded-2xl flex items-center justify-center text-white text-3xl font-bold
+                  w-20 h-20 rounded-lg flex items-center justify-center text-white text-3xl font-bold
                   ${
                     selectedDoctor.status === "available"
                       ? "bg-gradient-to-br from-green-500 to-green-600"
                       : selectedDoctor.status === "on_leave"
                         ? "bg-gradient-to-br from-yellow-500 to-yellow-600"
-                        : "bg-gradient-to-br from-gray-500 to-gray-600"
+                        : "bg-gradient-to-br from-slate-500 to-slate-600"
                   }
                 `}
                 >
                   {selectedDoctor.fullName?.charAt(0) || "DR"}
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-xl font-bold text-gray-900">
+                  <h3 className="text-xl font-bold text-slate-950">
                     {selectedDoctor.fullName}
                   </h3>
-                  <p className="text-blue-600">
+                  <p className="text-teal-700">
                     {selectedDoctor.specialization}
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-slate-500 mt-1">
                     {selectedDoctor.department || "General Medicine"}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 ✕
               </button>
@@ -1021,19 +1046,19 @@ const Doctors = () => {
 
             {/* Quick Info Grid */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-blue-50 p-4 rounded-xl">
-                <p className="text-sm text-blue-600 font-medium">Experience</p>
-                <p className="text-2xl font-bold text-blue-900">
+              <div className="bg-teal-50 p-4 rounded-lg">
+                <p className="text-sm text-teal-700 font-medium">Experience</p>
+                <p className="text-2xl font-bold text-teal-950">
                   {selectedDoctor.experience || 0} yrs
                 </p>
               </div>
-              <div className="bg-purple-50 p-4 rounded-xl">
-                <p className="text-sm text-purple-600 font-medium">License</p>
-                <p className="text-lg font-semibold text-purple-900">
+              <div className="bg-sky-50 p-4 rounded-lg">
+                <p className="text-sm text-sky-700 font-medium">License</p>
+                <p className="text-lg font-semibold text-sky-950">
                   {selectedDoctor.licenseNumber || "N/A"}
                 </p>
               </div>
-              <div className="bg-orange-50 p-4 rounded-xl">
+              <div className="bg-orange-50 p-4 rounded-lg">
                 <p className="text-sm text-orange-600 font-medium">Rating</p>
                 <div className="flex items-center">
                   <p className="text-2xl font-bold text-orange-900 mr-2">
@@ -1046,19 +1071,19 @@ const Doctors = () => {
 
             {/* Contact Information */}
             <div className="mb-6">
-              <h4 className="font-semibold text-gray-900 mb-3">
+              <h4 className="font-semibold text-slate-950 mb-3">
                 Contact Information
               </h4>
               <div className="space-y-2">
-                <p className="text-gray-600">
+                <p className="text-slate-600">
                   <span className="font-medium w-24 inline-block">Email:</span>
                   {selectedDoctor.email || "Not provided"}
                 </p>
-                <p className="text-gray-600">
+                <p className="text-slate-600">
                   <span className="font-medium w-24 inline-block">Phone:</span>
                   {selectedDoctor.phone || "Not provided"}
                 </p>
-                <p className="text-gray-600">
+                <p className="text-slate-600">
                   <span className="font-medium w-24 inline-block">
                     Hospital:
                   </span>
@@ -1069,14 +1094,14 @@ const Doctors = () => {
 
             {/* Status Update */}
             <div className="mb-6">
-              <h4 className="font-semibold text-gray-900 mb-3">Status</h4>
+              <h4 className="font-semibold text-slate-950 mb-3">Status</h4>
               <select
                 value={selectedDoctor.status}
                 onChange={async (e) => {
                   const newStatus = e.target.value;
                   await handleStatusChange(selectedDoctor._id, newStatus);
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500"
               >
                 <option value="available">Available</option>
                 <option value="on_leave">On Leave</option>
@@ -1086,7 +1111,7 @@ const Doctors = () => {
 
             <button
               onClick={() => openEditDoctor(selectedDoctor)}
-              className="mb-6 w-full px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-semibold flex items-center justify-center gap-2"
+              className="mb-6 w-full px-4 py-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-all font-semibold flex items-center justify-center gap-2"
             >
               <HiOutlinePencil className="w-5 h-5" />
               Edit Doctor Details
@@ -1095,14 +1120,14 @@ const Doctors = () => {
             {/* Qualifications */}
             {selectedDoctor.qualifications?.length > 0 && (
               <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-3">
+                <h4 className="font-semibold text-slate-950 mb-3">
                   Qualifications
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {selectedDoctor.qualifications.map((qual, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                      className="px-3 py-1 bg-teal-50 text-teal-800 rounded-full text-sm"
                     >
                       {qual}
                     </span>
@@ -1114,8 +1139,8 @@ const Doctors = () => {
             {/* Bio */}
             {selectedDoctor.bio && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Biography</h4>
-                <p className="text-gray-600 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl">
+                <h4 className="font-semibold text-slate-950 mb-3">Biography</h4>
+                <p className="text-slate-600 text-sm leading-relaxed bg-slate-50 p-4 rounded-lg">
                   {selectedDoctor.bio}
                 </p>
               </div>
@@ -1130,25 +1155,25 @@ const Doctors = () => {
     if (!showEditModal || !editDoctor) return null;
 
     const inputClass =
-      "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
+      "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500";
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleSaveDoctor} className="p-6 space-y-6">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900">
+                <h3 className="text-2xl font-bold text-slate-950">
                   Edit Doctor Details
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-slate-500 mt-1">
                   Update profile, contact, clinical, and availability details.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowEditModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 ✕
               </button>
@@ -1156,7 +1181,7 @@ const Doctors = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   First Name
                 </span>
                 <input
@@ -1169,7 +1194,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   Last Name
                 </span>
                 <input
@@ -1182,7 +1207,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">Email</span>
+                <span className="text-sm font-medium text-slate-700">Email</span>
                 <input
                   type="email"
                   className={inputClass}
@@ -1194,7 +1219,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">Phone</span>
+                <span className="text-sm font-medium text-slate-700">Phone</span>
                 <input
                   className={inputClass}
                   value={editDoctor.phone || ""}
@@ -1205,7 +1230,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   Specialization
                 </span>
                 <input
@@ -1218,7 +1243,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   Department
                 </span>
                 <input
@@ -1231,7 +1256,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   License Number
                 </span>
                 <input
@@ -1244,7 +1269,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   Status
                 </span>
                 <select
@@ -1261,7 +1286,7 @@ const Doctors = () => {
                 </select>
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   Experience
                 </span>
                 <input
@@ -1275,7 +1300,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   Consultation Fee
                 </span>
                 <input
@@ -1289,7 +1314,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   Work Start
                 </span>
                 <input
@@ -1302,7 +1327,7 @@ const Doctors = () => {
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   Work End
                 </span>
                 <input
@@ -1317,7 +1342,7 @@ const Doctors = () => {
             </div>
 
             <label className="block">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-slate-700">
                 Qualifications
               </span>
               <input
@@ -1331,7 +1356,7 @@ const Doctors = () => {
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium text-gray-700">Bio</span>
+              <span className="text-sm font-medium text-slate-700">Bio</span>
               <textarea
                 rows={3}
                 className={inputClass}
@@ -1341,7 +1366,7 @@ const Doctors = () => {
             </label>
 
             <label className="block">
-              <span className="text-sm font-medium text-gray-700">Notes</span>
+              <span className="text-sm font-medium text-slate-700">Notes</span>
               <textarea
                 rows={3}
                 className={inputClass}
@@ -1356,14 +1381,14 @@ const Doctors = () => {
               <button
                 type="button"
                 onClick={() => setShowEditModal(false)}
-                className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={savingEdit}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60"
+                className="px-5 py-2.5 rounded-lg bg-teal-700 text-white font-semibold hover:bg-teal-800 disabled:opacity-60"
               >
                 {savingEdit ? "Saving..." : "Save Changes"}
               </button>
@@ -1378,9 +1403,9 @@ const Doctors = () => {
   // PAGINATION COMPONENT
   // ============================================
   const Pagination = () => (
-    <div className="mt-8 flex items-center justify-between bg-white px-6 py-3 rounded-2xl shadow-lg border border-gray-200">
+    <div className="mt-8 flex items-center justify-between bg-white px-6 py-3 rounded-lg shadow-lg border border-slate-200">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-slate-700">
           Page <span className="font-semibold">{currentPage}</span> of{" "}
           <span className="font-semibold">{totalPages}</span>
         </span>
@@ -1389,7 +1414,7 @@ const Doctors = () => {
         <button
           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+          className="p-2 rounded-lg border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
         >
           <HiOutlineChevronLeft className="w-5 h-5" />
         </button>
@@ -1398,7 +1423,7 @@ const Doctors = () => {
             setCurrentPage((prev) => Math.min(prev + 1, totalPages))
           }
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+          className="p-2 rounded-lg border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
         >
           <HiOutlineChevronRight className="w-5 h-5" />
         </button>
@@ -1410,23 +1435,23 @@ const Doctors = () => {
   // MAIN RENDER
   // ============================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fffd] via-[#eef8f7] to-slate-50 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-700 via-emerald-600 to-sky-600 bg-clip-text text-transparent">
               Doctors Management
             </h1>
-            <p className="text-gray-600 mt-2 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+            <p className="text-slate-600 mt-2 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse"></span>
               Manage physician profiles, schedules, and performance
             </p>
           </div>
 
           {/* Quick Actions */}
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 border border-gray-300 shadow-sm">
+            <button className="px-4 py-2 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2 border border-slate-300 shadow-sm">
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export</span>
             </button>
@@ -1437,18 +1462,18 @@ const Doctors = () => {
         <StatsCards />
 
         {/* Search & Filters */}
-        <SearchAndFilters />
+        {SearchAndFilters()}
 
         {/* Main Content */}
         {filteredDoctors.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-16 text-center">
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <HiOutlineUserGroup className="w-12 h-12 text-gray-400" />
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 p-16 text-center">
+            <div className="bg-gradient-to-br from-slate-50 to-teal-50 w-24 h-24 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <HiOutlineUserGroup className="w-12 h-12 text-slate-400" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-700 mb-2">
+            <h3 className="text-2xl font-bold text-slate-700 mb-2">
               No doctors found
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-slate-500 mb-6">
               {searchTerm ||
               selectedSpecialization !== "all" ||
               selectedStatus !== "all" ||
@@ -1462,7 +1487,7 @@ const Doctors = () => {
             selectedDepartment !== "all" ? (
               <button
                 onClick={clearFilters}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg"
+                className="px-6 py-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-all inline-flex items-center gap-2 shadow-lg"
               >
                 <HiOutlineRefresh className="w-5 h-5" />
                 Clear all filters
@@ -1477,8 +1502,8 @@ const Doctors = () => {
         )}
 
         {/* Doctor Details Modal */}
-        <DoctorDetailsModal />
-        <EditDoctorModal />
+        {DoctorDetailsModal()}
+        {EditDoctorModal()}
       </div>
     </div>
   );

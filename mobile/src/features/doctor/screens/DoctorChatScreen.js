@@ -6,7 +6,7 @@ import { useChatMessagesQuery } from '@/src/features/chat/hooks/useChatMessagesQ
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
 
-const AVATAR_TONES = ['#BFDBFE', '#CFE3FF', '#DDD6FE', '#BBF7D0', '#FBCFE8', '#FDE68A', '#A7F3D0'];
+const AVATAR_TONES = ['#CCFBF1', '#D1FAE5', '#BAE6FD', '#BBF7D0', '#FBCFE8', '#FDE68A', '#A7F3D0'];
 
 const FALLBACK_THREADS = [
     { id: 'fb-1', name: 'Mariam Hassan', preview: 'Missed your audio call.', sentAt: '2026-03-03T00:39:00.000Z', unread: 1 },

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { matchesSearch } from "../utils/search";
 import {
   HiOutlineSearch,
   HiOutlineFilter,
@@ -30,6 +31,14 @@ import {
 } from "react-icons/hi";
 import { format } from "date-fns";
 
+const calculatePrescriptionStats = (prescriptionList) => ({
+  total: prescriptionList.length,
+  active: prescriptionList.filter((rx) => rx.status === "active").length,
+  completed: prescriptionList.filter((rx) => rx.status === "completed").length,
+  expired: prescriptionList.filter((rx) => rx.status === "expired").length,
+  cancelled: prescriptionList.filter((rx) => rx.status === "cancelled").length,
+});
+
 const Prescriptions = () => {
   const [prescriptions, setPrescriptions] = useState([]);
   const [filteredPrescriptions, setFilteredPrescriptions] = useState([]);
@@ -55,11 +64,17 @@ const Prescriptions = () => {
   const [doctors, setDoctors] = useState([]);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     fetchPrescriptions();
     fetchDoctors();
   }, []);
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search).get("search") || "";
+    setSearchTerm(query);
+  }, [location.search]);
 
   const fetchPrescriptions = async () => {
     try {
@@ -128,27 +143,7 @@ const Prescriptions = () => {
       setPrescriptions(transformedPrescriptions);
       setFilteredPrescriptions(transformedPrescriptions);
 
-      // Update stats
-      const active = transformedPrescriptions.filter(
-        (rx) => rx.status === "active",
-      ).length;
-      const completed = transformedPrescriptions.filter(
-        (rx) => rx.status === "completed",
-      ).length;
-      const expired = transformedPrescriptions.filter(
-        (rx) => rx.status === "expired",
-      ).length;
-      const cancelled = transformedPrescriptions.filter(
-        (rx) => rx.status === "cancelled",
-      ).length;
-
-      setStats({
-        total: transformedPrescriptions.length,
-        active,
-        completed,
-        expired,
-        cancelled,
-      });
+      setStats(calculatePrescriptionStats(transformedPrescriptions));
     } catch (err) {
       console.error("Error fetching prescriptions:", err);
       toast.error("Failed to load prescriptions");
@@ -191,15 +186,15 @@ const Prescriptions = () => {
   const handleStatusChange = async (prescriptionId, newStatus) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.put(
+      await axios.put(
         `http://localhost:5000/api/admin/prescriptions/${prescriptionId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
       // Update local state
-      setPrescriptions((prev) =>
-        prev.map((rx) =>
+      setPrescriptions((prev) => {
+        const updatedPrescriptions = prev.map((rx) =>
           rx._id === prescriptionId
             ? {
                 ...rx,
@@ -208,8 +203,10 @@ const Prescriptions = () => {
                 statusColor: getStatusColor(newStatus),
               }
             : rx,
-        ),
-      );
+        );
+        setStats(calculatePrescriptionStats(updatedPrescriptions));
+        return updatedPrescriptions;
+      });
       setFilteredPrescriptions((prev) =>
         prev.map((rx) =>
           rx._id === prescriptionId
@@ -222,32 +219,6 @@ const Prescriptions = () => {
             : rx,
         ),
       );
-
-      // Update stats
-      setStats((prev) => {
-        const oldRx = prescriptions.find((rx) => rx._id === prescriptionId);
-        const oldStatus = oldRx?.status;
-
-        return {
-          ...prev,
-          active:
-            newStatus === "active"
-              ? prev.active + 1
-              : prev.active - (oldStatus === "active" ? 1 : 0),
-          completed:
-            newStatus === "completed"
-              ? prev.completed + 1
-              : prev.completed - (oldStatus === "completed" ? 1 : 0),
-          expired:
-            newStatus === "expired"
-              ? prev.expired + 1
-              : prev.expired - (oldStatus === "expired" ? 1 : 0),
-          cancelled:
-            newStatus === "cancelled"
-              ? prev.cancelled + 1
-              : prev.cancelled - (oldStatus === "cancelled" ? 1 : 0),
-        };
-      });
 
       // Update selected prescription if modal is open
       if (selectedPrescription && selectedPrescription._id === prescriptionId) {
@@ -294,12 +265,20 @@ const Prescriptions = () => {
         },
       );
 
-      setPrescriptions((prev) =>
-        prev.filter((rx) => rx._id !== prescriptionId),
-      );
+      setPrescriptions((prev) => {
+        const remainingPrescriptions = prev.filter(
+          (rx) => rx._id !== prescriptionId,
+        );
+        setStats(calculatePrescriptionStats(remainingPrescriptions));
+        return remainingPrescriptions;
+      });
       setFilteredPrescriptions((prev) =>
         prev.filter((rx) => rx._id !== prescriptionId),
       );
+      if (selectedPrescription?._id === prescriptionId) {
+        setSelectedPrescription(null);
+        setShowDetailsModal(false);
+      }
       toast.success("Prescription deleted successfully");
     } catch (error) {
       console.error("Failed to delete prescription:", error);
@@ -427,14 +406,28 @@ const Prescriptions = () => {
     let filtered = [...prescriptions];
 
     // Search filter
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (rx) =>
-          (rx.patientName?.toLowerCase() || "").includes(q) ||
-          (rx.doctorName?.toLowerCase() || "").includes(q) ||
-          (rx.prescriptionId?.toLowerCase() || "").includes(q) ||
-          (rx.patientId?.toLowerCase() || "").includes(q),
+    if (searchTerm.trim()) {
+      filtered = filtered.filter((rx) =>
+        matchesSearch(searchTerm, [
+          rx.prescriptionId,
+          rx.patientName,
+          rx.patientId,
+          rx.patient,
+          rx.doctorName,
+          rx.doctorSpecialization,
+          rx.doctor,
+          rx.status,
+          rx.statusText,
+          rx.medications,
+          rx.medicationCount,
+          rx.totalRefills,
+          rx.instructions,
+          rx.notes,
+          rx.date,
+          rx.dateFormatted,
+          rx.timeFormatted,
+          rx.followUpDate,
+        ]),
       );
     }
 
@@ -504,6 +497,9 @@ const Prescriptions = () => {
     setSelectedStatus("all");
     setSelectedDoctor("all");
     setCurrentPage(1);
+    if (location.search) {
+      navigate(location.pathname, { replace: true });
+    }
   };
 
   const handleSort = (field) => {
@@ -556,15 +552,15 @@ const Prescriptions = () => {
   // Loading State
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#f8fffd] via-[#eef8f7] to-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600 mx-auto"></div>
+            <div className="w-20 h-20 border-4 border-teal-200 rounded-full animate-spin border-t-teal-700 mx-auto"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <HiOutlineDocumentText className="w-8 h-8 text-blue-600 animate-pulse" />
+              <HiOutlineDocumentText className="w-8 h-8 text-teal-700 animate-pulse" />
             </div>
           </div>
-          <p className="mt-4 text-lg text-gray-600 animate-pulse">
+          <p className="mt-4 text-lg text-slate-600 animate-pulse">
             Loading prescriptions...
           </p>
         </div>
@@ -577,69 +573,69 @@ const Prescriptions = () => {
   // ============================================
   const StatsCards = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">
+            <p className="text-sm font-medium text-slate-500">
               Total Prescriptions
             </p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.total}
             </p>
-            <p className="text-xs text-blue-600 mt-1">All time prescriptions</p>
+            <p className="text-xs text-teal-700 mt-1">All time prescriptions</p>
           </div>
-          <div className="bg-blue-100 p-3 rounded-2xl">
-            <HiOutlineDocumentText className="w-6 h-6 text-blue-600" />
+          <div className="bg-teal-50 p-3 rounded-lg">
+            <HiOutlineDocumentText className="w-6 h-6 text-teal-700" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Active</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-sm font-medium text-slate-500">Active</p>
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.active}
             </p>
             <p className="text-xs text-green-600 mt-1">
               Currently valid prescriptions
             </p>
           </div>
-          <div className="bg-green-100 p-3 rounded-2xl">
+          <div className="bg-green-100 p-3 rounded-lg">
             <HiOutlineCheckCircle className="w-6 h-6 text-green-600" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">
+            <p className="text-sm font-medium text-slate-500">
               Expired / Completed
             </p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.expired + stats.completed}
             </p>
             <p className="text-xs text-yellow-600 mt-1">
               {stats.expired} expired, {stats.completed} completed
             </p>
           </div>
-          <div className="bg-yellow-100 p-3 rounded-2xl">
+          <div className="bg-yellow-100 p-3 rounded-lg">
             <HiOutlineClock className="w-6 h-6 text-yellow-600" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Cancelled</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-sm font-medium text-slate-500">Cancelled</p>
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.cancelled}
             </p>
             <p className="text-xs text-red-600 mt-1">Voided prescriptions</p>
           </div>
-          <div className="bg-red-100 p-3 rounded-2xl">
+          <div className="bg-red-100 p-3 rounded-lg">
             <HiOutlineXCircle className="w-6 h-6 text-red-600" />
           </div>
         </div>
@@ -651,23 +647,23 @@ const Prescriptions = () => {
   // SEARCH AND FILTERS COMPONENT
   // ============================================
   const SearchAndFilters = () => (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 mb-8 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-lg border border-slate-200 mb-8 overflow-hidden">
       <div className="p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Search Bar */}
           <div className="flex-1 relative">
-            <HiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <HiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Search prescriptions by patient, doctor, or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+              className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-slate-50 hover:bg-white transition-colors"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 ✕
               </button>
@@ -678,16 +674,16 @@ const Prescriptions = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 py-3 rounded-xl flex items-center gap-2 transition-all ${
+              className={`px-4 py-3 rounded-lg flex items-center gap-2 transition-all ${
                 showFilters
-                  ? "bg-blue-100 text-blue-700 border-2 border-blue-300"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-transparent"
+                  ? "bg-teal-50 text-teal-800 border-2 border-teal-300"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200 border-2 border-transparent"
               }`}
             >
               <HiOutlineFilter className="w-5 h-5" />
               <span className="hidden sm:inline">Filters</span>
               {(selectedStatus !== "all" || selectedDoctor !== "all") && (
-                <span className="ml-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                <span className="ml-1 px-2 py-0.5 bg-teal-500 text-white text-xs rounded-full">
                   {
                     [selectedStatus, selectedDoctor].filter((s) => s !== "all")
                       .length
@@ -700,7 +696,7 @@ const Prescriptions = () => {
               onClick={() =>
                 setViewMode(viewMode === "grid" ? "table" : "grid")
               }
-              className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all flex items-center gap-2"
+              className="px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-all flex items-center gap-2"
             >
               {viewMode === "grid" ? (
                 <>
@@ -717,7 +713,7 @@ const Prescriptions = () => {
 
             <button
               onClick={handleExport}
-              className="px-4 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 border border-gray-300"
+              className="px-4 py-3 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2 border border-slate-300"
             >
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export</span>
@@ -728,15 +724,15 @@ const Prescriptions = () => {
 
         {/* Expandable Filters */}
         {showFilters && (
-          <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4 animate-slideDown">
+          <div className="mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4 animate-slideDown">
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
                 Status
               </label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 bg-slate-50"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
@@ -747,13 +743,13 @@ const Prescriptions = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
                 Prescribing Doctor
               </label>
               <select
                 value={selectedDoctor}
                 onChange={(e) => setSelectedDoctor(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 bg-slate-50"
               >
                 <option value="all">All Doctors</option>
                 {doctors.map((doctor) => (
@@ -768,7 +764,7 @@ const Prescriptions = () => {
             <div className="flex items-end">
               <button
                 onClick={clearFilters}
-                className="w-full px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                className="w-full px-4 py-2.5 border-2 border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
               >
                 <HiOutlineRefresh className="w-4 h-4" />
                 Clear Filters
@@ -779,17 +775,17 @@ const Prescriptions = () => {
       </div>
 
       {/* Results Summary */}
-      <div className="bg-gray-50 px-6 py-3 flex flex-wrap items-center justify-between text-sm border-t border-gray-200">
-        <div className="flex items-center gap-2 text-gray-600">
+      <div className="bg-slate-50 px-6 py-3 flex flex-wrap items-center justify-between text-sm border-t border-slate-200">
+        <div className="flex items-center gap-2 text-slate-600">
           <HiOutlineInformationCircle className="w-4 h-4" />
           <span>
             Showing{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-slate-950">
               {indexOfFirstItem + 1}-
               {Math.min(indexOfLastItem, filteredPrescriptions.length)}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-slate-950">
               {filteredPrescriptions.length}
             </span>{" "}
             prescriptions
@@ -798,30 +794,30 @@ const Prescriptions = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => handleSort("date")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
+            className={`flex items-center gap-1 hover:text-teal-700 transition-colors ${
               sortBy === "date"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
+                ? "text-teal-700 font-semibold"
+                : "text-slate-600"
             }`}
           >
             Date {sortBy === "date" && (sortOrder === "asc" ? "↑" : "↓")}
           </button>
           <button
             onClick={() => handleSort("patient")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
+            className={`flex items-center gap-1 hover:text-teal-700 transition-colors ${
               sortBy === "patient"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
+                ? "text-teal-700 font-semibold"
+                : "text-slate-600"
             }`}
           >
             Patient {sortBy === "patient" && (sortOrder === "asc" ? "↑" : "↓")}
           </button>
           <button
             onClick={() => handleSort("medications")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
+            className={`flex items-center gap-1 hover:text-teal-700 transition-colors ${
               sortBy === "medications"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
+                ? "text-teal-700 font-semibold"
+                : "text-slate-600"
             }`}
           >
             Medications{" "}
@@ -851,7 +847,7 @@ const Prescriptions = () => {
                   prescription.status === "active"
                     ? "bg-green-500"
                     : prescription.status === "completed"
-                      ? "bg-blue-500"
+                      ? "bg-teal-500"
                       : prescription.status === "expired"
                         ? "bg-yellow-500"
                         : "bg-red-500"
@@ -968,43 +964,43 @@ const Prescriptions = () => {
   // TABLE VIEW COMPONENT
   // ============================================
   const TableView = () => (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Prescription ID
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Patient
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Doctor
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Date
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Medications
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-slate-200">
             {currentItems.map((prescription) => (
               <tr
                 key={prescription._id}
                 onClick={() => fetchPrescriptionDetails(prescription._id)}
-                className="hover:bg-gray-50 transition-colors cursor-pointer"
+                className="hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-slate-950">
                     {prescription.prescriptionId}
                   </div>
                   {prescription.isExpiringSoon && (
@@ -1015,42 +1011,42 @@ const Prescriptions = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold text-sm">
+                    <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center">
+                      <span className="text-teal-700 font-semibold text-sm">
                         {prescription.patientName?.charAt(0) || "P"}
                       </span>
                     </div>
                     <div className="ml-3">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-slate-950">
                         {prescription.patientName}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-slate-500">
                         {prescription.patientId}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-slate-950">
                     {prescription.doctorName}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-slate-500">
                     {prescription.doctorSpecialization}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-slate-950">
                     {prescription.dateFormatted}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-slate-500">
                     {prescription.timeFormatted}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-slate-950">
                     {prescription.medicationCount} medications
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-slate-500">
                     {prescription.totalRefills} refills
                   </div>
                 </td>
@@ -1068,7 +1064,7 @@ const Prescriptions = () => {
                         prescription.status === "active"
                           ? "bg-green-100 text-green-700"
                           : prescription.status === "completed"
-                            ? "bg-blue-100 text-blue-700"
+                            ? "bg-teal-50 text-teal-800"
                             : prescription.status === "expired"
                               ? "bg-yellow-100 text-yellow-700"
                               : "bg-red-100 text-red-700"
@@ -1088,7 +1084,7 @@ const Prescriptions = () => {
                         e.stopPropagation();
                         fetchPrescriptionDetails(prescription._id);
                       }}
-                      className="text-blue-600 hover:text-blue-900 transition-colors"
+                      className="text-teal-700 hover:text-teal-950 transition-colors"
                     >
                       <HiOutlineEye className="w-5 h-5" />
                     </button>
@@ -1097,7 +1093,7 @@ const Prescriptions = () => {
                         e.stopPropagation();
                         handlePrintPrescription(prescription);
                       }}
-                      className="text-gray-600 hover:text-gray-900 transition-colors"
+                      className="text-slate-600 hover:text-slate-950 transition-colors"
                     >
                       <HiOutlinePrinter className="w-5 h-5" />
                     </button>
@@ -1128,13 +1124,13 @@ const Prescriptions = () => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
               <div>
                 <div className="flex items-center gap-3">
-                  <h3 className="text-2xl font-bold text-gray-900">
+                  <h3 className="text-2xl font-bold text-slate-950">
                     Prescription {selectedPrescription.prescriptionId}
                   </h3>
                   <span
@@ -1144,7 +1140,7 @@ const Prescriptions = () => {
                       selectedPrescription.status === "active"
                         ? "bg-green-100 text-green-700"
                         : selectedPrescription.status === "completed"
-                          ? "bg-blue-100 text-blue-700"
+                          ? "bg-teal-50 text-teal-800"
                           : selectedPrescription.status === "expired"
                             ? "bg-yellow-100 text-yellow-700"
                             : "bg-red-100 text-red-700"
@@ -1154,20 +1150,20 @@ const Prescriptions = () => {
                     {selectedPrescription.statusText}
                   </span>
                 </div>
-                <p className="text-gray-600 mt-1">
+                <p className="text-slate-600 mt-1">
                   Prescribed on {selectedPrescription.dateFormatted}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handlePrintPrescription(selectedPrescription)}
-                  className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="p-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
                 >
                   <HiOutlinePrinter className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 >
                   ✕
                 </button>
@@ -1176,54 +1172,54 @@ const Prescriptions = () => {
 
             {/* Patient & Doctor Info Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="bg-blue-50 p-5 rounded-xl">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <HiOutlineUser className="w-5 h-5 mr-2 text-blue-600" />
+              <div className="bg-teal-50 p-5 rounded-lg">
+                <h4 className="font-semibold text-slate-950 mb-4 flex items-center">
+                  <HiOutlineUser className="w-5 h-5 mr-2 text-teal-700" />
                   Patient Information
                 </h4>
                 <div className="space-y-2">
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Name:</span>{" "}
                     {selectedPrescription.patient?.fullName ||
                       selectedPrescription.patientName}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Patient ID:</span>{" "}
                     {selectedPrescription.patient?.patientId ||
                       selectedPrescription.patientId}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Email:</span>{" "}
                     {selectedPrescription.patient?.email || "N/A"}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Phone:</span>{" "}
                     {selectedPrescription.patient?.phone || "N/A"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-green-50 p-5 rounded-xl">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <div className="bg-green-50 p-5 rounded-lg">
+                <h4 className="font-semibold text-slate-950 mb-4 flex items-center">
                   <HiOutlineUserGroup className="w-5 h-5 mr-2 text-green-600" />
                   Prescribing Doctor
                 </h4>
                 <div className="space-y-2">
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Name:</span>{" "}
                     {selectedPrescription.doctor?.fullName ||
                       selectedPrescription.doctorName}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Specialization:</span>{" "}
                     {selectedPrescription.doctor?.specialization ||
                       selectedPrescription.doctorSpecialization}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Email:</span>{" "}
                     {selectedPrescription.doctor?.email || "N/A"}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Phone:</span>{" "}
                     {selectedPrescription.doctor?.phone || "N/A"}
                   </p>
@@ -1232,55 +1228,55 @@ const Prescriptions = () => {
             </div>
 
             {/* Medications Table */}
-            <div className="bg-gray-50 p-5 rounded-xl mb-6">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <HiOutlineBeaker className="w-5 h-5 mr-2 text-gray-600" />
+            <div className="bg-slate-50 p-5 rounded-lg mb-6">
+              <h4 className="font-semibold text-slate-950 mb-4 flex items-center">
+                <HiOutlineBeaker className="w-5 h-5 mr-2 text-slate-600" />
                 Prescribed Medications
               </h4>
 
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-100">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-100">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Medication
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Dosage
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Frequency
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Duration
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Instructions
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Refills
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-slate-200">
                     {selectedPrescription.medications?.map((med, idx) => (
                       <tr key={idx}>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm font-medium text-slate-950">
                           {med.name}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
+                        <td className="px-4 py-3 text-sm text-slate-700">
                           {med.dosage}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
+                        <td className="px-4 py-3 text-sm text-slate-700">
                           {med.frequency}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
+                        <td className="px-4 py-3 text-sm text-slate-700">
                           {med.duration || "N/A"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
+                        <td className="px-4 py-3 text-sm text-slate-700">
                           {med.instructions || "Take as directed"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
+                        <td className="px-4 py-3 text-sm text-slate-700">
                           {med.refills || 0}
                         </td>
                       </tr>
@@ -1293,22 +1289,22 @@ const Prescriptions = () => {
             {/* Additional Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {selectedPrescription.instructions && (
-                <div className="bg-gray-50 p-5 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-2">
+                <div className="bg-slate-50 p-5 rounded-lg">
+                  <h4 className="font-semibold text-slate-950 mb-2">
                     Instructions
                   </h4>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     {selectedPrescription.instructions}
                   </p>
                 </div>
               )}
 
               {selectedPrescription.followUpDate && (
-                <div className="bg-gray-50 p-5 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-2">
+                <div className="bg-slate-50 p-5 rounded-lg">
+                  <h4 className="font-semibold text-slate-950 mb-2">
                     Follow-up Date
                   </h4>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     {format(
                       new Date(selectedPrescription.followUpDate),
                       "MMMM dd, yyyy",
@@ -1320,7 +1316,7 @@ const Prescriptions = () => {
 
             {/* Notes */}
             {selectedPrescription.notes && (
-              <div className="bg-yellow-50 p-5 rounded-xl mb-6">
+              <div className="bg-yellow-50 p-5 rounded-lg mb-6">
                 <h4 className="font-semibold text-yellow-800 mb-2">Notes</h4>
                 <p className="text-yellow-700">{selectedPrescription.notes}</p>
               </div>
@@ -1328,24 +1324,24 @@ const Prescriptions = () => {
 
             {/* Pharmacy Notes */}
             {selectedPrescription.pharmacyNotes && (
-              <div className="bg-blue-50 p-5 rounded-xl mb-6">
-                <h4 className="font-semibold text-blue-800 mb-2">
+              <div className="bg-teal-50 p-5 rounded-lg mb-6">
+                <h4 className="font-semibold text-teal-900 mb-2">
                   Pharmacy Notes
                 </h4>
-                <p className="text-blue-700">
+                <p className="text-teal-800">
                   {selectedPrescription.pharmacyNotes}
                 </p>
               </div>
             )}
 
             {/* Status Update */}
-            <div className="border-t border-gray-200 pt-6">
+            <div className="border-t border-slate-200 pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">
+                  <h4 className="font-semibold text-slate-950 mb-1">
                     Update Prescription Status
                   </h4>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-slate-500">
                     Change the current status of this prescription
                   </p>
                 </div>
@@ -1358,7 +1354,7 @@ const Prescriptions = () => {
                       newStatus,
                     );
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="active">Active</option>
                   <option value="completed">Completed</option>
@@ -1377,9 +1373,9 @@ const Prescriptions = () => {
   // PAGINATION COMPONENT
   // ============================================
   const Pagination = () => (
-    <div className="mt-8 flex items-center justify-between bg-white px-6 py-3 rounded-2xl shadow-lg border border-gray-200">
+    <div className="mt-8 flex items-center justify-between bg-white px-6 py-3 rounded-lg shadow-lg border border-slate-200">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-slate-700">
           Page <span className="font-semibold">{currentPage}</span> of{" "}
           <span className="font-semibold">{totalPages}</span>
         </span>
@@ -1388,7 +1384,7 @@ const Prescriptions = () => {
         <button
           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+          className="p-2 rounded-lg border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
         >
           <HiOutlineChevronLeft className="w-5 h-5" />
         </button>
@@ -1397,7 +1393,7 @@ const Prescriptions = () => {
             setCurrentPage((prev) => Math.min(prev + 1, totalPages))
           }
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+          className="p-2 rounded-lg border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
         >
           <HiOutlineChevronRight className="w-5 h-5" />
         </button>
@@ -1409,16 +1405,16 @@ const Prescriptions = () => {
   // MAIN RENDER
   // ============================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fffd] via-[#eef8f7] to-slate-50 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-700 via-emerald-600 to-sky-600 bg-clip-text text-transparent">
               Prescriptions Management
             </h1>
-            <p className="text-gray-600 mt-2 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+            <p className="text-slate-600 mt-2 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse"></span>
               Manage patient medications and prescriptions
             </p>
           </div>
@@ -1427,7 +1423,7 @@ const Prescriptions = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={handleExport}
-              className="px-4 py-2 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 border border-gray-300 shadow-sm"
+              className="px-4 py-2 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2 border border-slate-300 shadow-sm"
             >
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export CSV</span>
@@ -1439,18 +1435,18 @@ const Prescriptions = () => {
         <StatsCards />
 
         {/* Search & Filters */}
-        <SearchAndFilters />
+        {SearchAndFilters()}
 
         {/* Main Content */}
         {filteredPrescriptions.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-16 text-center">
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <HiOutlineDocumentText className="w-12 h-12 text-gray-400" />
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 p-16 text-center">
+            <div className="bg-gradient-to-br from-slate-50 to-teal-50 w-24 h-24 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <HiOutlineDocumentText className="w-12 h-12 text-slate-400" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-700 mb-2">
+            <h3 className="text-2xl font-bold text-slate-700 mb-2">
               No prescriptions found
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-slate-500 mb-6">
               {searchTerm ||
               selectedStatus !== "all" ||
               selectedDoctor !== "all"
@@ -1462,7 +1458,7 @@ const Prescriptions = () => {
             selectedDoctor !== "all" ? (
               <button
                 onClick={clearFilters}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg"
+                className="px-6 py-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-all inline-flex items-center gap-2 shadow-lg"
               >
                 <HiOutlineRefresh className="w-5 h-5" />
                 Clear all filters
@@ -1477,7 +1473,7 @@ const Prescriptions = () => {
         )}
 
         {/* Prescription Details Modal */}
-        <PrescriptionDetailsModal />
+        {PrescriptionDetailsModal()}
       </div>
     </div>
   );

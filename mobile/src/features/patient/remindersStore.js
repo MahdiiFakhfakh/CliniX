@@ -1,6 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEY = 'clinix.mobile.patient.reminders.v1';
 const listeners = new Set();
 
-let store = {
+const defaultStore = {
     morning: [
         {
             id: 'default-1',
@@ -35,17 +38,54 @@ let store = {
     completed: [],
 };
 
+let store = defaultStore;
+let hydrated = false;
+
+const notify = () => {
+    listeners.forEach((fn) => fn(store));
+};
+
+const persist = () => {
+    void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(store)).catch(() => {});
+};
+
+const normalizeStore = (value) => ({
+    morning: Array.isArray(value?.morning) ? value.morning : defaultStore.morning,
+    afternoon: Array.isArray(value?.afternoon) ? value.afternoon : defaultStore.afternoon,
+    completed: Array.isArray(value?.completed) ? value.completed : defaultStore.completed,
+});
+
 export const remindersStore = {
     get: () => store,
+    hydrate: async () => {
+        if (hydrated) return store;
+        hydrated = true;
+
+        try {
+            const raw = await AsyncStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                store = normalizeStore(JSON.parse(raw));
+                notify();
+            }
+        } catch {
+            store = defaultStore;
+            notify();
+        }
+
+        return store;
+    },
     set: (next) => {
-        store = next;
-        listeners.forEach((fn) => fn(store));
+        store = normalizeStore(next);
+        persist();
+        notify();
     },
     add: (item) => {
         const slot = item.slot === 'afternoon' ? 'afternoon' : 'morning';
-        const newItem = { ...item, id: `r-${Date.now()}`, section: slot, bucket: 'today' };
+        const bucket = item.bucket === 'upcoming' ? 'upcoming' : 'today';
+        const newItem = { ...item, id: `r-${Date.now()}`, section: slot, bucket };
         store = { ...store, [slot]: [newItem, ...store[slot]] };
-        listeners.forEach((fn) => fn(store));
+        persist();
+        notify();
     },
     subscribe: (fn) => {
         listeners.add(fn);

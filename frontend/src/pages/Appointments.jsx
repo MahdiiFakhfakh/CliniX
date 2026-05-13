@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { matchesSearch } from "../utils/search";
 import {
   HiOutlineSearch,
   HiOutlineFilter,
@@ -26,6 +27,15 @@ import {
   HiOutlineDocumentText,
 } from "react-icons/hi";
 import { format, isToday, isTomorrow, isThisWeek, parseISO } from "date-fns";
+
+const calculateAppointmentStats = (appointmentList) => ({
+  total: appointmentList.length,
+  today: appointmentList.filter((a) => a.isToday || isToday(new Date(a.date)))
+    .length,
+  scheduled: appointmentList.filter((a) => a.status === "scheduled").length,
+  completed: appointmentList.filter((a) => a.status === "completed").length,
+  cancelled: appointmentList.filter((a) => a.status === "cancelled").length,
+});
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
@@ -52,11 +62,17 @@ const Appointments = () => {
   });
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     fetchAppointments();
     fetchStats();
   }, []);
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search).get("search") || "";
+    setSearchTerm(query);
+  }, [location.search]);
 
   const fetchAppointments = async () => {
     try {
@@ -133,6 +149,7 @@ const Appointments = () => {
 
       setAppointments(transformedAppointments);
       setFilteredAppointments(transformedAppointments);
+      setStats(calculateAppointmentStats(transformedAppointments));
     } catch (err) {
       console.error("Error fetching appointments:", err);
       toast.error("Failed to load appointments");
@@ -153,7 +170,11 @@ const Appointments = () => {
       );
 
       if (response.data.success) {
-        setStats(response.data.data);
+        const data = response.data.data || {};
+        setStats({
+          ...data,
+          today: data.today ?? data.todayAppointments ?? 0,
+        });
       }
     } catch (error) {
       console.error("Failed to fetch appointment stats:", error);
@@ -178,15 +199,15 @@ const Appointments = () => {
   const handleStatusChange = async (appointmentId, newStatus) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.put(
+      await axios.put(
         `http://localhost:5000/api/admin/appointments/${appointmentId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
       // Update local state
-      setAppointments((prev) =>
-        prev.map((a) =>
+      setAppointments((prev) => {
+        const updatedAppointments = prev.map((a) =>
           a._id === appointmentId
             ? {
                 ...a,
@@ -195,8 +216,10 @@ const Appointments = () => {
                 statusColor: getStatusColor(newStatus),
               }
             : a,
-        ),
-      );
+        );
+        setStats(calculateAppointmentStats(updatedAppointments));
+        return updatedAppointments;
+      });
       setFilteredAppointments((prev) =>
         prev.map((a) =>
           a._id === appointmentId
@@ -261,10 +284,20 @@ const Appointments = () => {
         },
       );
 
-      setAppointments((prev) => prev.filter((a) => a._id !== appointmentId));
+      setAppointments((prev) => {
+        const remainingAppointments = prev.filter(
+          (a) => a._id !== appointmentId,
+        );
+        setStats(calculateAppointmentStats(remainingAppointments));
+        return remainingAppointments;
+      });
       setFilteredAppointments((prev) =>
         prev.filter((a) => a._id !== appointmentId),
       );
+      if (selectedAppointment?._id === appointmentId) {
+        setSelectedAppointment(null);
+        setShowDetailsModal(false);
+      }
       toast.success("Appointment deleted successfully");
     } catch (error) {
       console.error("Failed to delete appointment:", error);
@@ -300,15 +333,28 @@ const Appointments = () => {
     let filtered = [...appointments];
 
     // Search filter
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (a) =>
-          a.patientName?.toLowerCase().includes(q) ||
-          a.doctorName?.toLowerCase().includes(q) ||
-          a.patientId?.toLowerCase().includes(q) ||
-          a.reason?.toLowerCase().includes(q) ||
-          a.appointmentId?.toLowerCase().includes(q),
+    if (searchTerm.trim()) {
+      filtered = filtered.filter((a) =>
+        matchesSearch(searchTerm, [
+          a.appointmentId,
+          a.patientName,
+          a.patientId,
+          a.patient,
+          a.doctorName,
+          a.doctorSpecialization,
+          a.doctor,
+          a.reason,
+          a.symptoms,
+          a.status,
+          a.statusText,
+          a.type,
+          a.date,
+          a.dateFormatted,
+          a.dayOfWeek,
+          a.time,
+          a.notes,
+          a.diagnosis,
+        ]),
       );
     }
 
@@ -415,6 +461,9 @@ const Appointments = () => {
     setSelectedType("all");
     setSelectedDate("all");
     setCurrentPage(1);
+    if (location.search) {
+      navigate(location.pathname, { replace: true });
+    }
   };
 
   const handleSort = (field) => {
@@ -463,15 +512,15 @@ const Appointments = () => {
   // Loading State
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#f8fffd] via-[#eef8f7] to-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600 mx-auto"></div>
+            <div className="w-20 h-20 border-4 border-teal-200 rounded-full animate-spin border-t-teal-700 mx-auto"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <HiOutlineCalendar className="w-8 h-8 text-blue-600 animate-pulse" />
+              <HiOutlineCalendar className="w-8 h-8 text-teal-700 animate-pulse" />
             </div>
           </div>
-          <p className="mt-4 text-lg text-gray-600 animate-pulse">
+          <p className="mt-4 text-lg text-slate-600 animate-pulse">
             Loading appointments...
           </p>
         </div>
@@ -484,31 +533,31 @@ const Appointments = () => {
   // ============================================
   const StatsCards = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">
+            <p className="text-sm font-medium text-slate-500">
               Total Appointments
             </p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.total || appointments.length}
             </p>
-            <p className="text-xs text-blue-600 mt-1">
+            <p className="text-xs text-teal-700 mt-1">
               <span className="font-semibold">{stats.completed || 0}</span>{" "}
               Completed
             </p>
           </div>
-          <div className="bg-blue-100 p-3 rounded-2xl">
-            <HiOutlineCalendar className="w-6 h-6 text-blue-600" />
+          <div className="bg-teal-50 p-3 rounded-lg">
+            <HiOutlineCalendar className="w-6 h-6 text-teal-700" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Today</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-sm font-medium text-slate-500">Today</p>
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.today || appointments.filter((a) => a.isToday).length}
             </p>
             <p className="text-xs text-green-600 mt-1">
@@ -522,41 +571,41 @@ const Appointments = () => {
               Scheduled
             </p>
           </div>
-          <div className="bg-green-100 p-3 rounded-2xl">
+          <div className="bg-green-100 p-3 rounded-lg">
             <HiOutlineClock className="w-6 h-6 text-green-600" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">
+            <p className="text-sm font-medium text-slate-500">
               Pending / Scheduled
             </p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.scheduled ||
                 appointments.filter((a) => a.status === "scheduled").length}
             </p>
             <p className="text-xs text-yellow-600 mt-1">Need confirmation</p>
           </div>
-          <div className="bg-yellow-100 p-3 rounded-2xl">
+          <div className="bg-yellow-100 p-3 rounded-lg">
             <HiOutlineRefresh className="w-6 h-6 text-yellow-600" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Cancelled</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">
+            <p className="text-sm font-medium text-slate-500">Cancelled</p>
+            <p className="text-3xl font-bold text-slate-950 mt-2">
               {stats.cancelled ||
                 appointments.filter((a) => a.status === "cancelled").length}
             </p>
             <p className="text-xs text-red-600 mt-1">Cancelled visits</p>
           </div>
-          <div className="bg-red-100 p-3 rounded-2xl">
+          <div className="bg-red-100 p-3 rounded-lg">
             <HiOutlineXCircle className="w-6 h-6 text-red-600" />
           </div>
         </div>
@@ -568,23 +617,23 @@ const Appointments = () => {
   // SEARCH AND FILTERS COMPONENT
   // ============================================
   const SearchAndFilters = () => (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 mb-8 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-lg border border-slate-200 mb-8 overflow-hidden">
       <div className="p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Search Bar */}
           <div className="flex-1 relative">
-            <HiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <HiOutlineSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
               type="text"
               placeholder="Search appointments by patient, doctor, ID, or reason..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+              className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-slate-50 hover:bg-white transition-colors"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 ✕
               </button>
@@ -595,10 +644,10 @@ const Appointments = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 py-3 rounded-xl flex items-center gap-2 transition-all ${
+              className={`px-4 py-3 rounded-lg flex items-center gap-2 transition-all ${
                 showFilters
-                  ? "bg-blue-100 text-blue-700 border-2 border-blue-300"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-2 border-transparent"
+                  ? "bg-teal-50 text-teal-800 border-2 border-teal-300"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200 border-2 border-transparent"
               }`}
             >
               <HiOutlineFilter className="w-5 h-5" />
@@ -606,7 +655,7 @@ const Appointments = () => {
               {(selectedStatus !== "all" ||
                 selectedType !== "all" ||
                 selectedDate !== "all") && (
-                <span className="ml-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                <span className="ml-1 px-2 py-0.5 bg-teal-500 text-white text-xs rounded-full">
                   {
                     [selectedStatus, selectedType, selectedDate].filter(
                       (s) => s !== "all",
@@ -618,7 +667,7 @@ const Appointments = () => {
 
             <button
               onClick={handleExport}
-              className="px-4 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 border border-gray-300"
+              className="px-4 py-3 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2 border border-slate-300"
             >
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export</span>
@@ -629,15 +678,15 @@ const Appointments = () => {
 
         {/* Expandable Filters */}
         {showFilters && (
-          <div className="mt-6 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4 animate-slideDown">
+          <div className="mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 animate-slideDown">
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
                 Status
               </label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 bg-slate-50"
               >
                 <option value="all">All Status</option>
                 <option value="scheduled">Scheduled</option>
@@ -650,13 +699,13 @@ const Appointments = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
                 Appointment Type
               </label>
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 bg-slate-50"
               >
                 {types.map((type) => (
                   <option key={type} value={type}>
@@ -669,13 +718,13 @@ const Appointments = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
                 Date
               </label>
               <select
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 bg-slate-50"
               >
                 <option value="all">All Dates</option>
                 <option value="today">Today</option>
@@ -689,7 +738,7 @@ const Appointments = () => {
             <div className="flex items-end">
               <button
                 onClick={clearFilters}
-                className="w-full px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                className="w-full px-4 py-2.5 border-2 border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
               >
                 <HiOutlineRefresh className="w-4 h-4" />
                 Clear Filters
@@ -700,17 +749,17 @@ const Appointments = () => {
       </div>
 
       {/* Results Summary */}
-      <div className="bg-gray-50 px-6 py-3 flex flex-wrap items-center justify-between text-sm border-t border-gray-200">
-        <div className="flex items-center gap-2 text-gray-600">
+      <div className="bg-slate-50 px-6 py-3 flex flex-wrap items-center justify-between text-sm border-t border-slate-200">
+        <div className="flex items-center gap-2 text-slate-600">
           <HiOutlineInformationCircle className="w-4 h-4" />
           <span>
             Showing{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-slate-950">
               {indexOfFirstItem + 1}-
               {Math.min(indexOfLastItem, filteredAppointments.length)}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-slate-950">
               {filteredAppointments.length}
             </span>{" "}
             appointments
@@ -719,30 +768,30 @@ const Appointments = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => handleSort("date")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
+            className={`flex items-center gap-1 hover:text-teal-700 transition-colors ${
               sortBy === "date"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
+                ? "text-teal-700 font-semibold"
+                : "text-slate-600"
             }`}
           >
             Date {sortBy === "date" && (sortOrder === "asc" ? "↑" : "↓")}
           </button>
           <button
             onClick={() => handleSort("patient")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
+            className={`flex items-center gap-1 hover:text-teal-700 transition-colors ${
               sortBy === "patient"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
+                ? "text-teal-700 font-semibold"
+                : "text-slate-600"
             }`}
           >
             Patient {sortBy === "patient" && (sortOrder === "asc" ? "↑" : "↓")}
           </button>
           <button
             onClick={() => handleSort("status")}
-            className={`flex items-center gap-1 hover:text-blue-600 transition-colors ${
+            className={`flex items-center gap-1 hover:text-teal-700 transition-colors ${
               sortBy === "status"
-                ? "text-blue-600 font-semibold"
-                : "text-gray-600"
+                ? "text-teal-700 font-semibold"
+                : "text-slate-600"
             }`}
           >
             Status {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}
@@ -756,81 +805,81 @@ const Appointments = () => {
   // TABLE VIEW COMPONENT
   // ============================================
   const TableView = () => (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Appointment
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Patient
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Doctor
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Date & Time
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Type
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-slate-200">
             {currentItems.map((appointment) => (
               <tr
                 key={appointment._id}
                 onClick={() => fetchAppointmentDetails(appointment._id)}
-                className="hover:bg-gray-50 transition-colors cursor-pointer"
+                className="hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-slate-950">
                     {appointment.appointmentId}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-slate-500 mt-1">
                     {appointment.reason?.substring(0, 30)}...
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold text-sm">
+                    <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center">
+                      <span className="text-teal-700 font-semibold text-sm">
                         {appointment.patientName?.charAt(0) || "P"}
                       </span>
                     </div>
                     <div className="ml-3">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-slate-950">
                         {appointment.patientName}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-slate-500">
                         {appointment.patientId}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-slate-950">
                     {appointment.doctorName}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-slate-500">
                     {appointment.doctorSpecialization}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center text-sm text-gray-900">
-                    <HiOutlineCalendar className="w-4 h-4 mr-2 text-gray-400" />
+                  <div className="flex items-center text-sm text-slate-950">
+                    <HiOutlineCalendar className="w-4 h-4 mr-2 text-slate-400" />
                     {appointment.dateFormatted}
                   </div>
-                  <div className="flex items-center text-xs text-gray-500 mt-1">
-                    <HiOutlineClock className="w-3 h-3 mr-2 text-gray-400" />
+                  <div className="flex items-center text-xs text-slate-500 mt-1">
+                    <HiOutlineClock className="w-3 h-3 mr-2 text-slate-400" />
                     {appointment.time} ({appointment.duration || 30} min)
                   </div>
                   {appointment.isToday && (
@@ -840,7 +889,7 @@ const Appointments = () => {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center text-sm text-gray-600">
+                  <div className="flex items-center text-sm text-slate-600">
                     {appointment.typeIcon}
                     <span className="ml-2 capitalize">{appointment.type}</span>
                   </div>
@@ -859,14 +908,14 @@ const Appointments = () => {
                         appointment.status === "completed"
                           ? "bg-green-100 text-green-700"
                           : appointment.status === "scheduled"
-                            ? "bg-blue-100 text-blue-700"
+                            ? "bg-teal-50 text-teal-800"
                             : appointment.status === "confirmed"
-                              ? "bg-indigo-100 text-indigo-700"
+                              ? "bg-sky-50 text-sky-700"
                               : appointment.status === "in_progress"
                                 ? "bg-yellow-100 text-yellow-700"
                                 : appointment.status === "cancelled"
                                   ? "bg-red-100 text-red-700"
-                                  : "bg-gray-100 text-gray-700"
+                                  : "bg-slate-100 text-slate-700"
                       }
                     `}
                   >
@@ -885,7 +934,7 @@ const Appointments = () => {
                         e.stopPropagation();
                         fetchAppointmentDetails(appointment._id);
                       }}
-                      className="text-blue-600 hover:text-blue-900 transition-colors"
+                      className="text-teal-700 hover:text-teal-950 transition-colors"
                     >
                       <HiOutlineEye className="w-5 h-5" />
                     </button>
@@ -925,13 +974,13 @@ const Appointments = () => {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             {/* Header */}
             <div className="flex justify-between items-start mb-6">
               <div>
                 <div className="flex items-center gap-3">
-                  <h3 className="text-2xl font-bold text-gray-900">
+                  <h3 className="text-2xl font-bold text-slate-950">
                     Appointment {selectedAppointment.appointmentId}
                   </h3>
                   <span
@@ -941,27 +990,27 @@ const Appointments = () => {
                       selectedAppointment.status === "completed"
                         ? "bg-green-100 text-green-700"
                         : selectedAppointment.status === "scheduled"
-                          ? "bg-blue-100 text-blue-700"
+                          ? "bg-teal-50 text-teal-800"
                           : selectedAppointment.status === "confirmed"
-                            ? "bg-indigo-100 text-indigo-700"
+                            ? "bg-sky-50 text-sky-700"
                             : selectedAppointment.status === "in_progress"
                               ? "bg-yellow-100 text-yellow-700"
                               : selectedAppointment.status === "cancelled"
                                 ? "bg-red-100 text-red-700"
-                                : "bg-gray-100 text-gray-700"
+                                : "bg-slate-100 text-slate-700"
                     }
                   `}
                   >
                     {selectedAppointment.statusText}
                   </span>
                 </div>
-                <p className="text-gray-600 mt-1">
+                <p className="text-slate-600 mt-1">
                   {selectedAppointment.reason}
                 </p>
               </div>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
               >
                 ✕
               </button>
@@ -970,25 +1019,25 @@ const Appointments = () => {
             {/* Quick Info Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* Patient Info */}
-              <div className="bg-blue-50 p-5 rounded-xl">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <HiOutlineUser className="w-5 h-5 mr-2 text-blue-600" />
+              <div className="bg-teal-50 p-5 rounded-lg">
+                <h4 className="font-semibold text-slate-950 mb-4 flex items-center">
+                  <HiOutlineUser className="w-5 h-5 mr-2 text-teal-700" />
                   Patient Information
                 </h4>
                 <div className="space-y-2">
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Name:</span>{" "}
                     {selectedAppointment.patient?.fullName}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Patient ID:</span>{" "}
                     {selectedAppointment.patient?.patientId}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Email:</span>{" "}
                     {selectedAppointment.patient?.email}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Phone:</span>{" "}
                     {selectedAppointment.patient?.phone}
                   </p>
@@ -996,25 +1045,25 @@ const Appointments = () => {
               </div>
 
               {/* Doctor Info */}
-              <div className="bg-green-50 p-5 rounded-xl">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+              <div className="bg-green-50 p-5 rounded-lg">
+                <h4 className="font-semibold text-slate-950 mb-4 flex items-center">
                   <HiOutlineUserGroup className="w-5 h-5 mr-2 text-green-600" />
                   Doctor Information
                 </h4>
                 <div className="space-y-2">
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Name:</span>{" "}
                     {selectedAppointment.doctor?.fullName}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Specialization:</span>{" "}
                     {selectedAppointment.doctor?.specialization}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Email:</span>{" "}
                     {selectedAppointment.doctor?.email}
                   </p>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     <span className="font-medium">Phone:</span>{" "}
                     {selectedAppointment.doctor?.phone}
                   </p>
@@ -1023,31 +1072,31 @@ const Appointments = () => {
             </div>
 
             {/* Appointment Details */}
-            <div className="bg-gray-50 p-5 rounded-xl mb-6">
-              <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                <HiOutlineCalendar className="w-5 h-5 mr-2 text-gray-600" />
+            <div className="bg-slate-50 p-5 rounded-lg mb-6">
+              <h4 className="font-semibold text-slate-950 mb-4 flex items-center">
+                <HiOutlineCalendar className="w-5 h-5 mr-2 text-slate-600" />
                 Appointment Details
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Date & Time</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-sm text-slate-500">Date & Time</p>
+                  <p className="font-medium text-slate-950">
                     {selectedAppointment.dateFormatted} at{" "}
                     {selectedAppointment.time}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     {selectedAppointment.dayOfWeek}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Duration</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-sm text-slate-500">Duration</p>
+                  <p className="font-medium text-slate-950">
                     {selectedAppointment.duration || 30} minutes
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Type</p>
-                  <p className="font-medium text-gray-900 capitalize">
+                  <p className="text-sm text-slate-500">Type</p>
+                  <p className="font-medium text-slate-950 capitalize">
                     {selectedAppointment.type}
                   </p>
                 </div>
@@ -1057,8 +1106,8 @@ const Appointments = () => {
             {/* Symptoms & Diagnosis */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {selectedAppointment.symptoms?.length > 0 && (
-                <div className="bg-gray-50 p-5 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-3">Symptoms</h4>
+                <div className="bg-slate-50 p-5 rounded-lg">
+                  <h4 className="font-semibold text-slate-950 mb-3">Symptoms</h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedAppointment.symptoms.map((symptom, idx) => (
                       <span
@@ -1073,11 +1122,11 @@ const Appointments = () => {
               )}
 
               {selectedAppointment.diagnosis && (
-                <div className="bg-gray-50 p-5 rounded-xl">
-                  <h4 className="font-semibold text-gray-900 mb-3">
+                <div className="bg-slate-50 p-5 rounded-lg">
+                  <h4 className="font-semibold text-slate-950 mb-3">
                     Diagnosis
                   </h4>
-                  <p className="text-gray-700">
+                  <p className="text-slate-700">
                     {selectedAppointment.diagnosis}
                   </p>
                 </div>
@@ -1086,20 +1135,20 @@ const Appointments = () => {
 
             {/* Notes */}
             {selectedAppointment.notes && (
-              <div className="bg-yellow-50 p-5 rounded-xl mb-6">
+              <div className="bg-yellow-50 p-5 rounded-lg mb-6">
                 <h4 className="font-semibold text-yellow-800 mb-2">Notes</h4>
                 <p className="text-yellow-700">{selectedAppointment.notes}</p>
               </div>
             )}
 
             {/* Status Update */}
-            <div className="border-t border-gray-200 pt-6">
+            <div className="border-t border-slate-200 pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">
+                  <h4 className="font-semibold text-slate-950 mb-1">
                     Update Appointment Status
                   </h4>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-slate-500">
                     Change the current status of this appointment
                   </p>
                 </div>
@@ -1112,7 +1161,7 @@ const Appointments = () => {
                       newStatus,
                     );
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500"
                 >
                   <option value="scheduled">Scheduled</option>
                   <option value="confirmed">Confirmed</option>
@@ -1133,9 +1182,9 @@ const Appointments = () => {
   // PAGINATION COMPONENT
   // ============================================
   const Pagination = () => (
-    <div className="mt-8 flex items-center justify-between bg-white px-6 py-3 rounded-2xl shadow-lg border border-gray-200">
+    <div className="mt-8 flex items-center justify-between bg-white px-6 py-3 rounded-lg shadow-lg border border-slate-200">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-slate-700">
           Page <span className="font-semibold">{currentPage}</span> of{" "}
           <span className="font-semibold">{totalPages}</span>
         </span>
@@ -1144,7 +1193,7 @@ const Appointments = () => {
         <button
           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+          className="p-2 rounded-lg border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
         >
           <HiOutlineChevronLeft className="w-5 h-5" />
         </button>
@@ -1153,7 +1202,7 @@ const Appointments = () => {
             setCurrentPage((prev) => Math.min(prev + 1, totalPages))
           }
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+          className="p-2 rounded-lg border border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
         >
           <HiOutlineChevronRight className="w-5 h-5" />
         </button>
@@ -1165,16 +1214,16 @@ const Appointments = () => {
   // MAIN RENDER
   // ============================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fffd] via-[#eef8f7] to-slate-50 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-700 via-emerald-600 to-sky-600 bg-clip-text text-transparent">
               Appointments Management
             </h1>
-            <p className="text-gray-600 mt-2 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+            <p className="text-slate-600 mt-2 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse"></span>
               Schedule, track, and manage patient appointments
             </p>
           </div>
@@ -1183,7 +1232,7 @@ const Appointments = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={handleExport}
-              className="px-4 py-2 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 border border-gray-300 shadow-sm"
+              className="px-4 py-2 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2 border border-slate-300 shadow-sm"
             >
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export CSV</span>
@@ -1195,18 +1244,18 @@ const Appointments = () => {
         <StatsCards />
 
         {/* Search & Filters */}
-        <SearchAndFilters />
+        {SearchAndFilters()}
 
         {/* Main Content */}
         {filteredAppointments.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-16 text-center">
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <HiOutlineCalendar className="w-12 h-12 text-gray-400" />
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 p-16 text-center">
+            <div className="bg-gradient-to-br from-slate-50 to-teal-50 w-24 h-24 rounded-lg flex items-center justify-center mx-auto mb-6">
+              <HiOutlineCalendar className="w-12 h-12 text-slate-400" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-700 mb-2">
+            <h3 className="text-2xl font-bold text-slate-700 mb-2">
               No appointments found
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-slate-500 mb-6">
               {searchTerm ||
               selectedStatus !== "all" ||
               selectedType !== "all" ||
@@ -1220,7 +1269,7 @@ const Appointments = () => {
             selectedDate !== "all" ? (
               <button
                 onClick={clearFilters}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all inline-flex items-center gap-2 shadow-lg"
+                className="px-6 py-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition-all inline-flex items-center gap-2 shadow-lg"
               >
                 <HiOutlineRefresh className="w-5 h-5" />
                 Clear all filters
@@ -1235,7 +1284,7 @@ const Appointments = () => {
         )}
 
         {/* Appointment Details Modal */}
-        <AppointmentDetailsModal />
+        {AppointmentDetailsModal()}
       </div>
     </div>
   );

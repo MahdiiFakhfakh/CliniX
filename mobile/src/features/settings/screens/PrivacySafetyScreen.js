@@ -124,8 +124,8 @@ export function PrivacySafetyScreen() {
                     />
                     <ToggleRow
                         icon="image-outline"
-                        iconBg="#F3F0FF"
-                        iconColor="#7C3AED"
+                        iconBg={colors.primarySoft}
+                        iconColor={colors.primary}
                         title="Photo Tagging"
                         description="Allow others to tag you in photos."
                         value={photoTaggingEnabled}
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
         overflow: 'hidden',
-        shadowColor: '#142850',
+        shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 8,

@@ -32,7 +32,7 @@ const ROLE_CONFIG = {
             { label: 'Home', route: '/(app)/(patient)/home', matchers: ['/home', '/dashboard'] },
             { label: 'Appts', route: '/(app)/(patient)/appointments', matchers: ['/appointments', '/appointment', '/book-appointment'] },
             { label: 'Records', route: '/(app)/(patient)/records', matchers: ['/records', '/results', '/result', '/prescriptions', '/prescription'] },
-            { label: 'Care', route: '/(app)/(patient)/create-reminder', matchers: ['/create-reminder', '/add-vitals', '/chat', '/notifications'] },
+            { label: 'Care', route: '/(app)/(patient)/reminders', matchers: ['/reminders', '/create-reminder', '/add-vitals'] },
         ],
     },
     doctor: {
@@ -50,7 +50,7 @@ const ROLE_CONFIG = {
 };
 
 function isTabActive(pathname, tab) {
-    return tab.matchers.some((matcher) => pathname === matcher || pathname.startsWith(`${matcher}/`));
+    return tab.matchers.some((matcher) => pathname.endsWith(matcher) || pathname.includes(`${matcher}/`));
 }
 
 export function RoleTopBar({ role = 'patient' }) {
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.surface,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
-        shadowColor: '#142850',
+        shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 8,
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: colors.text,
+        backgroundColor: colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.8,
     },
     title: {
-        color: colors.text,
+        color: colors.primary,
         fontFamily: fonts.bodyBold,
         fontSize: 18,
         fontWeight: '700',

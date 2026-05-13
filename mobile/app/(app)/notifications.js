@@ -1,5 +1,9 @@
+import { Redirect } from 'expo-router';
 import React from 'react';
-import { NotificationsScreen } from '@/src/features/notifications/screens/NotificationsScreen';
+import { roleHomePaths } from '@/src/core/navigation/paths';
+import { useAuthStore } from '@/src/store/authStore';
+
 export default function NotificationsRoute() {
-    return <NotificationsScreen />;
+    const session = useAuthStore((state) => state.session);
+    return <Redirect href={session ? roleHomePaths[session.user.role] : '/(auth)/login'} />;
 }

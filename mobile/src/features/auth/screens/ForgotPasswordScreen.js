@@ -19,24 +19,24 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 import { forgotPasswordSchema } from '@/src/features/auth/schemas/forgotPasswordSchema';
 import { forgotPassword } from '@/src/services/api/endpoints/authApi';
 
 const palette = {
-    background: '#F3F4F8',
-    primary: '#2A2ACF',
-    primaryPressed: '#1F1FAF',
-    primaryTint: '#E8EAFF',
-    text: '#111111',
-    label: '#374151',
-    muted: '#6B7280',
-    border: '#E5E7EB',
-    placeholder: '#9CA3AF',
-    inputBg: '#FFFFFF',
-    error: '#EF4444',
-    disabled: '#A5B4FC',
-    disabledText: '#E5E7EB',
+    background: colors.background,
+    primary: colors.primary,
+    primaryPressed: colors.primaryMid,
+    primaryTint: colors.primarySoft,
+    text: colors.text,
+    label: colors.text,
+    muted: colors.textMuted,
+    border: colors.border,
+    placeholder: colors.textSubtle,
+    inputBg: colors.surface,
+    error: colors.danger,
+    disabled: colors.disabled,
+    disabledText: colors.border,
 };
 
 export function ForgotPasswordScreen() {

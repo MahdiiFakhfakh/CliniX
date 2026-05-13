@@ -186,20 +186,20 @@ const Analytics = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-2xl shadow-xl border border-gray-200">
-          <div className="bg-gradient-to-br from-red-50 to-red-100 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+      <div className="min-h-screen bg-gradient-to-br from-[#f8fffd] via-[#eef8f7] to-slate-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-lg shadow-xl border border-slate-200">
+          <div className="bg-gradient-to-br from-red-50 to-red-100 w-20 h-20 rounded-lg flex items-center justify-center mx-auto mb-6 shadow-lg">
             <HiOutlineChartBar className="w-10 h-10 text-red-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
+          <h3 className="text-2xl font-bold text-slate-950 mb-2">
             Failed to load analytics
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-slate-600 mb-6">
             Please try again later or check your connection
           </p>
           <button
             onClick={() => refetch()}
-            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all inline-flex items-center gap-2 shadow-lg hover:shadow-xl"
+            className="px-8 py-3 bg-gradient-to-r from-teal-700 to-emerald-700 text-white rounded-lg hover:from-teal-800 hover:to-emerald-800 transition-all inline-flex items-center gap-2 shadow-lg hover:shadow-xl"
           >
             <HiOutlineRefresh className="w-5 h-5 animate-spin" />
             Retry
@@ -220,9 +220,9 @@ const Analytics = () => {
         change: data?.patientGrowth || "+12.5%",
         trend: "up",
         icon: <HiOutlineUsers className="w-7 h-7" />,
-        bgGradient: "from-blue-500 to-blue-600",
-        lightBg: "bg-blue-50",
-        textColor: "text-blue-600",
+        bgGradient: "from-teal-600 to-teal-700",
+        lightBg: "bg-teal-50",
+        textColor: "text-teal-700",
       },
       {
         title: "Total Doctors",
@@ -240,9 +240,9 @@ const Analytics = () => {
         change: data?.appointmentGrowth || "+15.2%",
         trend: "up",
         icon: <HiOutlineCalendar className="w-7 h-7" />,
-        bgGradient: "from-purple-500 to-purple-600",
-        lightBg: "bg-purple-50",
-        textColor: "text-purple-600",
+        bgGradient: "from-sky-500 to-sky-600",
+        lightBg: "bg-sky-50",
+        textColor: "text-sky-700",
       },
       {
         title: "Prescriptions",
@@ -271,7 +271,7 @@ const Analytics = () => {
         {stats.map((stat, idx) => (
           <div
             key={idx}
-            className="group relative bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            className="group relative bg-white rounded-lg border border-slate-200 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
           >
             <div className="absolute top-0 right-0 w-20 h-20 opacity-5 group-hover:opacity-10 transition-opacity">
               <div
@@ -280,7 +280,7 @@ const Analytics = () => {
             </div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-3">
-                <div className={`p-2.5 rounded-xl ${stat.lightBg}`}>
+                <div className={`p-2.5 rounded-lg ${stat.lightBg}`}>
                   <div className={stat.textColor}>{stat.icon}</div>
                 </div>
                 <div
@@ -298,10 +298,10 @@ const Analytics = () => {
                   {stat.change}
                 </div>
               </div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">
+              <h3 className="text-sm font-medium text-slate-500 mb-1">
                 {stat.title}
               </h3>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-2xl font-bold text-slate-950">{stat.value}</p>
             </div>
           </div>
         ))}
@@ -344,28 +344,28 @@ const Analytics = () => {
     return (
       <div className="grid grid-cols-1 gap-8">
         {/* Appointments Chart */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-950">
                 Appointments
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 Last 7 days performance
               </p>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
-                <span className="text-xs text-gray-600">Scheduled</span>
+                <span className="w-2.5 h-2.5 bg-teal-500 rounded-full"></span>
+                <span className="text-xs text-slate-600">Scheduled</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-green-500 rounded-full"></span>
-                <span className="text-xs text-gray-600">Completed</span>
+                <span className="text-xs text-slate-600">Completed</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-red-500 rounded-full"></span>
-                <span className="text-xs text-gray-600">Cancelled</span>
+                <span className="text-xs text-slate-600">Cancelled</span>
               </div>
             </div>
           </div>
@@ -468,16 +468,16 @@ const Analytics = () => {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Age Distribution */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-950">
                 Age Groups
               </h3>
-              <p className="text-sm text-gray-500 mt-1">Patient distribution</p>
+              <p className="text-sm text-slate-500 mt-1">Patient distribution</p>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-xl">
-              <HiOutlineUsers className="w-6 h-6 text-purple-600" />
+            <div className="bg-gradient-to-br from-sky-50 to-sky-100 p-3 rounded-lg">
+              <HiOutlineUsers className="w-6 h-6 text-sky-700" />
             </div>
           </div>
           <div className="h-48 mb-4">
@@ -487,10 +487,10 @@ const Analytics = () => {
             {data?.ageGroups?.map((group, idx) => (
               <div
                 key={group}
-                className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-2 bg-slate-50 rounded-lg"
               >
-                <span className="text-xs text-gray-600">{group}</span>
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="text-xs text-slate-600">{group}</span>
+                <span className="text-xs font-semibold text-slate-950">
                   {data?.ageDistribution?.[idx] || 0}
                 </span>
               </div>
@@ -499,44 +499,44 @@ const Analytics = () => {
         </div>
 
         {/* Gender Distribution */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Gender</h3>
-              <p className="text-sm text-gray-500 mt-1">Patient demographics</p>
+              <h3 className="text-lg font-semibold text-slate-950">Gender</h3>
+              <p className="text-sm text-slate-500 mt-1">Patient demographics</p>
             </div>
-            <div className="bg-gradient-to-br from-pink-50 to-pink-100 p-3 rounded-xl">
-              <HiOutlineUser className="w-6 h-6 text-pink-600" />
+            <div className="bg-gradient-to-br from-rose-50 to-rose-100 p-3 rounded-lg">
+              <HiOutlineUser className="w-6 h-6 text-rose-600" />
             </div>
           </div>
           <div className="h-48 mb-4">
             <Doughnut data={genderData} options={doughnutOptions} />
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+            <div className="flex items-center justify-between p-2 bg-teal-50 rounded-lg">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                <span className="text-xs text-gray-700">Male</span>
+                <span className="w-2 h-2 bg-teal-500 rounded-full"></span>
+                <span className="text-xs text-slate-700">Male</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="text-xs font-semibold text-slate-950">
                   {data?.malePatients || 0}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-slate-500">
                   ({malePercentage}%)
                 </span>
               </div>
             </div>
-            <div className="flex items-center justify-between p-2 bg-pink-50 rounded-lg">
+            <div className="flex items-center justify-between p-2 bg-rose-50 rounded-lg">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
-                <span className="text-xs text-gray-700">Female</span>
+                <span className="w-2 h-2 bg-rose-500 rounded-full"></span>
+                <span className="text-xs text-slate-700">Female</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="text-xs font-semibold text-slate-950">
                   {data?.femalePatients || 0}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-slate-500">
                   ({femalePercentage}%)
                 </span>
               </div>
@@ -545,17 +545,17 @@ const Analytics = () => {
         </div>
 
         {/* Blood Groups */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-950">
                 Blood Groups
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 Blood type distribution
               </p>
             </div>
-            <div className="bg-gradient-to-br from-red-50 to-red-100 p-3 rounded-xl">
+            <div className="bg-gradient-to-br from-red-50 to-red-100 p-3 rounded-lg">
               <HiOutlineHeart className="w-6 h-6 text-red-600" />
             </div>
           </div>
@@ -566,10 +566,10 @@ const Analytics = () => {
             {data?.bloodGroups?.slice(0, 4).map((group, idx) => (
               <div
                 key={group}
-                className="text-center p-2 bg-gray-50 rounded-lg"
+                className="text-center p-2 bg-slate-50 rounded-lg"
               >
-                <p className="text-xs font-semibold text-gray-900">{group}</p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs font-semibold text-slate-950">{group}</p>
+                <p className="text-xs text-slate-600">
                   {data?.bloodGroupDistribution?.[idx] || 0}
                 </p>
               </div>
@@ -664,18 +664,18 @@ const Analytics = () => {
     return (
       <div className="grid grid-cols-1 gap-8">
         {/* Top Conditions */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-950">
                 Top Chronic Conditions
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 Most common diagnoses
               </p>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-xl">
-              <HiOutlineBeaker className="w-6 h-6 text-purple-600" />
+            <div className="bg-gradient-to-br from-sky-50 to-sky-100 p-3 rounded-lg">
+              <HiOutlineBeaker className="w-6 h-6 text-sky-700" />
             </div>
           </div>
           <div className="h-64">
@@ -684,17 +684,17 @@ const Analytics = () => {
         </div>
 
         {/* Prescriptions per Doctor */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-950">
                 Prescriptions by Doctor
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 Total prescriptions per physician
               </p>
             </div>
-            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-3 rounded-xl">
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-3 rounded-lg">
               <HiOutlineDocumentText className="w-6 h-6 text-emerald-600" />
             </div>
           </div>
@@ -704,16 +704,16 @@ const Analytics = () => {
         </div>
 
         {/* Appointment Status Distribution */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-950">
                 Appointment Status
               </h3>
-              <p className="text-sm text-gray-500 mt-1">Current distribution</p>
+              <p className="text-sm text-slate-500 mt-1">Current distribution</p>
             </div>
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-xl">
-              <HiOutlineChartBar className="w-6 h-6 text-blue-600" />
+            <div className="bg-gradient-to-br from-teal-50 to-teal-100 p-3 rounded-lg">
+              <HiOutlineChartBar className="w-6 h-6 text-teal-700" />
             </div>
           </div>
           <div className="flex flex-col md:flex-row items-center gap-6">
@@ -727,45 +727,45 @@ const Analytics = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 bg-green-500 rounded-full"></span>
-                  <span className="text-xs text-gray-600">Completed</span>
+                  <span className="text-xs text-slate-600">Completed</span>
                 </div>
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="text-xs font-semibold text-slate-950">
                   {data?.completedAppointments || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
-                  <span className="text-xs text-gray-600">Scheduled</span>
+                  <span className="w-2.5 h-2.5 bg-teal-500 rounded-full"></span>
+                  <span className="text-xs text-slate-600">Scheduled</span>
                 </div>
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="text-xs font-semibold text-slate-950">
                   {data?.scheduledAppointments || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 bg-purple-500 rounded-full"></span>
-                  <span className="text-xs text-gray-600">In Progress</span>
+                  <span className="w-2.5 h-2.5 bg-sky-500 rounded-full"></span>
+                  <span className="text-xs text-slate-600">In Progress</span>
                 </div>
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="text-xs font-semibold text-slate-950">
                   {data?.inProgressAppointments || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 bg-red-500 rounded-full"></span>
-                  <span className="text-xs text-gray-600">Cancelled</span>
+                  <span className="text-xs text-slate-600">Cancelled</span>
                 </div>
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="text-xs font-semibold text-slate-950">
                   {data?.cancelledAppointments || 0}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 bg-gray-500 rounded-full"></span>
-                  <span className="text-xs text-gray-600">No Show</span>
+                  <span className="w-2.5 h-2.5 bg-slate-500 rounded-full"></span>
+                  <span className="text-xs text-slate-600">No Show</span>
                 </div>
-                <span className="text-xs font-semibold text-gray-900">
+                <span className="text-xs font-semibold text-slate-950">
                   {data?.noShowAppointments || 0}
                 </span>
               </div>
@@ -774,17 +774,17 @@ const Analytics = () => {
         </div>
 
         {/* Peak Hours */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-950">
                 Peak Hours
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 Busiest appointment times
               </p>
             </div>
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-3 rounded-xl">
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-3 rounded-lg">
               <HiOutlineClock className="w-6 h-6 text-orange-600" />
             </div>
           </div>
@@ -834,78 +834,78 @@ const Analytics = () => {
         : 3.2;
 
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-          <HiOutlineBadgeCheck className="w-6 h-6 text-blue-600" />
+      <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all">
+        <h3 className="text-lg font-semibold text-slate-950 mb-6 flex items-center gap-2">
+          <HiOutlineBadgeCheck className="w-6 h-6 text-teal-700" />
           Quick Insights
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
+          <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <div className="bg-blue-500 p-2 rounded-lg">
+              <div className="bg-teal-500 p-2 rounded-lg">
                 <HiOutlineCheckCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-gray-600">Completion Rate</p>
-                <p className="text-xl font-bold text-gray-900">
+                <p className="text-xs text-slate-600">Completion Rate</p>
+                <p className="text-xl font-bold text-slate-950">
                   {completionRate}%
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4">
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4">
             <div className="flex items-center gap-3">
               <div className="bg-orange-500 p-2 rounded-lg">
                 <HiOutlineClock className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-gray-600">Busiest Hour</p>
-                <p className="text-xl font-bold text-gray-900">
+                <p className="text-xs text-slate-600">Busiest Hour</p>
+                <p className="text-xl font-bold text-slate-950">
                   {busiestHourLabel}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4">
+          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-4">
             <div className="flex items-center gap-3">
               <div className="bg-emerald-500 p-2 rounded-lg">
                 <HiOutlineUserGroup className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-gray-600">Top Doctor</p>
-                <p className="text-sm font-bold text-gray-900">{topDoctor}</p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-slate-600">Top Doctor</p>
+                <p className="text-sm font-bold text-slate-950">{topDoctor}</p>
+                <p className="text-xs text-slate-600">
                   {topDoctorPrescriptions} prescriptions
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4">
+          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4">
             <div className="flex items-center gap-3">
               <div className="bg-red-500 p-2 rounded-lg">
                 <HiOutlineXCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-xs text-gray-600">No-Show Rate</p>
-                <p className="text-xl font-bold text-gray-900">{noShowRate}%</p>
+                <p className="text-xs text-slate-600">No-Show Rate</p>
+                <p className="text-xl font-bold text-slate-950">{noShowRate}%</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="mt-4 pt-4 border-t border-slate-100">
           <div className="flex items-center justify-between text-sm mt-2">
-            <span className="text-gray-600">Total Patients Served</span>
-            <span className="font-bold text-gray-900">
+            <span className="text-slate-600">Total Patients Served</span>
+            <span className="font-bold text-slate-950">
               {data?.totalPatients || 0}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm mt-2">
-            <span className="text-gray-600">Active Prescriptions</span>
-            <span className="font-bold text-gray-900">
+            <span className="text-slate-600">Active Prescriptions</span>
+            <span className="font-bold text-slate-950">
               {data?.totalPrescriptions || 0}
             </span>
           </div>
@@ -918,31 +918,31 @@ const Analytics = () => {
   // MAIN RENDER - CLEAN LAYOUT
   // ============================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#f8fffd] via-[#eef8f7] to-slate-50 p-4 lg:p-8">
       <div className="max-w-[1600px] mx-auto space-y-8">
         {/* Header - Clean & Minimal */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900">
-              Analytics<span className="text-blue-600">.</span>
+            <h1 className="text-4xl font-bold text-slate-950">
+              Analytics<span className="text-teal-700">.</span>
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-slate-600 mt-2">
               Real-time insights from your clinic data
             </p>
           </div>
 
           {/* Date & Actions */}
           <div className="flex items-center gap-3">
-            <div className="px-5 py-2.5 bg-white rounded-xl border border-gray-200 text-sm text-gray-700 font-medium shadow-sm">
+            <div className="px-5 py-2.5 bg-white rounded-lg border border-slate-200 text-sm text-slate-700 font-medium shadow-sm">
               {format(new Date(), "MMMM d, yyyy")}
             </div>
-            <button className="px-5 py-2.5 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 border border-gray-200 shadow-sm hover:shadow-md">
+            <button className="px-5 py-2.5 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2 border border-slate-200 shadow-sm hover:shadow-md">
               <HiOutlineDownload className="w-5 h-5" />
               <span className="hidden sm:inline">Export</span>
             </button>
             <button
               onClick={() => refetch()}
-              className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-md hover:shadow-lg"
+              className="px-5 py-2.5 bg-gradient-to-r from-teal-700 to-emerald-700 text-white rounded-lg hover:from-teal-800 hover:to-emerald-800 transition-all flex items-center gap-2 shadow-md hover:shadow-lg"
             >
               <HiOutlineRefresh className="w-5 h-5" />
               <span className="hidden sm:inline">Refresh</span>

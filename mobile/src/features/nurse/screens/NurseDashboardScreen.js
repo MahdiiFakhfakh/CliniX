@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
         padding: spacing.sm,
         alignItems: 'center',
-        shadowColor: '#142850',
+        shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.05,
         shadowRadius: 8,

@@ -12,27 +12,28 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, radius, shadows, spacing, typography } from '@/src/core/theme/tokens';
 import { useBookAppointmentMutation } from '@/src/features/appointments/hooks/useBookAppointmentMutation';
 import { useDoctorsQuery } from '@/src/features/patient/hooks/useDoctorsQuery';
 import AppIcon from '@/src/shared/components/AppIcon';
 
-const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    primaryPressed: '#1E40AF',
-    text: '#111827',
-    muted: '#6B7280',
-    border: '#E5E7EB',
-    softChip: '#EDE9FE',
-    warning: '#EF4444',
-    success: '#059669',
-    ratingBg: '#FEF3C7',
-};
+const DOCTOR_TONES = ['#0F766E', '#059669', '#14B8A6', '#10B981', '#0284C7', '#475569'];
 
-const DOCTOR_TONES = ['#6DB7B8', '#7CA7BC', '#8EAFBF', '#95AFBA', '#8AA2D6', '#70B48F'];
+const QUICK_DAYS = [
+    { id: 'tomorrow', label: 'Tomorrow', offset: 1 },
+    { id: 'two-days', label: 'In 2 days', offset: 2 },
+    { id: 'next-week', label: 'Next week', offset: 7 },
+];
+
+const TIME_SLOTS = ['09:00 AM', '10:30 AM', '01:00 PM', '03:30 PM'];
+
+const REASON_CHIPS = [
+    'Routine checkup',
+    'Follow-up visit',
+    'New symptoms',
+    'Medication review',
+];
 
 const getDoctorTone = (index) => DOCTOR_TONES[index % DOCTOR_TONES.length];
 
@@ -44,6 +45,13 @@ const statusLabel = (status) => {
         return 'Unavailable';
     }
     return 'Available';
+};
+
+const formatDateInput = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
 
 const parseDateInput = (value) => {
@@ -81,8 +89,7 @@ const parseTimeInput = (value) => {
         if (meridiem === 'AM' && hours === 12) {
             hours = 0;
         }
-    }
-    else if (hours > 23) {
+    } else if (hours > 23) {
         return null;
     }
 
@@ -101,8 +108,90 @@ const createAppointmentDate = (dateValue, timeValue) => {
     return Number.isNaN(appointmentDate.getTime()) ? null : appointmentDate;
 };
 
+function DoctorAvatar({ doctor, index, large = false }) {
+    const initials = doctor?.name
+        ?.split(' ')
+        .filter(Boolean)
+        .slice(-2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('');
+
+    return (
+        <View style={[styles.avatar, large && styles.avatarLarge, { backgroundColor: getDoctorTone(index) }]}>
+            <Text style={[styles.avatarText, large && styles.avatarTextLarge]}>{initials || 'DR'}</Text>
+        </View>
+    );
+}
+
+function DoctorCard({ doctor, index, onBook, onProfile, disabled }) {
+    const department = doctor.department || doctor.specialty || 'General Medicine';
+    const fee = doctor.consultationFee ? `$${doctor.consultationFee}` : 'Fee TBD';
+
+    return (
+        <View style={styles.doctorCard}>
+            <View style={styles.cardTopRow}>
+                <DoctorAvatar doctor={doctor} index={index} />
+                <View style={styles.cardTextWrap}>
+                    <View style={styles.nameRow}>
+                        <Text numberOfLines={1} style={styles.doctorName}>{doctor.name}</Text>
+                        <View style={[styles.statusPill, doctor.available ? styles.statusPillAvailable : styles.statusPillUnavailable]}>
+                            <Text style={[styles.statusPillText, doctor.available ? styles.statusTextAvailable : styles.statusTextUnavailable]}>
+                                {statusLabel(doctor.status)}
+                            </Text>
+                        </View>
+                    </View>
+                    <Text style={styles.specialtyText}>{doctor.specialty}</Text>
+                    <View style={styles.metaRow}>
+                        <View style={styles.metaChip}>
+                            <AppIcon color={colors.primary} name="work-outline" size={14} />
+                            <Text style={styles.metaChipText}>{doctor.years} yrs</Text>
+                        </View>
+                        <View style={styles.metaChip}>
+                            <AppIcon color="#EAB308" name="star" size={14} />
+                            <Text style={styles.metaChipText}>{doctor.rating.toFixed(1)}</Text>
+                        </View>
+                        <View style={styles.metaChip}>
+                            <AppIcon color={colors.textMuted} name="payments" size={14} />
+                            <Text style={styles.metaChipText}>{fee}</Text>
+                        </View>
+                    </View>
+                    <Text numberOfLines={1} style={styles.departmentText}>{department}</Text>
+                </View>
+            </View>
+
+            <View style={styles.buttonRow}>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View ${doctor.name} profile`}
+                    onPress={() => onProfile(doctor)}
+                    style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+                >
+                    <AppIcon color={colors.primary} name="person-outline" size={18} />
+                    <Text style={styles.secondaryButtonText}>Profile</Text>
+                </Pressable>
+
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Book with ${doctor.name}`}
+                    disabled={disabled}
+                    onPress={() => onBook(doctor)}
+                    style={({ pressed }) => [
+                        styles.primaryButton,
+                        (!doctor.available || disabled) && styles.primaryButtonDisabled,
+                        pressed && doctor.available && !disabled && styles.primaryButtonPressed,
+                    ]}
+                >
+                    <AppIcon color="#FFFFFF" name="calendar-outline" size={18} />
+                    <Text style={styles.primaryButtonText}>Book</Text>
+                </Pressable>
+            </View>
+        </View>
+    );
+}
+
 export function BookAppointmentScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const bookMutation = useBookAppointmentMutation();
     const doctorsQuery = useDoctorsQuery();
 
@@ -115,6 +204,11 @@ export function BookAppointmentScreen() {
     const [reason, setReason] = useState('');
 
     const doctors = doctorsQuery.data ?? [];
+    const availableCount = doctors.filter((doctor) => doctor.available).length;
+
+    const goToAppointments = () => {
+        router.replace('/(app)/(patient)/appointments');
+    };
 
     const filterOptions = useMemo(() => {
         const departments = doctors
@@ -158,12 +252,11 @@ export function BookAppointmentScreen() {
         setReason('');
     };
 
-    const openProfile = (doctor) => {
-        setProfileDoctor(doctor);
-    };
-
-    const closeProfile = () => {
-        setProfileDoctor(null);
+    const closeBookingForm = () => {
+        if (bookMutation.isPending) {
+            return;
+        }
+        setSelectedDoctor(null);
     };
 
     const bookFromProfile = () => {
@@ -175,11 +268,10 @@ export function BookAppointmentScreen() {
         openBookingForm(doctor);
     };
 
-    const closeBookingForm = () => {
-        if (bookMutation.isPending) {
-            return;
-        }
-        setSelectedDoctor(null);
+    const applyQuickDay = (offset) => {
+        const date = new Date();
+        date.setDate(date.getDate() + offset);
+        setAppointmentDate(formatDateInput(date));
     };
 
     const handleSubmitBooking = async () => {
@@ -217,8 +309,7 @@ export function BookAppointmentScreen() {
             Alert.alert('Appointment booked', `You booked with ${selectedDoctor.name}.`);
             setSelectedDoctor(null);
             router.replace('/(app)/(patient)/appointments');
-        }
-        catch (error) {
+        } catch (error) {
             Alert.alert('Booking failed', error.message || 'Please try again.');
         }
     };
@@ -226,140 +317,155 @@ export function BookAppointmentScreen() {
     return (
         <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
             <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                        onPress={() => router.back()}
-                        style={styles.backLink}
-                    >
-                        <AppIcon color={palette.primary} name="chevron-back" size={24} />
-                        <Text style={styles.backText}>Back</Text>
-                    </Pressable>
-                    <Text style={styles.headerTitle}>Choose Doctor</Text>
-                    <View style={styles.headerSpacer} />
-                </View>
+                <ScrollView
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.heroCard}>
+                        <View style={styles.heroTopRow}>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Return to appointments"
+                                hitSlop={10}
+                                onPress={goToAppointments}
+                                style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}
+                            >
+                                <AppIcon color={colors.text} name="chevron-back" size={22} />
+                            </Pressable>
+                            <View style={styles.heroBadge}>
+                                <AppIcon color={colors.primary} name="verified-user" size={15} />
+                                <Text style={styles.heroBadgeText}>Verified care team</Text>
+                            </View>
+                        </View>
 
-                <View style={styles.searchRow}>
-                    <AppIcon color="#6B7280" name="search" size={26} />
-                    <TextInput
-                        accessibilityLabel="Search doctors"
-                        autoCapitalize="none"
-                        onChangeText={setSearchQuery}
-                        placeholder="Search by name or specialty"
-                        placeholderTextColor="#6B7280"
-                        style={styles.searchInput}
-                        value={searchQuery}
-                    />
-                </View>
+                        <Text style={styles.heroTitle}>Book Appointment</Text>
+                        <Text style={styles.heroSubtitle}>Find the right specialist and reserve a time that works for you.</Text>
 
-                <View style={styles.filterWrap}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-                        {filterOptions.map((filter) => {
-                            const active = activeFilter === filter;
-                            return (
+                        <View style={styles.heroStatsRow}>
+                            <View style={styles.heroStat}>
+                                <Text style={styles.heroStatValue}>{availableCount}</Text>
+                                <Text style={styles.heroStatLabel}>Available</Text>
+                            </View>
+                            <View style={styles.heroStatDivider} />
+                            <View style={styles.heroStat}>
+                                <Text style={styles.heroStatValue}>{filterOptions.length - 2}</Text>
+                                <Text style={styles.heroStatLabel}>Specialties</Text>
+                            </View>
+                            <View style={styles.heroStatDivider} />
+                            <View style={styles.heroStat}>
+                                <Text style={styles.heroStatValue}>{doctors.length}</Text>
+                                <Text style={styles.heroStatLabel}>Doctors</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={styles.searchCard}>
+                        <View style={styles.searchRow}>
+                            <AppIcon color={colors.textMuted} name="search-outline" size={22} />
+                            <TextInput
+                                accessibilityLabel="Search doctors"
+                                autoCapitalize="none"
+                                onChangeText={setSearchQuery}
+                                placeholder="Search doctor, specialty, department"
+                                placeholderTextColor={colors.textMuted}
+                                style={styles.searchInput}
+                                value={searchQuery}
+                            />
+                            {searchQuery ? (
                                 <Pressable
-                                    key={filter}
                                     accessibilityRole="button"
-                                    accessibilityLabel={`Filter ${filter}`}
-                                    onPress={() => setActiveFilter(filter)}
-                                    style={[styles.filterChip, active && styles.filterChipActive]}
+                                    accessibilityLabel="Clear search"
+                                    onPress={() => setSearchQuery('')}
+                                    style={styles.clearSearchButton}
                                 >
-                                    <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
-                                        {filter}
-                                    </Text>
+                                    <AppIcon color={colors.textMuted} name="close" size={18} />
                                 </Pressable>
-                            );
-                        })}
-                    </ScrollView>
-                </View>
-
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    {doctorsQuery.isLoading ? (
-                        <Text style={styles.stateText}>Loading doctors...</Text>
-                    ) : doctorsQuery.isError ? (
-                        <Text style={styles.stateText}>Unable to load doctors. Pull from the live backend and try again.</Text>
-                    ) : (
-                        <>
-                            <Text style={styles.foundText}>Found {filteredDoctors.length} Doctors</Text>
-
-                            {filteredDoctors.length === 0 ? (
-                                <Text style={styles.stateText}>No doctors match your search.</Text>
                             ) : null}
+                        </View>
 
-                            {filteredDoctors.map((doctor, index) => (
-                                <View key={doctor.id} style={styles.card}>
-                                    <View style={styles.cardTopRow}>
-                                        <View style={[styles.avatar, { backgroundColor: getDoctorTone(index) }]}>
-                                            <AppIcon color="#FFFFFF" name="person" size={32} />
-                                        </View>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                            {filterOptions.map((filter) => {
+                                const active = activeFilter === filter;
+                                return (
+                                    <Pressable
+                                        key={filter}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Filter ${filter}`}
+                                        onPress={() => setActiveFilter(filter)}
+                                        style={[styles.filterChip, active && styles.filterChipActive]}
+                                    >
+                                        <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                                            {filter}
+                                        </Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
 
-                                        <View style={styles.cardTextWrap}>
-                                            <Text style={styles.doctorName}>{doctor.name}</Text>
-                                            <Text style={styles.specialtyText}>{doctor.specialty}</Text>
-                                            <Text style={styles.metaText}>
-                                                {doctor.years} years experience - {doctor.reviews} reviews
-                                            </Text>
-                                            <Text style={[styles.statusText, doctor.available ? styles.availableText : styles.unavailableText]}>
-                                                {statusLabel(doctor.status)}
-                                            </Text>
-                                        </View>
+                    <View style={styles.resultsHeader}>
+                        <View>
+                            <Text style={styles.sectionTitle}>Recommended doctors</Text>
+                            <Text style={styles.resultsMeta}>{filteredDoctors.length} match your search</Text>
+                        </View>
+                        <View style={styles.sortPill}>
+                            <AppIcon color={colors.primary} name="star" size={14} />
+                            <Text style={styles.sortPillText}>Top rated</Text>
+                        </View>
+                    </View>
 
-                                        <View style={styles.ratingChip}>
-                                            <AppIcon color="#EAB308" name="star" size={16} />
-                                            <Text style={styles.ratingText}>{doctor.rating.toFixed(1)}</Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.buttonRow}>
-                                        <Pressable
-                                            accessibilityRole="button"
-                                            accessibilityLabel={`View ${doctor.name} profile`}
-                                            onPress={() => openProfile(doctor)}
-                                            style={styles.secondaryButton}
-                                        >
-                                            <Text style={styles.secondaryButtonText}>View Profile</Text>
-                                        </Pressable>
-
-                                        <Pressable
-                                            accessibilityRole="button"
-                                            accessibilityLabel={`Book with ${doctor.name}`}
-                                            onPress={() => openBookingForm(doctor)}
-                                            disabled={bookMutation.isPending}
-                                            style={({ pressed }) => [
-                                                styles.primaryButton,
-                                                (!doctor.available || bookMutation.isPending) && styles.primaryButtonDisabled,
-                                                pressed &&
-                                                    doctor.available &&
-                                                    !bookMutation.isPending && { backgroundColor: palette.primaryPressed },
-                                            ]}
-                                        >
-                                            <Text style={styles.primaryButtonText}>Book Appointment</Text>
-                                        </Pressable>
-                                    </View>
-                                </View>
-                            ))}
-                        </>
+                    {doctorsQuery.isLoading ? (
+                        <View style={styles.stateCard}>
+                            <AppIcon color={colors.primary} name="sync" size={28} />
+                            <Text style={styles.stateTitle}>Loading doctors</Text>
+                            <Text style={styles.stateText}>Checking who is available for booking.</Text>
+                        </View>
+                    ) : doctorsQuery.isError ? (
+                        <View style={styles.stateCard}>
+                            <AppIcon color={colors.danger} name="alert-circle" size={28} />
+                            <Text style={styles.stateTitle}>Unable to load doctors</Text>
+                            <Text style={styles.stateText}>Pull from the live backend and try again.</Text>
+                        </View>
+                    ) : filteredDoctors.length === 0 ? (
+                        <View style={styles.stateCard}>
+                            <AppIcon color={colors.textMuted} name="search-outline" size={28} />
+                            <Text style={styles.stateTitle}>No doctors found</Text>
+                            <Text style={styles.stateText}>Try another specialty or clear your search.</Text>
+                        </View>
+                    ) : (
+                        filteredDoctors.map((doctor, index) => (
+                            <DoctorCard
+                                disabled={bookMutation.isPending}
+                                doctor={doctor}
+                                index={index}
+                                key={doctor.id}
+                                onBook={openBookingForm}
+                                onProfile={setProfileDoctor}
+                            />
+                        ))
                     )}
                 </ScrollView>
 
-                <Modal animationType="slide" transparent visible={Boolean(profileDoctor)} onRequestClose={closeProfile}>
+                <Modal animationType="slide" transparent visible={Boolean(profileDoctor)} onRequestClose={() => setProfileDoctor(null)}>
                     <View style={styles.modalRoot}>
-                        <Pressable style={styles.modalBackdrop} onPress={closeProfile} />
-                        <View style={styles.profileSheet}>
-                            <View style={styles.formHeader}>
+                        <Pressable style={styles.modalBackdrop} onPress={() => setProfileDoctor(null)} />
+                        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+                            <View style={styles.sheetHandle} />
+                            <View style={styles.profileHeader}>
+                                <DoctorAvatar doctor={profileDoctor} index={0} large />
                                 <View style={styles.profileHeaderText}>
-                                    <Text style={styles.formEyebrow}>Doctor Profile</Text>
-                                    <Text style={styles.formTitle}>{profileDoctor?.name}</Text>
+                                    <Text style={styles.sheetEyebrow}>Doctor Profile</Text>
+                                    <Text style={styles.sheetTitle}>{profileDoctor?.name}</Text>
                                     <Text style={styles.profileSpecialty}>{profileDoctor?.specialty}</Text>
                                 </View>
                                 <Pressable
                                     accessibilityRole="button"
                                     accessibilityLabel="Close doctor profile"
-                                    onPress={closeProfile}
+                                    onPress={() => setProfileDoctor(null)}
                                     style={styles.closeButton}
                                 >
-                                    <AppIcon color={palette.text} name="close" size={22} />
+                                    <AppIcon color={colors.text} name="close" size={21} />
                                 </Pressable>
                             </View>
 
@@ -378,38 +484,31 @@ export function BookAppointmentScreen() {
                                 </View>
                             </View>
 
-                            <View style={styles.profileInfoBlock}>
-                                <Text style={styles.profileInfoLabel}>Department</Text>
-                                <Text style={styles.profileInfoText}>{profileDoctor?.department || 'General Medicine'}</Text>
+                            <View style={styles.infoBlock}>
+                                <Text style={styles.infoLabel}>Department</Text>
+                                <Text style={styles.infoText}>{profileDoctor?.department || 'General Medicine'}</Text>
                             </View>
 
                             {profileDoctor?.hospital ? (
-                                <View style={styles.profileInfoBlock}>
-                                    <Text style={styles.profileInfoLabel}>Hospital</Text>
-                                    <Text style={styles.profileInfoText}>{profileDoctor.hospital}</Text>
+                                <View style={styles.infoBlock}>
+                                    <Text style={styles.infoLabel}>Hospital</Text>
+                                    <Text style={styles.infoText}>{profileDoctor.hospital}</Text>
                                 </View>
                             ) : null}
 
                             {profileDoctor?.qualifications?.length ? (
-                                <View style={styles.profileInfoBlock}>
-                                    <Text style={styles.profileInfoLabel}>Qualifications</Text>
-                                    <Text style={styles.profileInfoText}>{profileDoctor.qualifications.join(', ')}</Text>
+                                <View style={styles.infoBlock}>
+                                    <Text style={styles.infoLabel}>Qualifications</Text>
+                                    <Text style={styles.infoText}>{profileDoctor.qualifications.join(', ')}</Text>
                                 </View>
                             ) : null}
 
                             {profileDoctor?.bio ? (
-                                <View style={styles.profileInfoBlock}>
-                                    <Text style={styles.profileInfoLabel}>About</Text>
-                                    <Text style={styles.profileInfoText}>{profileDoctor.bio}</Text>
+                                <View style={styles.infoBlock}>
+                                    <Text style={styles.infoLabel}>About</Text>
+                                    <Text style={styles.infoText}>{profileDoctor.bio}</Text>
                                 </View>
                             ) : null}
-
-                            <View style={styles.profileInfoBlock}>
-                                <Text style={styles.profileInfoLabel}>Status</Text>
-                                <Text style={[styles.profileInfoText, profileDoctor?.available ? styles.availableText : styles.unavailableText]}>
-                                    {statusLabel(profileDoctor?.status)}
-                                </Text>
-                            </View>
 
                             <Pressable
                                 accessibilityRole="button"
@@ -419,9 +518,10 @@ export function BookAppointmentScreen() {
                                 style={({ pressed }) => [
                                     styles.submitButton,
                                     !profileDoctor?.available && styles.primaryButtonDisabled,
-                                    pressed && profileDoctor?.available && { backgroundColor: palette.primaryPressed },
+                                    pressed && profileDoctor?.available && styles.primaryButtonPressed,
                                 ]}
                             >
+                                <AppIcon color="#FFFFFF" name="calendar-outline" size={18} />
                                 <Text style={styles.submitButtonText}>Book Appointment</Text>
                             </Pressable>
                         </View>
@@ -434,11 +534,13 @@ export function BookAppointmentScreen() {
                         style={styles.modalRoot}
                     >
                         <Pressable style={styles.modalBackdrop} onPress={closeBookingForm} />
-                        <View style={styles.formSheet}>
-                            <View style={styles.formHeader}>
-                                <View>
-                                    <Text style={styles.formEyebrow}>New Appointment</Text>
-                                    <Text style={styles.formTitle}>{selectedDoctor?.name}</Text>
+                        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+                            <View style={styles.sheetHandle} />
+                            <View style={styles.sheetHeader}>
+                                <View style={styles.sheetHeaderText}>
+                                    <Text style={styles.sheetEyebrow}>New Appointment</Text>
+                                    <Text style={styles.sheetTitle}>{selectedDoctor?.name}</Text>
+                                    <Text style={styles.profileSpecialty}>{selectedDoctor?.specialty}</Text>
                                 </View>
                                 <Pressable
                                     accessibilityRole="button"
@@ -446,60 +548,114 @@ export function BookAppointmentScreen() {
                                     onPress={closeBookingForm}
                                     style={styles.closeButton}
                                 >
-                                    <AppIcon color={palette.text} name="close" size={22} />
+                                    <AppIcon color={colors.text} name="close" size={21} />
                                 </Pressable>
                             </View>
 
-                            <Text style={styles.inputLabel}>Date</Text>
-                            <TextInput
-                                accessibilityLabel="Appointment date"
-                                autoCapitalize="none"
-                                keyboardType="numbers-and-punctuation"
-                                onChangeText={setAppointmentDate}
-                                placeholder="YYYY-MM-DD"
-                                placeholderTextColor="#9CA3AF"
-                                style={styles.formInput}
-                                value={appointmentDate}
-                            />
+                            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                                <Text style={styles.inputLabel}>Date</Text>
+                                <View style={styles.quickRow}>
+                                    {QUICK_DAYS.map((day) => {
+                                        const date = new Date();
+                                        date.setDate(date.getDate() + day.offset);
+                                        const value = formatDateInput(date);
+                                        const active = appointmentDate === value;
+                                        return (
+                                            <Pressable
+                                                accessibilityRole="button"
+                                                accessibilityLabel={`Set date to ${day.label}`}
+                                                key={day.id}
+                                                onPress={() => applyQuickDay(day.offset)}
+                                                style={[styles.quickChip, active && styles.quickChipActive]}
+                                            >
+                                                <Text style={[styles.quickChipText, active && styles.quickChipTextActive]}>{day.label}</Text>
+                                            </Pressable>
+                                        );
+                                    })}
+                                </View>
+                                <TextInput
+                                    accessibilityLabel="Appointment date"
+                                    autoCapitalize="none"
+                                    keyboardType="numbers-and-punctuation"
+                                    onChangeText={setAppointmentDate}
+                                    placeholder="YYYY-MM-DD"
+                                    placeholderTextColor={colors.textMuted}
+                                    style={styles.formInput}
+                                    value={appointmentDate}
+                                />
 
-                            <Text style={styles.inputLabel}>Time</Text>
-                            <TextInput
-                                accessibilityLabel="Appointment time"
-                                autoCapitalize="characters"
-                                onChangeText={setAppointmentTime}
-                                placeholder="10:30 AM"
-                                placeholderTextColor="#9CA3AF"
-                                style={styles.formInput}
-                                value={appointmentTime}
-                            />
+                                <Text style={styles.inputLabel}>Time</Text>
+                                <View style={styles.quickRow}>
+                                    {TIME_SLOTS.map((slot) => {
+                                        const active = appointmentTime === slot;
+                                        return (
+                                            <Pressable
+                                                accessibilityRole="button"
+                                                accessibilityLabel={`Set time to ${slot}`}
+                                                key={slot}
+                                                onPress={() => setAppointmentTime(slot)}
+                                                style={[styles.quickChip, active && styles.quickChipActive]}
+                                            >
+                                                <Text style={[styles.quickChipText, active && styles.quickChipTextActive]}>{slot}</Text>
+                                            </Pressable>
+                                        );
+                                    })}
+                                </View>
+                                <TextInput
+                                    accessibilityLabel="Appointment time"
+                                    autoCapitalize="characters"
+                                    onChangeText={setAppointmentTime}
+                                    placeholder="10:30 AM"
+                                    placeholderTextColor={colors.textMuted}
+                                    style={styles.formInput}
+                                    value={appointmentTime}
+                                />
 
-                            <Text style={styles.inputLabel}>Reason</Text>
-                            <TextInput
-                                accessibilityLabel="Appointment reason"
-                                multiline
-                                onChangeText={setReason}
-                                placeholder="Describe why you want to see the doctor"
-                                placeholderTextColor="#9CA3AF"
-                                style={[styles.formInput, styles.reasonInput]}
-                                textAlignVertical="top"
-                                value={reason}
-                            />
+                                <Text style={styles.inputLabel}>Reason</Text>
+                                <View style={styles.reasonChips}>
+                                    {REASON_CHIPS.map((item) => {
+                                        const active = reason === item;
+                                        return (
+                                            <Pressable
+                                                accessibilityRole="button"
+                                                accessibilityLabel={`Set reason to ${item}`}
+                                                key={item}
+                                                onPress={() => setReason(item)}
+                                                style={[styles.reasonChip, active && styles.quickChipActive]}
+                                            >
+                                                <Text style={[styles.reasonChipText, active && styles.quickChipTextActive]}>{item}</Text>
+                                            </Pressable>
+                                        );
+                                    })}
+                                </View>
+                                <TextInput
+                                    accessibilityLabel="Appointment reason"
+                                    multiline
+                                    onChangeText={setReason}
+                                    placeholder="Describe why you want to see the doctor"
+                                    placeholderTextColor={colors.textMuted}
+                                    style={[styles.formInput, styles.reasonInput]}
+                                    textAlignVertical="top"
+                                    value={reason}
+                                />
 
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel="Confirm appointment booking"
-                                disabled={bookMutation.isPending}
-                                onPress={handleSubmitBooking}
-                                style={({ pressed }) => [
-                                    styles.submitButton,
-                                    bookMutation.isPending && styles.primaryButtonDisabled,
-                                    pressed && !bookMutation.isPending && { backgroundColor: palette.primaryPressed },
-                                ]}
-                            >
-                                <Text style={styles.submitButtonText}>
-                                    {bookMutation.isPending ? 'Booking...' : 'Confirm Booking'}
-                                </Text>
-                            </Pressable>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Confirm appointment booking"
+                                    disabled={bookMutation.isPending}
+                                    onPress={handleSubmitBooking}
+                                    style={({ pressed }) => [
+                                        styles.submitButton,
+                                        bookMutation.isPending && styles.primaryButtonDisabled,
+                                        pressed && !bookMutation.isPending && styles.primaryButtonPressed,
+                                    ]}
+                                >
+                                    <AppIcon color="#FFFFFF" name="checkmark-circle" size={19} />
+                                    <Text style={styles.submitButtonText}>
+                                        {bookMutation.isPending ? 'Booking...' : 'Confirm Booking'}
+                                    </Text>
+                                </Pressable>
+                            </ScrollView>
                         </View>
                     </KeyboardAvoidingView>
                 </Modal>
@@ -511,233 +667,379 @@ export function BookAppointmentScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     container: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
-    headerRow: {
-        height: 76,
-        paddingHorizontal: 16,
+    scrollContent: {
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.md,
+        gap: spacing.md,
+    },
+    heroCard: {
+        borderRadius: radius.lg,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.md,
+        ...shadows.card,
+    },
+    heroTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        marginBottom: spacing.md,
     },
-    backLink: {
-        width: 94,
-        height: 44,
+    backButton: {
+        width: 42,
+        height: 42,
+        borderRadius: 15,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroBadge: {
+        minHeight: 34,
+        borderRadius: radius.full,
+        backgroundColor: colors.primarySoft,
+        borderWidth: 1,
+        borderColor: colors.infoBorder,
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: spacing.sm,
     },
-    backText: {
-        color: palette.primary,
-        fontSize: 18,
-        lineHeight: 22,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
-    },
-    headerTitle: {
-        color: palette.text,
-        fontSize: 22,
-        lineHeight: 28,
+    heroBadgeText: {
+        color: colors.primary,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    headerSpacer: {
-        width: 94,
-        height: 44,
+    heroTitle: {
+        color: colors.text,
+        fontSize: 30,
+        lineHeight: 36,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    heroSubtitle: {
+        marginTop: spacing.xs,
+        color: colors.textMuted,
+        fontSize: typography.body,
+        lineHeight: 22,
+        fontFamily: fonts.bodyRegular,
+    },
+    heroStatsRow: {
+        marginTop: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingVertical: spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    heroStat: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    heroStatValue: {
+        color: colors.text,
+        fontSize: 22,
+        lineHeight: 27,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    heroStatLabel: {
+        color: colors.textMuted,
+        fontSize: typography.caption,
+        fontFamily: fonts.bodyMedium,
+    },
+    heroStatDivider: {
+        width: 1,
+        height: 36,
+        backgroundColor: colors.border,
+    },
+    searchCard: {
+        borderRadius: radius.md,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.sm,
+        gap: spacing.sm,
     },
     searchRow: {
-        marginHorizontal: 24,
-        height: 70,
-        borderRadius: 16,
-        backgroundColor: '#E5E7EB',
-        paddingHorizontal: 16,
+        minHeight: 52,
+        borderRadius: radius.sm,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: spacing.sm,
         flexDirection: 'row',
         alignItems: 'center',
     },
     searchInput: {
         flex: 1,
-        marginLeft: 10,
-        color: palette.text,
-        fontSize: 18,
-        lineHeight: 22,
+        marginLeft: spacing.xs,
+        color: colors.text,
+        fontSize: typography.body,
+        lineHeight: 20,
         fontFamily: fonts.bodyRegular,
     },
-    filterWrap: {
-        marginTop: 16,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderTopColor: palette.border,
-        borderBottomColor: palette.border,
-        paddingVertical: 10,
+    clearSearchButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     filterRow: {
-        paddingHorizontal: 24,
-        gap: 12,
+        gap: spacing.xs,
+        paddingRight: spacing.xs,
     },
     filterChip: {
-        height: 54,
-        borderRadius: 26,
+        minHeight: 38,
+        borderRadius: radius.full,
         borderWidth: 1,
-        borderColor: '#CBD5E1',
-        backgroundColor: '#FFFFFF',
-        paddingHorizontal: 26,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        paddingHorizontal: spacing.sm,
         alignItems: 'center',
         justifyContent: 'center',
     },
     filterChipActive: {
-        backgroundColor: palette.primary,
-        borderColor: palette.primary,
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     filterChipText: {
-        color: palette.text,
-        fontSize: 16,
-        lineHeight: 20,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
     filterChipTextActive: {
         color: '#FFFFFF',
     },
-    scrollContent: {
-        paddingHorizontal: 24,
-        paddingTop: 10,
-        paddingBottom: 90,
-        gap: 12,
+    resultsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: spacing.sm,
     },
-    foundText: {
-        color: palette.muted,
-        fontSize: 18,
-        lineHeight: 24,
-        fontFamily: fonts.bodyMedium,
+    sectionTitle: {
+        color: colors.text,
+        fontSize: typography.heading,
+        lineHeight: 25,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
     },
-    stateText: {
-        marginTop: 18,
-        color: palette.muted,
-        fontSize: 16,
-        lineHeight: 22,
-        fontFamily: fonts.bodyMedium,
+    resultsMeta: {
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        lineHeight: 18,
+        fontFamily: fonts.bodyRegular,
     },
-    card: {
-        marginTop: 8,
-        backgroundColor: palette.surface,
-        borderRadius: 16,
+    sortPill: {
+        minHeight: 34,
+        borderRadius: radius.full,
+        backgroundColor: colors.primarySoft,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: spacing.sm,
+    },
+    sortPillText: {
+        color: colors.primary,
+        fontSize: typography.caption,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    doctorCard: {
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: palette.border,
-        padding: 14,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        padding: spacing.sm,
+        ...shadows.card,
     },
     cardTopRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
+        gap: spacing.sm,
     },
     avatar: {
-        width: 88,
-        height: 88,
-        borderRadius: 16,
+        width: 62,
+        height: 62,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
+    },
+    avatarLarge: {
+        width: 74,
+        height: 74,
+        borderRadius: 22,
+    },
+    avatarText: {
+        color: '#FFFFFF',
+        fontSize: 17,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    avatarTextLarge: {
+        fontSize: 21,
     },
     cardTextWrap: {
         flex: 1,
+        minWidth: 0,
+    },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.xs,
     },
     doctorName: {
-        color: palette.text,
-        fontSize: 22,
-        lineHeight: 28,
+        flex: 1,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
+        lineHeight: 22,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     specialtyText: {
         marginTop: 2,
-        color: palette.primary,
-        fontSize: 17,
-        lineHeight: 22,
+        color: colors.primary,
+        fontSize: typography.body,
+        lineHeight: 20,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
-    metaText: {
-        marginTop: 4,
-        color: palette.muted,
-        fontSize: 14,
+    departmentText: {
+        marginTop: 6,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         lineHeight: 18,
         fontFamily: fonts.bodyRegular,
     },
-    statusText: {
-        marginTop: 4,
-        fontSize: 14,
-        lineHeight: 18,
-        fontFamily: fonts.bodyMedium,
+    statusPill: {
+        borderRadius: radius.full,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
     },
-    availableText: {
-        color: palette.success,
+    statusPillAvailable: {
+        backgroundColor: colors.successSoft,
     },
-    unavailableText: {
-        color: palette.warning,
+    statusPillUnavailable: {
+        backgroundColor: colors.dangerSoft,
     },
-    ratingChip: {
-        backgroundColor: palette.ratingBg,
-        borderRadius: 12,
-        paddingVertical: 8,
-        paddingHorizontal: 10,
+    statusPillText: {
+        fontSize: 10,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    statusTextAvailable: {
+        color: '#15803D',
+    },
+    statusTextUnavailable: {
+        color: colors.danger,
+    },
+    metaRow: {
+        marginTop: spacing.xs,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+    },
+    metaChip: {
+        minHeight: 28,
+        borderRadius: radius.full,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: 8,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
     },
-    ratingText: {
-        color: palette.text,
-        fontSize: 16,
-        lineHeight: 20,
+    metaChipText: {
+        color: colors.text,
+        fontSize: 11,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     buttonRow: {
-        marginTop: 14,
+        marginTop: spacing.sm,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: spacing.xs,
     },
     secondaryButton: {
         flex: 1,
-        height: 52,
-        borderRadius: 12,
-        backgroundColor: palette.softChip,
+        minHeight: 46,
+        borderRadius: radius.sm,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 6,
+    },
+    secondaryButtonPressed: {
+        backgroundColor: colors.surfaceTint,
     },
     secondaryButtonText: {
-        color: palette.primary,
-        fontSize: 17,
-        lineHeight: 22,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
+        color: colors.primary,
+        fontSize: typography.body,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
     },
     primaryButton: {
         flex: 1,
-        minHeight: 52,
-        borderRadius: 12,
-        backgroundColor: palette.primary,
+        minHeight: 46,
+        borderRadius: radius.sm,
+        backgroundColor: colors.primary,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 8,
-        shadowColor: '#1D4ED8',
-        shadowOpacity: 0.24,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 4,
+        gap: 6,
+    },
+    primaryButtonPressed: {
+        backgroundColor: colors.primaryMid,
     },
     primaryButtonDisabled: {
-        backgroundColor: '#6366F1',
         opacity: 0.55,
+        backgroundColor: colors.disabled,
     },
     primaryButtonText: {
         color: '#FFFFFF',
-        fontSize: 16,
-        lineHeight: 20,
+        fontSize: typography.body,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
+    },
+    stateCard: {
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        padding: spacing.lg,
+        alignItems: 'center',
+        gap: spacing.xs,
+    },
+    stateTitle: {
+        color: colors.text,
+        fontSize: typography.bodyLarge,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    stateText: {
+        color: colors.textMuted,
+        fontSize: typography.body,
+        lineHeight: 21,
+        fontFamily: fonts.bodyRegular,
         textAlign: 'center',
     },
     modalRoot: {
@@ -746,148 +1048,210 @@ const styles = StyleSheet.create({
     },
     modalBackdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(17, 24, 39, 0.45)',
+        backgroundColor: 'rgba(17, 24, 39, 0.48)',
     },
-    formSheet: {
-        backgroundColor: palette.surface,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingHorizontal: 24,
-        paddingTop: 20,
-        paddingBottom: 30,
+    sheet: {
+        maxHeight: '88%',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        backgroundColor: colors.surface,
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.sm,
     },
-    profileSheet: {
-        backgroundColor: palette.surface,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingHorizontal: 24,
-        paddingTop: 20,
-        paddingBottom: 30,
+    sheetHandle: {
+        width: 44,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: colors.border,
+        alignSelf: 'center',
+        marginBottom: spacing.md,
     },
-    formHeader: {
+    sheetHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'flex-start',
-        gap: 16,
+        justifyContent: 'space-between',
+        gap: spacing.sm,
+        marginBottom: spacing.xs,
+    },
+    sheetHeaderText: {
+        flex: 1,
+    },
+    profileHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
     },
     profileHeaderText: {
         flex: 1,
+        minWidth: 0,
     },
-    formEyebrow: {
-        color: palette.muted,
-        fontSize: 13,
-        lineHeight: 18,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
+    sheetEyebrow: {
+        color: colors.textMuted,
+        fontSize: typography.caption,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+        letterSpacing: 0.4,
+        textTransform: 'uppercase',
     },
-    formTitle: {
+    sheetTitle: {
         marginTop: 2,
-        color: palette.text,
-        fontSize: 22,
-        lineHeight: 28,
+        color: colors.text,
+        fontSize: typography.heading,
+        lineHeight: 26,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     profileSpecialty: {
-        marginTop: 4,
-        color: palette.primary,
-        fontSize: 16,
-        lineHeight: 21,
+        marginTop: 3,
+        color: colors.primary,
+        fontSize: typography.body,
+        lineHeight: 20,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
+    closeButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 15,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     profileStatsRow: {
-        marginTop: 18,
+        marginTop: spacing.md,
         flexDirection: 'row',
-        gap: 10,
+        gap: spacing.xs,
     },
     profileStat: {
         flex: 1,
-        borderRadius: 14,
+        borderRadius: radius.sm,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: '#F9FAFB',
-        paddingVertical: 12,
+        borderColor: colors.border,
+        backgroundColor: colors.background,
+        paddingVertical: spacing.sm,
         alignItems: 'center',
     },
     profileStatValue: {
-        color: palette.text,
-        fontSize: 20,
-        lineHeight: 26,
+        color: colors.text,
+        fontSize: typography.heading,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     profileStatLabel: {
         marginTop: 2,
-        color: palette.muted,
-        fontSize: 12,
-        lineHeight: 16,
+        color: colors.textMuted,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyMedium,
     },
-    profileInfoBlock: {
-        marginTop: 16,
+    infoBlock: {
+        marginTop: spacing.md,
     },
-    profileInfoLabel: {
-        color: palette.muted,
-        fontSize: 13,
-        lineHeight: 18,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
+    infoLabel: {
+        color: colors.textMuted,
+        fontSize: typography.caption,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+        textTransform: 'uppercase',
     },
-    profileInfoText: {
+    infoText: {
         marginTop: 4,
-        color: palette.text,
-        fontSize: 15,
+        color: colors.text,
+        fontSize: typography.body,
         lineHeight: 22,
         fontFamily: fonts.bodyRegular,
     },
-    closeButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#F3F4F6',
+    inputLabel: {
+        marginTop: spacing.md,
+        marginBottom: spacing.xs,
+        color: colors.text,
+        fontSize: typography.body,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    quickRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: spacing.xs,
+        marginBottom: spacing.xs,
+    },
+    quickChip: {
+        minHeight: 36,
+        borderRadius: radius.full,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.background,
+        paddingHorizontal: spacing.sm,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    inputLabel: {
-        marginTop: 18,
-        marginBottom: 8,
-        color: palette.text,
-        fontSize: 15,
-        lineHeight: 20,
+    quickChipActive: {
+        borderColor: colors.primary,
+        backgroundColor: colors.primary,
+    },
+    quickChipText: {
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
+    quickChipTextActive: {
+        color: '#FFFFFF',
+    },
     formInput: {
-        minHeight: 54,
-        borderRadius: 12,
+        minHeight: 52,
+        borderRadius: radius.sm,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: '#F9FAFB',
-        paddingHorizontal: 14,
-        color: palette.text,
-        fontSize: 16,
+        borderColor: colors.border,
+        backgroundColor: colors.background,
+        paddingHorizontal: spacing.sm,
+        color: colors.text,
+        fontSize: typography.body,
         lineHeight: 20,
         fontFamily: fonts.bodyRegular,
+    },
+    reasonChips: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: spacing.xs,
+        marginBottom: spacing.xs,
+    },
+    reasonChip: {
+        minHeight: 36,
+        borderRadius: radius.full,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.background,
+        paddingHorizontal: spacing.sm,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    reasonChipText: {
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
     },
     reasonInput: {
         minHeight: 104,
-        paddingTop: 14,
-        paddingBottom: 14,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.sm,
     },
     submitButton: {
-        marginTop: 22,
-        minHeight: 56,
-        borderRadius: 14,
-        backgroundColor: palette.primary,
+        marginTop: spacing.lg,
+        minHeight: 54,
+        borderRadius: radius.sm,
+        backgroundColor: colors.primary,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 12,
+        gap: spacing.xs,
+        paddingHorizontal: spacing.sm,
     },
     submitButtonText: {
         color: '#FFFFFF',
-        fontSize: 17,
-        lineHeight: 22,
+        fontSize: typography.button,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
         textAlign: 'center',

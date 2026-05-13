@@ -4,18 +4,18 @@ import { useAuthStore } from '@/src/store/authStore';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppIcon from '@/src/shared/components/AppIcon';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 
 const palette = {
-    background: '#FFFFFF',
-    text: '#111111',
-    muted: '#6B7280',
-    primary: '#2A2ACF',
-    primarySoft: '#E6E9FF',
-    primaryPressed: '#1F1FAF',
-    border: '#E5E7EB',
-    amber: '#D97706',
-    amberSoft: '#FEF3C7',
+    background: colors.background,
+    text: colors.text,
+    muted: colors.textMuted,
+    primary: colors.primary,
+    primarySoft: colors.primarySoft,
+    primaryPressed: colors.primaryMid,
+    border: colors.border,
+    amber: colors.warningText,
+    amberSoft: colors.warningSoft,
     amberBorder: '#FDE68A',
 };
 

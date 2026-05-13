@@ -1,44 +1,71 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, radius, shadows, spacing, typography } from '@/src/core/theme/tokens';
 import AppIcon from '@/src/shared/components/AppIcon';
 
-const palette = {
-    bg: '#13090A',
-    panel: '#261B1D',
-    panelSoft: '#2E2326',
-    danger: '#FF1218',
-    text: '#FFFFFF',
-    muted: '#A8A2A7',
-    border: '#3A2D31',
-    infoBg: '#111A3A',
-    infoBorder: '#1E3A8A',
+const alertDetails = {
+    'alert-oxygen-low': {
+        title: 'Low Oxygen Level',
+        value: 'SpO2: 88%',
+        severity: 'Critical',
+        patient: 'Patient self-monitoring',
+        time: 'Triggered at 10:42 AM - 2 mins ago',
+        note: 'If symptoms include chest pain, blue lips, confusion, or severe shortness of breath, call emergency services immediately.',
+        icon: 'airplane',
+        tone: 'danger',
+    },
+    'alert-bp-high': {
+        title: 'High Blood Pressure',
+        value: '152/98 mmHg',
+        severity: 'Acknowledged',
+        patient: 'Patient self-monitoring',
+        time: 'Triggered 1 hour ago',
+        note: 'Rest for five minutes and recheck. Contact the clinic if elevated readings continue or symptoms worsen.',
+        icon: 'pulse',
+        tone: 'warning',
+    },
 };
 
 const checklistTemplate = [
     {
         id: 'responsive',
-        title: 'Check responsiveness',
-        note: 'Attempt to wake the patient and check for verbal response.',
+        title: 'Check symptoms',
+        note: 'Look for shortness of breath, chest pain, dizziness, confusion, or unusual fatigue.',
     },
     {
-        id: 'oxygen',
-        title: 'Verify Oxygen Supply',
-        note: 'Ensure nasal cannula or mask is fitted correctly and flow is active.',
+        id: 'repeat',
+        title: 'Repeat the reading',
+        note: 'Sit still, check device placement, and record a second reading if safe.',
     },
     {
-        id: 'positioning',
-        title: 'Positioning',
-        note: 'Elevate the head of the bed to 45 degrees if tolerated.',
+        id: 'contact',
+        title: 'Contact care team',
+        note: 'Call the clinic for advice when readings remain outside your care range.',
     },
 ];
 
+const toneStyles = {
+    danger: {
+        color: colors.danger,
+        soft: colors.dangerSoft,
+        border: colors.dangerBorder,
+    },
+    warning: {
+        color: colors.warning,
+        soft: colors.warningSoft,
+        border: '#FDE68A',
+    },
+};
+
 export function VitalAlertDetailScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const params = useLocalSearchParams();
     const alertId = typeof params.alertId === 'string' ? params.alertId : 'alert-oxygen-low';
+    const detail = alertDetails[alertId] ?? alertDetails['alert-oxygen-low'];
+    const tone = toneStyles[detail.tone] ?? toneStyles.danger;
     const [checkedIds, setCheckedIds] = useState([]);
 
     const toggleCheck = (id) => {
@@ -48,50 +75,55 @@ export function VitalAlertDetailScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
             <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                        onPress={() => router.back()}
-                        style={styles.headerIconButton}
-                    >
-                        <AppIcon color={palette.text} name="chevron-back" size={30} />
-                    </Pressable>
-                    <Text style={styles.headerTitle}>CliniX Alert</Text>
-                    <View style={styles.bellWrap}>
-                        <AppIcon color={palette.danger} name="notifications" size={24} />
-                    </View>
-                </View>
+                <ScrollView
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 204 }]}
+                    showsVerticalScrollIndicator={false}
+                >
+                    <View style={styles.heroCard}>
+                        <View style={styles.heroTopRow}>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Return to vital alerts"
+                                onPress={() => router.back()}
+                                style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}
+                            >
+                                <AppIcon color={colors.text} name="chevron-back" size={22} />
+                            </Pressable>
+                            <View style={[styles.heroBadge, { backgroundColor: tone.soft, borderColor: tone.border }]}>
+                                <AppIcon color={tone.color} name="alert-circle" size={15} />
+                                <Text style={[styles.heroBadgeText, { color: tone.color }]}>{detail.severity}</Text>
+                            </View>
+                        </View>
 
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <View style={styles.alertIconWrap}>
-                        <AppIcon color={palette.danger} name="warning" size={54} />
+                        <View style={[styles.alertIcon, { backgroundColor: tone.soft }]}>
+                            <AppIcon color={tone.color} name={detail.icon} size={34} />
+                        </View>
+                        <Text style={[styles.alertValue, { color: tone.color }]}>{detail.value}</Text>
+                        <Text style={styles.alertTitle}>{detail.title}</Text>
+                        <Text style={styles.alertMeta}>{detail.patient}</Text>
+                        <Text style={styles.alertMeta}>{detail.time}</Text>
                     </View>
-
-                    <Text style={styles.alertValue}>Low SpO2: 88%</Text>
-                    <Text style={styles.alertPatient}>Patient: Robert Johnson • Room 402</Text>
-                    <Text style={styles.alertTime}>Triggered at 10:42 AM • 2 mins ago</Text>
 
                     <View style={styles.instructionsCard}>
-                        <View style={styles.instructionsHeader}>
-                            <AppIcon color={palette.danger} name="medical-bag" size={26} />
-                            <Text style={styles.instructionsTitle}>Safety Instructions</Text>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Safety checklist</Text>
+                            <Text style={styles.progressText}>{checkedIds.length}/{checklistTemplate.length}</Text>
                         </View>
 
                         {checklistTemplate.map((item) => {
                             const checked = checkedIds.includes(item.id);
                             return (
                                 <Pressable
-                                    key={item.id}
                                     accessibilityRole="checkbox"
                                     accessibilityState={{ checked }}
                                     accessibilityLabel={item.title}
+                                    key={item.id}
                                     onPress={() => toggleCheck(item.id)}
                                     style={[styles.instructionItem, checked && styles.instructionItemChecked]}
                                 >
-                                    <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                                    <View style={[styles.checkbox, checked && { backgroundColor: tone.color, borderColor: tone.color }]}>
                                         {checked ? <AppIcon color="#FFFFFF" name="checkmark" size={15} /> : null}
                                     </View>
                                     <View style={styles.instructionTextWrap}>
@@ -102,28 +134,23 @@ export function VitalAlertDetailScreen() {
                             );
                         })}
                     </View>
-                </ScrollView>
-
-                <View style={styles.bottomActions}>
-                    <Pressable accessibilityRole="button" style={styles.secondaryAction}>
-                        <AppIcon color="#FFFFFF" name="call" size={24} />
-                        <Text style={styles.secondaryActionText}>Call Clinic Reception</Text>
-                    </Pressable>
-
-                    <Pressable accessibilityRole="button" style={styles.emergencyAction}>
-                        <AppIcon color="#FFFFFF" name="locate" size={24} />
-                        <Text style={styles.emergencyActionText}>Emergency Services (911)</Text>
-                    </Pressable>
 
                     <View style={styles.noteCard}>
-                        <AppIcon color="#60A5FA" name="information-circle" size={30} />
-                        <View style={styles.noteTextWrap}>
-                            <Text style={styles.noteLabel}>NOTE</Text>
-                            <Text style={styles.noteText}>
-                                Medical history indicates occasional sleep apnea. Verify if patient is sleeping.
-                            </Text>
-                        </View>
+                        <AppIcon color={colors.primary} name="information-circle" size={22} />
+                        <Text style={styles.noteText}>{detail.note}</Text>
                     </View>
+                </ScrollView>
+
+                <View style={[styles.bottomActions, { paddingBottom: insets.bottom + 12 }]}>
+                    <Pressable accessibilityRole="button" style={({ pressed }) => [styles.secondaryAction, pressed && styles.actionPressed]}>
+                        <AppIcon color={colors.primary} name="call" size={22} />
+                        <Text style={styles.secondaryActionText}>Call Clinic</Text>
+                    </Pressable>
+
+                    <Pressable accessibilityRole="button" style={({ pressed }) => [styles.emergencyAction, pressed && styles.emergencyActionPressed]}>
+                        <AppIcon color="#FFFFFF" name="locate" size={22} />
+                        <Text style={styles.emergencyActionText}>Emergency Services</Text>
+                    </Pressable>
                 </View>
             </View>
         </SafeAreaView>
@@ -133,148 +160,169 @@ export function VitalAlertDetailScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: palette.bg,
+        backgroundColor: colors.background,
     },
     container: {
         flex: 1,
-        backgroundColor: palette.bg,
-    },
-    headerRow: {
-        height: 76,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-        paddingHorizontal: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    headerIconButton: {
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitle: {
-        flex: 1,
-        marginLeft: 8,
-        color: palette.text,
-        fontSize: 22,
-        lineHeight: 28,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
-    bellWrap: {
-        width: 54,
-        height: 54,
-        borderRadius: 27,
-        backgroundColor: '#2A1315',
-        alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: colors.background,
     },
     scrollContent: {
-        paddingHorizontal: 24,
-        paddingBottom: 280,
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.md,
+        gap: spacing.md,
     },
-    alertIconWrap: {
-        marginTop: 26,
-        width: 148,
-        height: 148,
-        borderRadius: 74,
-        backgroundColor: '#3B1015',
-        alignSelf: 'center',
+    heroCard: {
+        borderRadius: radius.lg,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.md,
+        alignItems: 'center',
+        ...shadows.card,
+    },
+    heroTopRow: {
+        alignSelf: 'stretch',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: spacing.md,
+    },
+    backButton: {
+        width: 42,
+        height: 42,
+        borderRadius: 15,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    alertValue: {
-        marginTop: 20,
-        textAlign: 'center',
-        color: palette.danger,
-        fontSize: 56,
-        lineHeight: 58,
+    heroBadge: {
+        minHeight: 34,
+        borderRadius: radius.full,
+        borderWidth: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: spacing.sm,
+    },
+    heroBadgeText: {
+        fontSize: typography.caption,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    alertPatient: {
-        marginTop: 10,
-        color: '#C4AEB0',
-        textAlign: 'center',
-        fontSize: 17,
-        lineHeight: 23,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
+    alertIcon: {
+        width: 84,
+        height: 84,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing.sm,
     },
-    alertTime: {
-        marginTop: 6,
-        color: '#766A70',
+    alertValue: {
+        fontSize: 36,
+        lineHeight: 42,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
         textAlign: 'center',
-        fontSize: 14,
-        lineHeight: 18,
-        fontFamily: fonts.bodyMedium,
+    },
+    alertTitle: {
+        marginTop: spacing.xs,
+        color: colors.text,
+        fontSize: typography.heading,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    alertMeta: {
+        marginTop: 3,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodyRegular,
+        textAlign: 'center',
     },
     instructionsCard: {
-        marginTop: 22,
-        borderRadius: 22,
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: palette.panel,
-        padding: 16,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        padding: spacing.md,
+        ...shadows.card,
     },
-    instructionsHeader: {
+    sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+        justifyContent: 'space-between',
+        marginBottom: spacing.xs,
     },
-    instructionsTitle: {
-        marginLeft: 10,
-        color: palette.text,
-        fontSize: 24,
-        lineHeight: 30,
+    sectionTitle: {
+        color: colors.text,
+        fontSize: typography.heading,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    progressText: {
+        color: colors.primary,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     instructionItem: {
-        borderRadius: 16,
+        borderRadius: radius.sm,
         borderWidth: 1,
-        borderColor: palette.border,
-        backgroundColor: '#22181B',
-        padding: 12,
+        borderColor: colors.border,
+        backgroundColor: colors.background,
+        padding: spacing.sm,
         flexDirection: 'row',
         alignItems: 'flex-start',
-        marginTop: 10,
+        marginTop: spacing.xs,
     },
     instructionItemChecked: {
-        borderColor: '#4B5563',
+        backgroundColor: colors.surfaceTint,
     },
     checkbox: {
         width: 34,
         height: 34,
-        borderRadius: 10,
+        borderRadius: 12,
         borderWidth: 2,
-        borderColor: '#5A3D40',
-        marginRight: 12,
-        marginTop: 2,
+        borderColor: colors.border,
+        marginRight: spacing.sm,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    checkboxChecked: {
-        backgroundColor: palette.danger,
-        borderColor: palette.danger,
+        backgroundColor: colors.surface,
     },
     instructionTextWrap: {
         flex: 1,
     },
     instructionTitle: {
-        color: palette.text,
-        fontSize: 20,
-        lineHeight: 26,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     instructionNote: {
-        marginTop: 4,
-        color: '#9CA3AF',
-        fontSize: 16,
-        lineHeight: 22,
+        marginTop: 3,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        lineHeight: 20,
         fontFamily: fonts.bodyRegular,
+    },
+    noteCard: {
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.infoBorder,
+        backgroundColor: colors.infoSoft,
+        padding: spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: spacing.xs,
+    },
+    noteText: {
+        flex: 1,
+        color: colors.primary,
+        fontSize: typography.bodySmall,
+        lineHeight: 20,
+        fontFamily: fonts.bodyMedium,
     },
     bottomActions: {
         position: 'absolute',
@@ -282,75 +330,53 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         borderTopWidth: 1,
-        borderTopColor: palette.border,
-        backgroundColor: '#1B0C0E',
-        paddingHorizontal: 24,
-        paddingTop: 14,
-        paddingBottom: 24,
-        gap: 12,
+        borderTopColor: colors.border,
+        backgroundColor: 'rgba(248,250,252,0.96)',
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.xs,
+        gap: spacing.xs,
     },
     secondaryAction: {
-        height: 58,
-        borderRadius: 16,
-        backgroundColor: '#3A3033',
+        height: 52,
+        borderRadius: radius.sm,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: spacing.xs,
+    },
+    actionPressed: {
+        backgroundColor: colors.surfaceTint,
     },
     secondaryActionText: {
-        marginLeft: 10,
-        color: '#FFFFFF',
-        fontSize: 18,
-        lineHeight: 22,
+        color: colors.primary,
+        fontSize: typography.button,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     emergencyAction: {
-        height: 58,
-        borderRadius: 16,
-        backgroundColor: palette.danger,
+        height: 54,
+        borderRadius: radius.sm,
+        backgroundColor: colors.danger,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#FF1218',
-        shadowOpacity: 0.35,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 7,
+        gap: spacing.xs,
+        shadowColor: colors.danger,
+        shadowOpacity: 0.32,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 5 },
+        elevation: 6,
+    },
+    emergencyActionPressed: {
+        opacity: 0.86,
     },
     emergencyActionText: {
-        marginLeft: 10,
         color: '#FFFFFF',
-        fontSize: 18,
-        lineHeight: 22,
+        fontSize: typography.button,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
-    },
-    noteCard: {
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: palette.infoBorder,
-        backgroundColor: palette.infoBg,
-        padding: 14,
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-    },
-    noteTextWrap: {
-        marginLeft: 10,
-        flex: 1,
-    },
-    noteLabel: {
-        color: '#A5B4FC',
-        fontSize: 14,
-        lineHeight: 18,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
-    noteText: {
-        marginTop: 3,
-        color: '#BFDBFE',
-        fontSize: 14,
-        lineHeight: 21,
-        fontFamily: fonts.bodyMedium,
     },
 });

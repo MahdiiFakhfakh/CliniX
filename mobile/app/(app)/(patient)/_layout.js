@@ -2,13 +2,14 @@ import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { roleHomePaths } from '@/src/core/navigation/paths';
+import { colors } from '@/src/core/theme/tokens';
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import { RoleTopBar } from '@/src/shared/components/RoleTopBar';
 import { useAuthStore } from '@/src/store/authStore';
 import AppIcon from '@/src/shared/components/AppIcon';
 
-const ACTIVE_TINT = '#111827';
-const INACTIVE_TINT = '#9CA3AF';
+const ACTIVE_TINT = colors.primary;
+const INACTIVE_TINT = colors.textMuted;
 
 function TabIcon({ color, name }) {
     return (
@@ -51,10 +52,6 @@ export default function PatientTabsLayout() {
                 title: 'Messages',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="chatbubble-outline"/>,
             }}/>
-            <Tabs.Screen name="notifications" options={{
-                title: 'Notifications',
-                tabBarIcon: ({ color }) => <TabIcon color={color} name="notifications-outline"/>,
-            }}/>
             <Tabs.Screen name="preferences" options={{
                 title: 'Settings',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="ellipsis-horizontal"/>,
@@ -64,6 +61,7 @@ export default function PatientTabsLayout() {
             <Tabs.Screen name="profile" options={{ href: null }}/>
             <Tabs.Screen name="appointments" options={{ href: null }}/>
             <Tabs.Screen name="results" options={{ href: null }}/>
+            <Tabs.Screen name="reminders" options={{ href: null }}/>
             <Tabs.Screen name="book-appointment" options={{ href: null }}/>
             <Tabs.Screen name="create-reminder" options={{ href: null }}/>
             <Tabs.Screen name="add-vitals" options={{ href: null }}/>
@@ -81,9 +79,9 @@ const styles = StyleSheet.create({
     tabBar: {
         height: 72,
         borderTopWidth: 1,
-        borderTopColor: '#F0F0F5',
-        backgroundColor: '#FFFFFF',
-        shadowColor: '#142850',
+        borderTopColor: colors.border,
+        backgroundColor: colors.surface,
+        shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.06,
         shadowRadius: 12,

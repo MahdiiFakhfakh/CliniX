@@ -8,10 +8,10 @@ import { usePreferencesStore } from '@/src/store/preferencesStore';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const ROLE_META = {
-    doctor:  { label: 'Doctor',  bg: '#EAF2FD', fg: '#2F82E8' },
-    nurse:   { label: 'Nurse',   bg: '#E7F8EF', fg: '#59C987' },
-    patient: { label: 'Patient', bg: '#F2F8FF', fg: '#4A97F3' },
-    admin:   { label: 'Admin',   bg: '#F3F0FF', fg: '#7C3AED' },
+    doctor:  { label: 'Doctor',  bg: colors.primarySoft, fg: colors.primary },
+    nurse:   { label: 'Nurse',   bg: colors.successSoft, fg: colors.success },
+    patient: { label: 'Patient', bg: colors.primarySoft, fg: colors.primaryMid },
+    admin:   { label: 'Admin',   bg: colors.surfaceTint, fg: colors.primary },
 };
 
 function Divider() {
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
         overflow: 'hidden',
-        shadowColor: '#142850',
+        shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 8,

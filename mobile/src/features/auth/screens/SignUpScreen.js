@@ -16,7 +16,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 
 const ROLES = [
     { key: 'patient', label: 'Patient', icon: 'person' },
@@ -35,21 +35,21 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^[0-9]{8,15}$/;
 
 const palette = {
-    background: '#FFFFFF',
-    text: '#111111',
-    muted: '#6B7280',
-    primary: '#2A2ACF',
-    primaryPressed: '#1F1FAF',
-    primarySoft: '#E6E9FF',
-    border: '#E5E7EB',
-    inputBg: '#F5F6FA',
-    inputFocusBg: '#F8FAFF',
-    placeholder: '#9CA3AF',
-    checkboxBorder: '#D1D5DB',
-    danger: '#EF4444',
-    disabled: '#A5B4FC',
-    disabledText: '#E5E7EB',
-    sectionTitle: '#374151',
+    background: colors.background,
+    text: colors.text,
+    muted: colors.textMuted,
+    primary: colors.primary,
+    primaryPressed: colors.primaryMid,
+    primarySoft: colors.primarySoft,
+    border: colors.border,
+    inputBg: colors.surface,
+    inputFocusBg: colors.surfaceTint,
+    placeholder: colors.textSubtle,
+    checkboxBorder: colors.border,
+    danger: colors.danger,
+    disabled: colors.disabled,
+    disabledText: colors.border,
+    sectionTitle: colors.text,
 };
 
 const formatDateInput = (text) => {

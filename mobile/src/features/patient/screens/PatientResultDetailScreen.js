@@ -2,19 +2,20 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts } from '@/src/core/theme/tokens';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    text: '#111827',
-    muted: '#6B7280',
-    border: '#E5E7EB',
-    segmentBg: '#E5E7EB',
-    activeSegmentBg: '#FFFFFF',
-    success: '#10B981',
+    background: colors.background,
+    surface: colors.surface,
+    primary: colors.primary,
+    primarySoft: colors.primarySoft,
+    text: colors.text,
+    muted: colors.textMuted,
+    border: colors.border,
+    segmentBg: colors.background,
+    activeSegmentBg: colors.surface,
+    success: colors.success,
 };
 
 const RANGE_OPTIONS = ['D', 'W', 'M', '6M', 'Y'];
@@ -343,8 +344,8 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
     },
     summaryCardActive: {
-        borderColor: '#A5B4FC',
-        backgroundColor: '#EDE9FE',
+        borderColor: palette.primary,
+        backgroundColor: palette.primarySoft,
     },
     summaryLabel: {
         color: '#94A3B8',
@@ -583,7 +584,7 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: '#EEF2FF',
+        backgroundColor: colors.primarySoft,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
@@ -639,7 +640,7 @@ const styles = StyleSheet.create({
         backgroundColor: palette.primary,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#1D4ED8',
+        shadowColor: palette.primary,
         shadowOpacity: 0.35,
         shadowRadius: 12,
         shadowOffset: { width: 0, height: 6 },
