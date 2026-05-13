@@ -58,9 +58,11 @@ function FieldRow({ label, value, empty = '—' }) {
 }
 
 function Tag({ text, bg, color }) {
+    const c = color ?? palette.tagText;
     return (
-        <View style={[styles.tag, { backgroundColor: bg ?? palette.tagBg }]}>
-            <Text style={[styles.tagText, { color: color ?? palette.tagText }]}>{text}</Text>
+        <View style={[styles.tag, { backgroundColor: bg ?? palette.tagBg, borderColor: c }]}>
+            <View style={[styles.tagDot, { backgroundColor: c }]} />
+            <Text style={[styles.tagText, { color: c }]}>{text}</Text>
         </View>
     );
 }
@@ -112,19 +114,6 @@ export function PatientRecordsScreen() {
     const prescriptions = prescriptionsQuery.data ?? [];
     const results = resultsQuery.data ?? [];
 
-    const addressParts = [
-        profile.address?.street,
-        profile.address?.city,
-        profile.address?.state,
-        profile.address?.country,
-    ].filter(Boolean);
-    const addressLine = addressParts.join(', ') || null;
-
-    const ec = profile.emergencyContact;
-    const ecLine = ec?.name
-        ? `${ec.name}${ec.relationship ? ` (${ec.relationship})` : ''}${ec.phone ? ' · ' + ec.phone : ''}`
-        : null;
-
     return (
         <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
             <ScrollView
@@ -140,12 +129,17 @@ export function PatientRecordsScreen() {
                     <FieldRow label="Gender" value={capitalize(profile.gender)} />
                     <FieldRow label="Phone" value={profile.phone} />
                     <FieldRow label="Email" value={profile.email} />
-                    {addressLine ? <FieldRow label="Address" value={addressLine} /> : null}
-                    <FieldRow label="Emergency Contact" value={ecLine} />
                 </SectionCard>
 
-                {/* Physical Measurements */}
-                <SectionCard title="Physical Measurements" icon="body-outline">
+                {/* Medical Profile */}
+                <SectionCard title="Medical Profile" icon="medkit-outline">
+                    <FieldRow label="Blood Group" value={summary.bloodGroup} />
+                    <FieldRow label="Primary Doctor" value={summary.primaryDoctor} />
+                    <FieldRow label="Last Visit" value={formatDate(summary.lastVisit)} />
+
+                    <View style={styles.fieldDivider} />
+
+                    <Text style={styles.subSectionLabel}>PHYSICAL MEASUREMENTS</Text>
                     <View style={styles.metricsRow}>
                         <View style={styles.metricBox}>
                             <Text style={styles.metricValue}>
@@ -171,13 +165,6 @@ export function PatientRecordsScreen() {
                             <Text style={styles.metricLabel}>Index</Text>
                         </View>
                     </View>
-                </SectionCard>
-
-                {/* Medical Profile */}
-                <SectionCard title="Medical Profile" icon="medkit-outline">
-                    <FieldRow label="Blood Group" value={summary.bloodGroup} />
-                    <FieldRow label="Primary Doctor" value={summary.primaryDoctor} />
-                    <FieldRow label="Last Visit" value={formatDate(summary.lastVisit)} />
 
                     <View style={styles.fieldDivider} />
 
@@ -206,8 +193,8 @@ export function PatientRecordsScreen() {
                     />
                 </SectionCard>
 
-                {/* Prescriptions */}
-                <SectionCard title="Prescriptions" icon="document-text-outline">
+                {/* Medical Prescriptions */}
+                <SectionCard title="Medical Prescriptions" icon="medkit-outline">
                     {prescriptions.length === 0 ? (
                         <View style={styles.emptyRow}>
                             <AppIcon color={palette.label} name="document-outline" size={20} />
@@ -229,6 +216,9 @@ export function PatientRecordsScreen() {
                                     <Text style={styles.rxInstructions}>{rx.instructions}</Text>
                                 ) : null}
                                 <Text style={styles.rxDoctor}>Prescribed by {rx.prescribedBy}</Text>
+                                {rx.issuedAt ? (
+                                    <Text style={styles.rxDate}>Issued {formatDate(rx.issuedAt)}</Text>
+                                ) : null}
                             </View>
                         ))
                     )}
@@ -357,9 +347,18 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     tag: {
-        borderRadius: 20,
-        paddingHorizontal: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        borderRadius: 6,
+        borderWidth: 1,
+        paddingHorizontal: 9,
         paddingVertical: 4,
+    },
+    tagDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
     },
     tagText: {
         fontSize: 13,
@@ -436,6 +435,12 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontFamily: fonts.bodyRegular,
         fontStyle: 'italic',
+    },
+    rxDate: {
+        color: palette.label,
+        fontSize: 11,
+        fontFamily: fonts.bodyRegular,
+        marginTop: 1,
     },
     rxDoctor: {
         color: palette.label,

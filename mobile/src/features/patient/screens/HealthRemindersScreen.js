@@ -125,7 +125,7 @@ export function HealthRemindersScreen() {
                 <View style={styles.header}>
                     <View style={styles.headerTextBlock}>
                         <Text style={styles.headerTitle}>Health Reminders</Text>
-                        <Text style={styles.headerSubtitle}>Manage your daily care</Text>
+                        <Text style={styles.headerSubtitle}>Manage your daily reminders</Text>
                     </View>
                     <Pressable
                         accessibilityRole="button"

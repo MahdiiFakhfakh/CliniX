@@ -156,7 +156,7 @@ exports.register = async (req, res) => {
 
     const nameFromEmail = email.split("@")[0];
     const firstName = safeString(rawFirst, nameFromEmail);
-    const lastName = safeString(rawLast, nameFromEmail);
+    const lastName = safeString(rawLast, "");
     const fullName = `${firstName} ${lastName}`.trim();
 
     const user = await User.create({ name: fullName, email, password, role });

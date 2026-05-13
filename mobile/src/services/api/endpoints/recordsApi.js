@@ -35,7 +35,10 @@ export async function fetchPatientProfile() {
             ensureFallbackEnabled('Invalid patient profile response');
             return getMockPatientProfile();
         }
-        return response.patient;
+        return {
+            ...response.patient,
+            phone: cleanPhone(response.patient.phone) ?? '',
+        };
     }
     catch (error) {
         if (!config.enableMockFallback) {

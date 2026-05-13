@@ -41,7 +41,7 @@ export function ProfileScreen({ subtitle }) {
     const isSubmitting = useAuthStore((state) => state.isSubmitting);
     const [isEditing, setIsEditing] = useState(false);
 
-    const fullName = session?.user.profile.fullName ?? 'CliniX User';
+    const fullName = session?.user?.profile?.fullName || 'CliniX User';
     const initials = fullName
         .split(' ')
         .slice(0, 2)
@@ -50,9 +50,9 @@ export function ProfileScreen({ subtitle }) {
 
     const defaults = useMemo(() => ({
         fullName,
-        email: session?.user.email ?? '',
-        phone: session?.user.profile.phone ?? '',
-        department: session?.user.profile.department ?? '',
+        email: session?.user?.email || '',
+        phone: session?.user?.profile?.phone || '',
+        department: session?.user?.profile?.department || '',
     }), [session, fullName]);
 
     const { control, handleSubmit, reset } = useForm({
@@ -75,7 +75,7 @@ export function ProfileScreen({ subtitle }) {
         Alert.alert('Profile updated', 'Your profile details were saved.');
     });
 
-    const roleLabel = ROLE_LABELS[session?.user.role ?? ''] ?? session?.user.role ?? 'User';
+    const roleLabel = ROLE_LABELS[session?.user?.role || ''] || session?.user?.role || 'User';
 
     return (
         <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
@@ -99,9 +99,9 @@ export function ProfileScreen({ subtitle }) {
                         {/* Info card */}
                         <View style={styles.card}>
                             <Text style={styles.cardTitle}>Account Info</Text>
-                            <InfoRow icon="mail-outline" label="Email" value={session?.user.email ?? 'N/A'} />
-                            <InfoRow icon="call-outline" label="Phone" value={session?.user.profile.phone ?? 'N/A'} />
-                            <InfoRow icon="business-outline" label="Department" value={session?.user.profile.department ?? 'N/A'} />
+                            <InfoRow icon="mail-outline" label="Email" value={session?.user.email || 'N/A'} />
+                            <InfoRow icon="call-outline" label="Phone" value={session?.user?.profile?.phone || 'N/A'} />
+                            <InfoRow icon="business-outline" label="Department" value={session?.user?.profile?.department || 'N/A'} />
                         </View>
 
                         {/* Actions */}

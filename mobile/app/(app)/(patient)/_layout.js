@@ -55,6 +55,10 @@ export default function PatientTabsLayout() {
                 title: 'Notifications',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="notifications-outline"/>,
             }}/>
+            <Tabs.Screen name="health-reminders" options={{
+                title: 'Reminders',
+                tabBarIcon: ({ color }) => <TabIcon color={color} name="alarm-outline"/>,
+            }}/>
             <Tabs.Screen name="preferences" options={{
                 title: 'Settings',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="ellipsis-horizontal"/>,

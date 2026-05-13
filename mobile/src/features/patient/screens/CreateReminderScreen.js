@@ -22,9 +22,10 @@ const TYPES = [
     { key: 'exercise', label: 'Exercise', icon: 'walk', iconColor: colors.warning, tint: colors.warningSoft },
 ];
 
-const SLOTS = [
-    { key: 'morning', label: 'Morning', icon: 'sunny-outline' },
-    { key: 'afternoon', label: 'Afternoon', icon: 'partly-sunny-outline' },
+const TIME_OPTIONS = [
+    '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
+    '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM',
+    '06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM', '10:00 PM',
 ];
 
 export function CreateReminderScreen() {
@@ -32,8 +33,8 @@ export function CreateReminderScreen() {
     const [title, setTitle] = useState('');
     const [note, setNote] = useState('');
     const [type, setType] = useState('vitamin');
-    const [slot, setSlot] = useState('morning');
     const [time, setTime] = useState('');
+    const [dropdownOpen, setDropdownOpen] = useState(false);
     const [error, setError] = useState('');
 
     const handleSave = () => {
@@ -42,11 +43,14 @@ export function CreateReminderScreen() {
             setError('Please enter a reminder title.');
             return;
         }
+        if (!time) {
+            setError('Please select a time.');
+            return;
+        }
 
-        const selectedType = TYPES.find((t) => t.key === type) ?? TYPES[0];
-        const timeLabel = time.trim() ? time.trim() : slot === 'morning' ? '08:00 AM' : '02:00 PM';
-        const subtitle = note.trim() ? `${timeLabel} - ${note.trim()}` : timeLabel;
+        const subtitle = note.trim() ? `${time} - ${note.trim()}` : time;
 
+        const slot = TIME_OPTIONS.indexOf(time) < TIME_OPTIONS.indexOf('12:00 PM') ? 'morning' : 'afternoon';
         remindersStore.add({
             type,
             title: trimmed,
@@ -64,20 +68,6 @@ export function CreateReminderScreen() {
                 style={styles.flex}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-                {/* Header */}
-                <View style={styles.headerRow}>
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                        onPress={() => router.back()}
-                        style={styles.backButton}
-                    >
-                        <AppIcon color={colors.text} name="chevron-back" size={24} />
-                    </Pressable>
-                    <Text style={styles.headerTitle}>New Reminder</Text>
-                    <View style={styles.headerSpacer} />
-                </View>
-
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
@@ -123,18 +113,45 @@ export function CreateReminderScreen() {
                     {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                     {/* Time */}
-                    <Text style={styles.label}>Time (optional)</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="e.g. 08:30 AM"
-                        placeholderTextColor={colors.textMuted}
-                        value={time}
-                        onChangeText={setTime}
-                        returnKeyType="next"
-                    />
+                    <Text style={styles.label}>Time</Text>
+                    <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Select time"
+                        onPress={() => setDropdownOpen((o) => !o)}
+                        style={[styles.input, styles.dropdownTrigger]}
+                    >
+                        <Text style={[styles.dropdownValue, !time && styles.dropdownPlaceholder]}>
+                            {time || 'Select a time'}
+                        </Text>
+                        <AppIcon
+                            color={colors.textMuted}
+                            name={dropdownOpen ? 'chevron-up' : 'chevron-down'}
+                            size={18}
+                        />
+                    </Pressable>
+                    {dropdownOpen ? (
+                        <View style={styles.dropdownList}>
+                            <ScrollView nestedScrollEnabled style={styles.dropdownScroll}>
+                                {TIME_OPTIONS.map((option) => (
+                                    <Pressable
+                                        key={option}
+                                        onPress={() => { setTime(option); setDropdownOpen(false); setError(''); }}
+                                        style={[styles.dropdownItem, time === option && styles.dropdownItemActive]}
+                                    >
+                                        <Text style={[styles.dropdownItemText, time === option && styles.dropdownItemTextActive]}>
+                                            {option}
+                                        </Text>
+                                        {time === option ? (
+                                            <AppIcon color={colors.primary} name="checkmark" size={16} />
+                                        ) : null}
+                                    </Pressable>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    ) : null}
 
                     {/* Note */}
-                    <Text style={styles.label}>Note (optional)</Text>
+                    <Text style={styles.label}>Note</Text>
                     <TextInput
                         style={[styles.input, styles.inputMulti]}
                         placeholder="e.g. Take with food"
@@ -142,35 +159,9 @@ export function CreateReminderScreen() {
                         value={note}
                         onChangeText={setNote}
                         multiline
-                        numberOfLines={3}
+                        numberOfLines={2}
                         returnKeyType="done"
                     />
-
-                    {/* Slot */}
-                    <Text style={styles.label}>Time of Day</Text>
-                    <View style={styles.slotRow}>
-                        {SLOTS.map((s) => {
-                            const active = slot === s.key;
-                            return (
-                                <Pressable
-                                    key={s.key}
-                                    accessibilityRole="button"
-                                    accessibilityLabel={`Set to ${s.label}`}
-                                    onPress={() => setSlot(s.key)}
-                                    style={[styles.slotButton, active && styles.slotButtonActive]}
-                                >
-                                    <AppIcon
-                                        color={active ? colors.primary : colors.textMuted}
-                                        name={s.icon}
-                                        size={18}
-                                    />
-                                    <Text style={[styles.slotText, active && styles.slotTextActive]}>
-                                        {s.label}
-                                    </Text>
-                                </Pressable>
-                            );
-                        })}
-                    </View>
 
                     {/* Save */}
                     <Pressable
@@ -203,29 +194,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    headerRow: {
-        height: 64,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-        paddingHorizontal: spacing.md,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitle: {
-        color: colors.text,
-        fontSize: typography.heading,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
-    headerSpacer: { width: 44 },
     scrollContent: {
         paddingHorizontal: spacing.md,
         paddingTop: spacing.md,
@@ -282,46 +250,61 @@ const styles = StyleSheet.create({
         borderColor: colors.danger,
     },
     inputMulti: {
-        height: 90,
+        height: 56,
         textAlignVertical: 'top',
         paddingTop: 13,
+    },
+    dropdownTrigger: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    dropdownValue: {
+        color: colors.text,
+        fontSize: typography.body,
+        fontFamily: fonts.bodyRegular,
+    },
+    dropdownPlaceholder: {
+        color: colors.textMuted,
+    },
+    dropdownList: {
+        marginTop: 4,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: radius.sm,
+        backgroundColor: colors.surface,
+        overflow: 'hidden',
+    },
+    dropdownScroll: {
+        maxHeight: 200,
+    },
+    dropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+    },
+    dropdownItemActive: {
+        backgroundColor: colors.primarySoft,
+    },
+    dropdownItemText: {
+        color: colors.text,
+        fontSize: typography.body,
+        fontFamily: fonts.bodyRegular,
+    },
+    dropdownItemTextActive: {
+        color: colors.primary,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
     },
     errorText: {
         marginTop: 4,
         color: colors.danger,
         fontSize: typography.caption,
         fontFamily: fonts.bodyMedium,
-    },
-    slotRow: {
-        flexDirection: 'row',
-        gap: spacing.xs,
-    },
-    slotButton: {
-        flex: 1,
-        height: 48,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        borderRadius: radius.sm,
-        borderWidth: 1.5,
-        borderColor: colors.border,
-        backgroundColor: colors.surface,
-    },
-    slotButtonActive: {
-        borderColor: colors.primary,
-        backgroundColor: colors.primarySoft,
-    },
-    slotText: {
-        color: colors.textMuted,
-        fontSize: typography.body,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
-    },
-    slotTextActive: {
-        color: colors.primary,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
     },
     saveButton: {
         marginTop: spacing.lg,

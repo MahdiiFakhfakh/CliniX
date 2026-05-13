@@ -50,6 +50,11 @@ export async function clearAppQueryCache() {
     await persister.removeClient?.();
     await AsyncStorage.removeItem(QUERY_CACHE_STORAGE_KEY);
 }
+
+export function invalidatePatientQueries() {
+    queryClient.invalidateQueries({ queryKey: ['patient-profile'] });
+    queryClient.invalidateQueries({ queryKey: ['patient-medical-summary'] });
+}
 export function AppProviders({ children }) {
     useEffect(() => {
         onlineManager.setEventListener((setOnline) => {

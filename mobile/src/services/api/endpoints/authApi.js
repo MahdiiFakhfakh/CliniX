@@ -124,6 +124,31 @@ export async function forgotPassword(payload) {
         return mockForgotPassword(payload);
     }
 }
+export async function getMe() {
+    try {
+        const response = await apiRequest({
+            method: 'GET',
+            url: '/auth/me',
+        });
+        if (!response.success || !response.user) {
+            throw new ApiClientError('Invalid getMe response');
+        }
+        return {
+            id: response.user.id,
+            email: response.user.email,
+            role: mapRole(response.user.role, 'patient'),
+            status: response.user.status ?? null,
+            profile: {
+                fullName: response.user.profile?.fullName ?? response.user.name ?? response.user.email.split('@')[0],
+                department: response.user.profile?.department ?? response.user.department ?? '',
+                phone: response.user.profile?.phone ?? response.user.phone ?? '',
+            },
+        };
+    } catch {
+        return null;
+    }
+}
+
 export async function updateProfile(params) {
     try {
         const response = await apiRequest({
@@ -138,12 +163,13 @@ export async function updateProfile(params) {
             id: response.user.id,
             email: response.user.email,
             role: mapRole(response.user.role, params.role),
+            status: response.user.status ?? null,
             profile: {
                 fullName: response.user.profile?.fullName ??
                     response.user.name ??
                     response.user.email.split('@')[0],
-                department: response.user.profile?.department ?? response.user.department,
-                phone: response.user.profile?.phone ?? response.user.phone,
+                department: response.user.profile?.department ?? response.user.department ?? '',
+                phone: response.user.profile?.phone ?? response.user.phone ?? '',
             },
         };
     }

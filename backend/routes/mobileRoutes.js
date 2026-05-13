@@ -71,15 +71,16 @@ const asFullName = (entity, fallback = "Unknown") => {
     return fallback;
   }
 
-  if (entity.fullName) {
-    return entity.fullName;
-  }
-
   const first = toSafeString(entity.firstName);
   const last = toSafeString(entity.lastName);
-  const combined = `${first} ${last}`.trim();
 
-  return combined || fallback;
+  if (first || last) {
+    // Avoid duplicating when both fields hold the same email-prefix fallback
+    const combined = first === last ? first : `${first} ${last}`.trim();
+    if (combined) return combined;
+  }
+
+  return toSafeString(entity.fullName) || fallback;
 };
 
 const mapAppointmentRecord = (appointment) => {
@@ -119,6 +120,11 @@ const computeAge = (dateOfBirth) => {
   return age;
 };
 
+const sanitizePhone = (phone) => {
+  const val = toSafeString(phone);
+  return val === "00000000" ? "" : val;
+};
+
 const mapPatientProfile = (patient) => ({
   id: patient._id.toString(),
   patientId: toSafeString(patient.patientId, `PT-${patient._id.toString().slice(-6)}`),
@@ -126,7 +132,7 @@ const mapPatientProfile = (patient) => ({
   age: computeAge(patient.dateOfBirth) ?? (Number.isFinite(patient.age) ? patient.age : null),
   gender: ["male", "female", "other"].includes(patient.gender) ? patient.gender : "other",
   dateOfBirth: toDateOnly(patient.dateOfBirth),
-  phone: toSafeString(patient.phone),
+  phone: sanitizePhone(patient.phone),
   email: toSafeString(patient.email),
   height: Number.isFinite(patient.height) ? patient.height : null,
   weight: Number.isFinite(patient.weight) ? patient.weight : null,
@@ -671,7 +677,7 @@ router.get("/patients/:id", protect, authorize("doctor", "patient", "admin"), as
         fullName: asFullName(patient),
         age: Number.isFinite(patient.age) ? patient.age : 0,
         gender: toSafeString(patient.gender, "other"),
-        phone: toSafeString(patient.phone),
+        phone: sanitizePhone(patient.phone),
         email: toSafeString(patient.email),
         patientId: toSafeString(patient.patientId),
         status: mapPatientRiskStatus(patient),

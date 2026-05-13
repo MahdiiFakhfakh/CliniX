@@ -457,5 +457,6 @@ const styles = StyleSheet.create({
         lineHeight: 22,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
+        textAlign: 'center',
     },
 });

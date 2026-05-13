@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { clearAppQueryCache } from '@/src/providers/AppProviders';
-import { login, updateProfile } from '@/src/services/api/endpoints/authApi';
+import { clearAppQueryCache, invalidatePatientQueries } from '@/src/providers/AppProviders';
+import { getMe, login, updateProfile } from '@/src/services/api/endpoints/authApi';
 import { registerUnauthorizedHandler, setApiToken } from '@/src/services/api/client';
 import { clearAllAIChatMessages } from '@/src/services/storage/aiChatStorage';
 import { clearSession, loadSession, saveSession } from '@/src/services/storage/sessionStorage';
@@ -19,7 +19,17 @@ export const useAuthStore = create((set) => ({
         try {
             const session = await loadSession();
             setApiToken(session?.token ?? null);
-            set({ session, isHydrated: true, errorMessage: null });
+            if (session) {
+                set({ session, isHydrated: true, errorMessage: null });
+                const freshUser = await getMe();
+                if (freshUser) {
+                    const refreshed = { ...session, user: { ...session.user, ...freshUser } };
+                    await saveSession(refreshed);
+                    set({ session: refreshed });
+                }
+            } else {
+                set({ session: null, isHydrated: true, errorMessage: null });
+            }
         }
         catch {
             setApiToken(null);
@@ -67,6 +77,7 @@ export const useAuthStore = create((set) => ({
             };
             await saveSession(nextSession);
             set({ session: nextSession, isSubmitting: false, errorMessage: null });
+            invalidatePatientQueries();
         }
         catch (error) {
             const message = error instanceof Error ? error.message : 'Unable to save profile';
