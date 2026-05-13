@@ -2,35 +2,31 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import { useDoctorPatientDetailQuery } from '@/src/features/doctor/hooks/useDoctorPatientDetailQuery';
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
 
-const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    text: '#111827',
-    muted: '#6B7280',
-    border: '#E5E7EB',
-    segmentBg: '#E5E7EB',
-    danger: '#DC2626',
-};
-
 const tabs = ['History', 'Prescriptions', 'Results', 'Vitals'];
+
+const STATUS_STYLE = {
+    active: { bg: colors.successSoft, text: colors.success, border: colors.successBorder },
+    completed: { bg: colors.infoSoft, text: colors.info, border: colors.infoBorder },
+    cancelled: { bg: colors.dangerSoft, text: colors.danger, border: colors.dangerBorder },
+};
 
 const formatDate = (value) => {
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return 'N/A';
-    }
-    return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    }).format(date);
+    if (Number.isNaN(date.getTime())) return 'N/A';
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
 };
+
+const getInitials = (name) =>
+    (name ?? '')
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0]?.toUpperCase() ?? '')
+        .join('');
 
 export function DoctorPatientDetailScreen() {
     const router = useRouter();
@@ -77,7 +73,8 @@ export function DoctorPatientDetailScreen() {
                 id: `history-${index}`,
                 title: `Clinical Note ${index + 1}`,
                 body: entry,
-                meta: '',
+                meta: null,
+                status: null,
             }));
         }
 
@@ -85,8 +82,9 @@ export function DoctorPatientDetailScreen() {
             return (detail.prescriptions ?? []).map((item) => ({
                 id: item.id,
                 title: item.medication,
-                body: `${item.dosage}  |  ${item.frequency}  |  ${item.duration}`,
-                meta: `Status: ${item.status}`,
+                body: `${item.dosage}  ·  ${item.frequency}  ·  ${item.duration}`,
+                meta: `Prescribed by ${item.prescribedBy ?? 'Doctor'}`,
+                status: item.status,
             }));
         }
 
@@ -95,7 +93,8 @@ export function DoctorPatientDetailScreen() {
                 id: result.id,
                 title: result.name,
                 body: result.summary,
-                meta: `${result.kind}  |  ${result.status}`,
+                meta: `${result.kind ?? ''}  ·  ${result.status ?? ''}`,
+                status: null,
             }));
         }
 
@@ -104,12 +103,17 @@ export function DoctorPatientDetailScreen() {
             title: vital.label,
             body: vital.value,
             meta: formatDate(vital.recordedAt),
+            status: null,
         }));
     }, [activeTab, detail.history, detail.prescriptions, detail.results, detail.vitals]);
+
+    const { profile } = detail;
+    const initials = getInitials(profile.fullName);
 
     return (
         <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
             <View style={styles.container}>
+                {/* Header */}
                 <View style={styles.headerRow}>
                     <Pressable
                         accessibilityRole="button"
@@ -117,7 +121,7 @@ export function DoctorPatientDetailScreen() {
                         onPress={() => router.back()}
                         style={styles.backButton}
                     >
-                        <AppIcon color={palette.text} name="chevron-back" size={24} />
+                        <AppIcon color={colors.text} name="chevron-back" size={24} />
                     </Pressable>
                     <Text style={styles.headerTitle}>Patient Details</Text>
                     <View style={styles.headerSpacer} />
@@ -125,22 +129,58 @@ export function DoctorPatientDetailScreen() {
 
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
-                    refreshControl={<RefreshControl onRefresh={() => void detailQuery.refetch()} refreshing={detailQuery.isRefetching} />}
+                    refreshControl={
+                        <RefreshControl
+                            onRefresh={() => void detailQuery.refetch()}
+                            refreshing={detailQuery.isRefetching}
+                        />
+                    }
                     showsVerticalScrollIndicator={false}
                 >
-                    <View style={styles.profileCard}>
-                        <View style={styles.avatar}>
-                            <AppIcon color="#64748B" name="person" size={42} />
+                    {/* Profile hero */}
+                    <View style={styles.profileHero}>
+                        <View style={styles.avatarRing}>
+                            {initials ? (
+                                <Text style={styles.avatarInitials}>{initials}</Text>
+                            ) : (
+                                <AppIcon color="rgba(255,255,255,0.8)" name="person" size={36} />
+                            )}
                         </View>
-                        <Text style={styles.patientName}>{detail.profile.fullName ?? 'Unknown Patient'}</Text>
-                        <Text style={styles.patientSub}>ID: {detail.profile.patientId ?? '—'}</Text>
-                        <Text style={styles.patientSub}>
-                            {detail.profile.age != null ? `${detail.profile.age} yrs` : 'Age N/A'}  |  {detail.profile.gender ?? 'N/A'}
-                        </Text>
-                        {detail.profile.phone ? <Text style={styles.patientSub}>{detail.profile.phone}</Text> : null}
-                        {detail.profile.email ? <Text style={styles.patientSub}>{detail.profile.email}</Text> : null}
+                        <Text style={styles.patientName}>{profile.fullName ?? 'Unknown Patient'}</Text>
+                        <Text style={styles.patientId}>ID: {profile.patientId ?? '—'}</Text>
+
+                        <View style={styles.pillsRow}>
+                            {profile.age != null ? (
+                                <View style={styles.infoPill}>
+                                    <Text style={styles.infoPillText}>{profile.age} yrs</Text>
+                                </View>
+                            ) : null}
+                            {profile.gender ? (
+                                <View style={styles.infoPill}>
+                                    <Text style={styles.infoPillText}>{profile.gender}</Text>
+                                </View>
+                            ) : null}
+                        </View>
+
+                        {(profile.phone || profile.email) ? (
+                            <View style={styles.contactRow}>
+                                {profile.phone ? (
+                                    <View style={styles.contactItem}>
+                                        <AppIcon color="rgba(255,255,255,0.7)" name="call-outline" size={14} />
+                                        <Text style={styles.contactText}>{profile.phone}</Text>
+                                    </View>
+                                ) : null}
+                                {profile.email ? (
+                                    <View style={styles.contactItem}>
+                                        <AppIcon color="rgba(255,255,255,0.7)" name="mail-outline" size={14} />
+                                        <Text style={styles.contactText}>{profile.email}</Text>
+                                    </View>
+                                ) : null}
+                            </View>
+                        ) : null}
                     </View>
 
+                    {/* Tab bar */}
                     <View style={styles.segmentedControl}>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.segmentedInner}>
                             {tabs.map((tab) => {
@@ -160,6 +200,7 @@ export function DoctorPatientDetailScreen() {
                         </ScrollView>
                     </View>
 
+                    {/* Content card */}
                     <View style={styles.contentCard}>
                         <View style={styles.sectionHeaderRow}>
                             <Text style={styles.sectionTitle}>{activeTab}</Text>
@@ -175,24 +216,39 @@ export function DoctorPatientDetailScreen() {
                                     }
                                     style={styles.addButton}
                                 >
-                                    <AppIcon color="#FFFFFF" name="add" size={16} />
+                                    <AppIcon color="#FFFFFF" name="add" size={15} />
                                     <Text style={styles.addButtonText}>Add</Text>
                                 </Pressable>
                             ) : null}
                         </View>
+
                         {content.length === 0 ? (
-                            <Text style={styles.emptyText}>No records in this section.</Text>
+                            <View style={styles.emptyWrap}>
+                                <AppIcon color={colors.textMuted} name="document-outline" size={32} />
+                                <Text style={styles.emptyText}>No records in this section.</Text>
+                            </View>
                         ) : (
-                            content.map((item) => (
-                                <View key={item.id} style={styles.itemCard}>
-                                    <Text style={styles.itemTitle}>{item.title}</Text>
-                                    <Text style={styles.itemBody}>{item.body}</Text>
-                                    {item.meta ? <Text style={styles.itemMeta}>{item.meta}</Text> : null}
-                                </View>
-                            ))
+                            content.map((item) => {
+                                const statusStyle = item.status ? (STATUS_STYLE[item.status] ?? STATUS_STYLE.active) : null;
+                                return (
+                                    <View key={item.id} style={styles.itemCard}>
+                                        <View style={styles.itemTopRow}>
+                                            <Text style={styles.itemTitle} numberOfLines={2}>{item.title}</Text>
+                                            {statusStyle ? (
+                                                <View style={[styles.statusPill, { backgroundColor: statusStyle.bg, borderColor: statusStyle.border }]}>
+                                                    <Text style={[styles.statusText, { color: statusStyle.text }]}>
+                                                        {item.status}
+                                                    </Text>
+                                                </View>
+                                            ) : null}
+                                        </View>
+                                        <Text style={styles.itemBody}>{item.body}</Text>
+                                        {item.meta ? <Text style={styles.itemMeta}>{item.meta}</Text> : null}
+                                    </View>
+                                );
+                            })
                         )}
                     </View>
-
                 </ScrollView>
             </View>
         </SafeAreaView>
@@ -202,17 +258,17 @@ export function DoctorPatientDetailScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     container: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     headerRow: {
         height: 64,
         borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-        paddingHorizontal: 16,
+        borderBottomColor: colors.border,
+        paddingHorizontal: spacing.md,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -225,66 +281,104 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     headerTitle: {
-        color: palette.text,
-        fontSize: 20,
-        lineHeight: 26,
+        color: colors.text,
+        fontSize: typography.heading,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    headerSpacer: {
-        width: 44,
-    },
+    headerSpacer: { width: 44 },
     scrollContent: {
-        paddingHorizontal: 20,
-        paddingTop: 16,
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.md,
         paddingBottom: 110,
     },
-    profileCard: {
-        backgroundColor: palette.surface,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: palette.border,
-        padding: 16,
+
+    /* Profile hero */
+    profileHero: {
+        backgroundColor: colors.primary,
+        borderRadius: radius.lg,
+        paddingVertical: 24,
+        paddingHorizontal: spacing.md,
         alignItems: 'center',
     },
-    avatar: {
-        width: 82,
-        height: 82,
-        borderRadius: 41,
-        backgroundColor: '#E5E7EB',
+    avatarRing: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.4)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 10,
+        marginBottom: 12,
     },
-    patientName: {
-        color: palette.text,
-        fontSize: 22,
-        lineHeight: 28,
+    avatarInitials: {
+        color: '#FFFFFF',
+        fontSize: 28,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    patientSub: {
-        marginTop: 2,
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 19,
-        fontFamily: fonts.bodyRegular,
-        textAlign: 'center',
+    patientName: {
+        color: '#FFFFFF',
+        fontSize: typography.h3,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
     },
+    patientId: {
+        marginTop: 2,
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodyMedium,
+    },
+    pillsRow: {
+        flexDirection: 'row',
+        gap: spacing.xs,
+        marginTop: 10,
+    },
+    infoPill: {
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderRadius: radius.full,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+    },
+    infoPillText: {
+        color: '#FFFFFF',
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+        textTransform: 'capitalize',
+    },
+    contactRow: {
+        marginTop: 10,
+        gap: 6,
+        alignItems: 'center',
+    },
+    contactItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+    },
+    contactText: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: typography.bodySmall,
+        fontFamily: fonts.bodyRegular,
+    },
+
+    /* Segment */
     segmentedControl: {
-        marginTop: 14,
-        backgroundColor: palette.segmentBg,
-        borderRadius: 16,
-        padding: 5,
+        marginTop: spacing.sm,
+        backgroundColor: colors.border,
+        borderRadius: radius.sm,
+        padding: 4,
     },
     segmentedInner: {
-        gap: 8,
-        paddingHorizontal: 1,
+        gap: spacing.xs,
+        paddingHorizontal: 2,
     },
     segmentButton: {
-        borderRadius: 12,
-        paddingHorizontal: 14,
-        paddingVertical: 9,
+        borderRadius: 10,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 8,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -292,35 +386,35 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
     },
     segmentText: {
-        color: '#6B7280',
-        fontSize: 14,
-        lineHeight: 19,
+        color: colors.textMuted,
+        fontSize: typography.body,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
     segmentTextActive: {
-        color: palette.primary,
+        color: colors.primary,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
+
+    /* Content */
     contentCard: {
-        marginTop: 14,
-        backgroundColor: palette.surface,
-        borderRadius: 16,
+        marginTop: spacing.sm,
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: palette.border,
-        padding: 14,
+        borderColor: colors.border,
+        padding: spacing.sm,
     },
     sectionHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        marginBottom: spacing.xs,
     },
     sectionTitle: {
-        color: palette.text,
-        fontSize: 18,
-        lineHeight: 24,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
@@ -328,74 +422,93 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: palette.primary,
+        backgroundColor: colors.primary,
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 6,
     },
     addButtonText: {
         color: '#FFFFFF',
-        fontSize: 13,
-        lineHeight: 18,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
+    emptyWrap: {
+        alignItems: 'center',
+        paddingVertical: 24,
+        gap: spacing.xs,
+    },
+    emptyText: {
+        color: colors.textMuted,
+        fontSize: typography.body,
+        fontFamily: fonts.bodyRegular,
+        textAlign: 'center',
+    },
     itemCard: {
-        borderRadius: 12,
+        borderRadius: radius.sm,
         borderWidth: 1,
-        borderColor: palette.border,
-        padding: 12,
-        marginTop: 8,
+        borderColor: colors.border,
+        padding: spacing.sm,
+        marginTop: spacing.xs,
+    },
+    itemTopRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: spacing.xs,
     },
     itemTitle: {
-        color: palette.text,
-        fontSize: 15,
-        lineHeight: 20,
+        flex: 1,
+        color: colors.text,
+        fontSize: typography.body,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
+    statusPill: {
+        borderRadius: radius.full,
+        borderWidth: 1,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+    },
+    statusText: {
+        fontSize: typography.caption,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+        textTransform: 'capitalize',
+        letterSpacing: 0.3,
+    },
     itemBody: {
-        marginTop: 3,
-        color: '#374151',
-        fontSize: 13,
-        lineHeight: 18,
+        marginTop: 4,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodyRegular,
     },
     itemMeta: {
         marginTop: 6,
-        color: palette.muted,
-        fontSize: 12,
-        lineHeight: 17,
+        color: colors.textSubtle,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyMedium,
     },
-    emptyText: {
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 20,
-        textAlign: 'center',
-        paddingVertical: 8,
-        fontFamily: fonts.bodyRegular,
-    },
+
+    /* Error / empty states */
     centered: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 24,
-        backgroundColor: palette.background,
+        paddingHorizontal: spacing.lg,
+        backgroundColor: colors.background,
     },
     centerTitle: {
-        color: palette.text,
-        fontSize: 20,
-        lineHeight: 26,
+        color: colors.text,
+        fontSize: typography.heading,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     centerText: {
         marginTop: 4,
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 20,
-        textAlign: 'center',
+        color: colors.textMuted,
+        fontSize: typography.body,
         fontFamily: fonts.bodyRegular,
+        textAlign: 'center',
     },
 });

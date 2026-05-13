@@ -2,21 +2,8 @@ import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts } from '@/src/core/theme/tokens';
+import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import AppIcon from '@/src/shared/components/AppIcon';
-
-const palette = {
-    background: '#F3F4F8',
-    surface: '#FFFFFF',
-    primary: '#1D4ED8',
-    text: '#111827',
-    muted: '#6B7280',
-    border: '#E5E7EB',
-    segmentBg: '#E5E7EB',
-    danger: '#EF4444',
-    warning: '#F59E0B',
-    success: '#10B981',
-};
 
 const TABS = [
     { key: 'all', label: 'All' },
@@ -28,8 +15,7 @@ const ALERTS = [
     {
         id: 'alert-oxygen-low',
         status: 'active',
-        severity: 'critical',
-        categoryLabel: 'ACTIVE • CRITICAL',
+        categoryLabel: 'ACTIVE · CRITICAL',
         title: 'Low Oxygen Level',
         time: '2 mins ago',
         metric: 'SpO2: 88%',
@@ -40,7 +26,6 @@ const ALERTS = [
     {
         id: 'alert-bp-high',
         status: 'active',
-        severity: 'acknowledged',
         categoryLabel: 'ACKNOWLEDGED',
         title: 'High Blood Pressure',
         time: '1 hour ago',
@@ -52,7 +37,6 @@ const ALERTS = [
     {
         id: 'alert-arrhythmia-resolved',
         status: 'resolved',
-        severity: 'resolved',
         categoryLabel: 'RESOLVED',
         title: 'Arrhythmia Detected',
         time: 'Yesterday, 4:30 PM',
@@ -64,7 +48,6 @@ const ALERTS = [
     {
         id: 'alert-temp-resolved',
         status: 'resolved',
-        severity: 'resolved',
         categoryLabel: 'RESOLVED',
         title: 'Elevated Body Temp',
         time: '2 days ago',
@@ -75,24 +58,24 @@ const ALERTS = [
     },
 ];
 
-const toneStyle = {
+const TONE = {
     danger: {
-        accent: palette.danger,
-        chipColor: palette.danger,
-        iconBg: '#FEE2E2',
-        iconColor: palette.danger,
+        accent: colors.danger,
+        label: colors.danger,
+        iconBg: colors.dangerSoft,
+        iconColor: colors.danger,
     },
     warning: {
-        accent: palette.warning,
-        chipColor: '#D97706',
-        iconBg: '#FEF3C7',
-        iconColor: palette.warning,
+        accent: colors.warning,
+        label: colors.warningText,
+        iconBg: colors.warningSoft,
+        iconColor: colors.warning,
     },
     success: {
-        accent: palette.success,
-        chipColor: '#10B981',
-        iconBg: '#D1FAE5',
-        iconColor: palette.success,
+        accent: colors.success,
+        label: colors.success,
+        iconBg: colors.successSoft,
+        iconColor: colors.success,
     },
 };
 
@@ -101,9 +84,7 @@ export function NotificationsScreen() {
     const [activeTab, setActiveTab] = useState('all');
 
     const visibleAlerts = useMemo(() => {
-        if (activeTab === 'all') {
-            return ALERTS;
-        }
+        if (activeTab === 'all') return ALERTS;
         return ALERTS.filter((item) => item.status === activeTab);
     }, [activeTab]);
 
@@ -115,22 +96,12 @@ export function NotificationsScreen() {
                         accessibilityRole="button"
                         accessibilityLabel="Back"
                         onPress={() => router.back()}
-                        style={styles.backLink}
+                        style={styles.backButton}
                     >
-                        <AppIcon color={palette.primary} name="chevron-back" size={22} />
-                        <Text style={styles.backText}>CliniX</Text>
+                        <AppIcon color={colors.primary} name="chevron-back" size={22} />
                     </Pressable>
-
-                    <Text style={styles.topTitle}>My Vital Alerts</Text>
-
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="More actions"
-                        onPress={() => {}}
-                        style={styles.moreButton}
-                    >
-                        <AppIcon color="#475569" name="ellipsis-horizontal" size={22} />
-                    </Pressable>
+                    <Text style={styles.topTitle}>Vital Alerts</Text>
+                    <View style={styles.topSpacer} />
                 </View>
 
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -154,57 +125,61 @@ export function NotificationsScreen() {
                     </View>
 
                     <View style={styles.alertList}>
-                        {visibleAlerts.map((alert) => {
-                            const tone = toneStyle[alert.tone];
-                            return (
-                                <Pressable
-                                    key={alert.id}
-                                    accessibilityRole="button"
-                                    accessibilityLabel={`Open alert ${alert.title}`}
-                                    onPress={() =>
-                                        router.push({
-                                            pathname: '/(app)/alert/[alertId]',
-                                            params: { alertId: alert.id },
-                                        })
-                                    }
-                                    style={styles.alertCard}
-                                >
-                                    <View style={[styles.alertAccent, { backgroundColor: tone.accent }]} />
+                        {visibleAlerts.length === 0 ? (
+                            <View style={styles.emptyCard}>
+                                <AppIcon color={colors.textMuted} name="checkmark-circle-outline" size={36} />
+                                <Text style={styles.emptyText}>No alerts in this category.</Text>
+                            </View>
+                        ) : (
+                            visibleAlerts.map((alert) => {
+                                const tone = TONE[alert.tone] ?? TONE.success;
+                                return (
+                                    <Pressable
+                                        key={alert.id}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Open alert: ${alert.title}`}
+                                        onPress={() =>
+                                            router.push({
+                                                pathname: '/(app)/alert/[alertId]',
+                                                params: { alertId: alert.id },
+                                            })
+                                        }
+                                        style={styles.alertCard}
+                                    >
+                                        <View style={[styles.alertAccent, { backgroundColor: tone.accent }]} />
 
-                                    <View style={styles.alertBody}>
-                                        <View style={styles.alertHeaderRow}>
-                                            <Text style={[styles.alertCategory, { color: tone.chipColor }]}>
-                                                {alert.categoryLabel}
-                                            </Text>
-                                            <AppIcon color="#CBD5E1" name="chevron-forward" size={24} />
-                                        </View>
-
-                                        <Text style={styles.alertTitle}>{alert.title}</Text>
-
-                                        <View style={styles.alertTimeRow}>
-                                            <AppIcon color={palette.muted} name="time-outline" size={18} />
-                                            <Text style={styles.alertTime}>{alert.time}</Text>
-                                        </View>
-
-                                        <View style={styles.alertMetricRow}>
-                                            <View style={[styles.metricIconWrap, { backgroundColor: tone.iconBg }]}>
-                                                <AppIcon color={tone.iconColor} name={alert.icon} size={22} />
+                                        <View style={styles.alertBody}>
+                                            <View style={styles.alertHeaderRow}>
+                                                <Text style={[styles.alertCategory, { color: tone.label }]}>
+                                                    {alert.categoryLabel}
+                                                </Text>
+                                                <AppIcon color={colors.border} name="chevron-forward" size={20} />
                                             </View>
-                                            <View>
-                                                <Text style={styles.metricText}>{alert.metric}</Text>
-                                                <Text style={styles.metricDetail}>{alert.detail}</Text>
+
+                                            <Text style={styles.alertTitle}>{alert.title}</Text>
+
+                                            <View style={styles.alertTimeRow}>
+                                                <AppIcon color={colors.textMuted} name="time-outline" size={15} />
+                                                <Text style={styles.alertTime}>{alert.time}</Text>
+                                            </View>
+
+                                            <View style={styles.alertMetricRow}>
+                                                <View style={[styles.metricIconWrap, { backgroundColor: tone.iconBg }]}>
+                                                    <AppIcon color={tone.iconColor} name={alert.icon} size={20} />
+                                                </View>
+                                                <View style={styles.metricTextWrap}>
+                                                    <Text style={styles.metricValue}>{alert.metric}</Text>
+                                                    <Text style={styles.metricDetail}>{alert.detail}</Text>
+                                                </View>
                                             </View>
                                         </View>
-                                    </View>
-                                </Pressable>
-                            );
-                        })}
+                                    </Pressable>
+                                );
+                            })
+                        )}
                     </View>
 
-                    <Text style={styles.footerInfo}>Viewing alerts from the last 7 days.</Text>
-                    <Pressable accessibilityRole="button" onPress={() => {}} style={styles.archiveButton}>
-                        <Text style={styles.archiveButtonText}>Archive All Resolved Alerts</Text>
-                    </Pressable>
+                    <Text style={styles.footerInfo}>Showing alerts from the last 7 days.</Text>
                 </ScrollView>
             </View>
         </SafeAreaView>
@@ -214,104 +189,75 @@ export function NotificationsScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     container: {
         flex: 1,
-        backgroundColor: palette.background,
+        backgroundColor: colors.background,
     },
     topRow: {
-        height: 78,
+        height: 64,
         borderBottomWidth: 1,
-        borderBottomColor: palette.border,
+        borderBottomColor: colors.border,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 14,
+        paddingHorizontal: spacing.md,
     },
-    backLink: {
-        minWidth: 98,
-        height: 44,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    backText: {
-        color: palette.primary,
-        fontSize: 16,
-        lineHeight: 22,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
-    },
-    topTitle: {
-        color: palette.text,
-        fontSize: 21,
-        lineHeight: 28,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
-    },
-    moreButton: {
+    backButton: {
         width: 44,
         height: 44,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    scrollContent: {
-        paddingHorizontal: 22,
-        paddingBottom: 28,
-    },
-    heading: {
-        marginTop: 16,
-        color: palette.text,
-        fontSize: 46,
-        lineHeight: 48,
+    topTitle: {
+        color: colors.text,
+        fontSize: typography.heading,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    subtitle: {
-        marginTop: 8,
-        color: palette.muted,
-        fontSize: 16,
-        lineHeight: 22,
-        fontFamily: fonts.bodyRegular,
+    topSpacer: { width: 44 },
+    scrollContent: {
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.xl,
     },
     segmentedControl: {
-        marginTop: 18,
-        backgroundColor: palette.segmentBg,
-        borderRadius: 18,
-        padding: 5,
+        backgroundColor: colors.border,
+        borderRadius: radius.sm,
+        padding: 4,
         flexDirection: 'row',
     },
     segmentButton: {
         flex: 1,
-        borderRadius: 12,
-        paddingVertical: 10,
+        borderRadius: 10,
+        paddingVertical: 9,
         alignItems: 'center',
         justifyContent: 'center',
     },
     segmentButtonActive: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
     },
     segmentText: {
-        color: palette.muted,
-        fontSize: 16,
-        lineHeight: 20,
+        color: colors.textMuted,
+        fontSize: typography.body,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
     segmentTextActive: {
-        color: palette.text,
+        color: colors.primary,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     alertList: {
-        marginTop: 16,
-        gap: 12,
+        marginTop: spacing.sm,
+        gap: spacing.sm,
     },
     alertCard: {
-        borderRadius: 16,
-        backgroundColor: palette.surface,
+        borderRadius: radius.md,
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: palette.border,
+        borderColor: colors.border,
         flexDirection: 'row',
         overflow: 'hidden',
     },
@@ -320,7 +266,7 @@ const styles = StyleSheet.create({
     },
     alertBody: {
         flex: 1,
-        padding: 14,
+        padding: spacing.sm,
     },
     alertHeaderRow: {
         flexDirection: 'row',
@@ -328,77 +274,77 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     alertCategory: {
-        fontSize: 13,
-        lineHeight: 17,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
         letterSpacing: 0.4,
     },
     alertTitle: {
-        marginTop: 2,
-        color: palette.text,
-        fontSize: 22,
-        lineHeight: 28,
+        marginTop: 3,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
     alertTimeRow: {
-        marginTop: 6,
+        marginTop: 5,
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 5,
     },
     alertTime: {
-        marginLeft: 6,
-        color: palette.muted,
-        fontSize: 16,
-        lineHeight: 20,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodyMedium,
     },
     alertMetricRow: {
-        marginTop: 12,
+        marginTop: spacing.sm,
         flexDirection: 'row',
         alignItems: 'center',
+        gap: spacing.sm,
     },
     metricIconWrap: {
-        width: 54,
-        height: 54,
-        borderRadius: 12,
+        width: 48,
+        height: 48,
+        borderRadius: radius.sm,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
     },
-    metricText: {
-        color: palette.text,
-        fontSize: 22,
-        lineHeight: 26,
+    metricTextWrap: {
+        flex: 1,
+    },
+    metricValue: {
+        color: colors.text,
+        fontSize: typography.bodyLarge,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
     },
     metricDetail: {
-        color: palette.muted,
-        fontSize: 14,
-        lineHeight: 18,
+        marginTop: 2,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
         fontFamily: fonts.bodyRegular,
+    },
+    emptyCard: {
+        backgroundColor: colors.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.xl,
+        alignItems: 'center',
+        gap: spacing.xs,
+    },
+    emptyText: {
+        color: colors.textMuted,
+        fontSize: typography.body,
+        fontFamily: fonts.bodyRegular,
+        textAlign: 'center',
     },
     footerInfo: {
-        marginTop: 28,
+        marginTop: spacing.lg,
         textAlign: 'center',
-        color: '#94A3B8',
-        fontSize: 14,
-        lineHeight: 18,
+        color: colors.textSubtle,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyRegular,
-    },
-    archiveButton: {
-        marginTop: 8,
-        alignSelf: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-    },
-    archiveButtonText: {
-        color: palette.primary,
-        fontSize: 17,
-        lineHeight: 22,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
     },
 });
