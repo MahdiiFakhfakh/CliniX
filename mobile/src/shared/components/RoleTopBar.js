@@ -32,7 +32,7 @@ const ROLE_CONFIG = {
             { label: 'Home', route: '/(app)/(patient)/home', matchers: ['/home', '/dashboard'] },
             { label: 'Appts', route: '/(app)/(patient)/appointments', matchers: ['/appointments', '/appointment', '/book-appointment'] },
             { label: 'Records', route: '/(app)/(patient)/records', matchers: ['/records', '/results', '/result', '/prescriptions', '/prescription'] },
-            { label: 'Care', route: '/(app)/(patient)/create-reminder', matchers: ['/create-reminder', '/add-vitals', '/chat', '/notifications', '/video'] },
+            { label: 'Care', route: '/(app)/(patient)/create-reminder', matchers: ['/create-reminder', '/add-vitals', '/chat', '/notifications'] },
         ],
     },
     doctor: {

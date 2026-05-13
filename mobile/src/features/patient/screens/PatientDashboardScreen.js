@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
 import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
+import { isUpcomingAppointment, sortAppointmentsAscending } from '@/src/features/appointments/utils/appointmentDates';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 
@@ -53,7 +54,10 @@ export function PatientHomeScreen() {
     const [reminderTime, setReminderTime] = useState('');
 
     const nextAppointment = useMemo(() => {
-        const next = appointmentsQuery.data?.[0];
+        const upcomingAppointments = sortAppointmentsAscending(
+            (appointmentsQuery.data ?? []).filter((appointment) => isUpcomingAppointment(appointment)),
+        );
+        const next = upcomingAppointments[0];
         if (!next) return null;
         return {
             doctorName: next.doctorName ?? 'Unknown Doctor',
@@ -90,20 +94,6 @@ export function PatientHomeScreen() {
         );
     };
 
-    const handleDirections = async () => {
-        const mapsUrl = 'https://www.google.com/maps/search/?api=1&query=CliniX+Medical+Center+NY';
-        try {
-            const canOpen = await Linking.canOpenURL(mapsUrl);
-            if (!canOpen) {
-                Alert.alert('Directions unavailable', 'Unable to open maps on this device.');
-                return;
-            }
-            await Linking.openURL(mapsUrl);
-        } catch {
-            Alert.alert('Directions unavailable', 'Unable to open maps on this device.');
-        }
-    };
-
     const insets = useSafeAreaInsets();
 
     return (
@@ -126,10 +116,6 @@ export function PatientHomeScreen() {
                                 <View style={styles.doctorTextWrap}>
                                     <Text style={styles.doctorName}>{nextAppointment.doctorName}</Text>
                                     <Text style={styles.specialtyText}>{nextAppointment.specialty}</Text>
-                                    <View style={styles.videoRow}>
-                                        <AppIcon color={colors.primary} name="videocam" size={14} />
-                                        <Text style={styles.videoText}>Video Consultation</Text>
-                                    </View>
                                 </View>
                             </View>
 
@@ -139,28 +125,6 @@ export function PatientHomeScreen() {
                                     <Text style={styles.dateMain}>{formatDateLabel(nextAppointment.date)}</Text>
                                 </View>
                                 <Text style={styles.dateSub}>{nextAppointment.time}</Text>
-                            </View>
-
-                            <View style={styles.actionRow}>
-                                <Pressable
-                                    accessibilityRole="button"
-                                    accessibilityLabel="Join call"
-                                    onPress={() => router.push('/(app)/(patient)/video')}
-                                    style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
-                                >
-                                    <AppIcon color="#FFFFFF" name="videocam" size={18} />
-                                    <Text style={styles.primaryButtonText}>Join Call</Text>
-                                </Pressable>
-
-                                <Pressable
-                                    accessibilityRole="button"
-                                    accessibilityLabel="Directions"
-                                    onPress={handleDirections}
-                                    style={styles.secondaryButton}
-                                >
-                                    <AppIcon color="#374151" name="navigate" size={18} />
-                                    <Text style={styles.secondaryButtonText}>Directions</Text>
-                                </Pressable>
                             </View>
                         </View>
                     ) : (
@@ -404,19 +368,6 @@ const styles = StyleSheet.create({
         lineHeight: 22,
         fontFamily: fonts.bodyRegular,
     },
-    videoRow: {
-        marginTop: 4,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    videoText: {
-        marginLeft: 6,
-        color: '#374151',
-        fontSize: 13,
-        lineHeight: 18,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
-    },
     dateBox: {
         marginTop: 14,
         backgroundColor: colors.surfaceTint,
@@ -442,11 +393,6 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         fontFamily: fonts.bodyRegular,
     },
-    actionRow: {
-        marginTop: 12,
-        flexDirection: 'row',
-        gap: 10,
-    },
     primaryButton: {
         flex: 1,
         height: 54,
@@ -471,23 +417,6 @@ const styles = StyleSheet.create({
         lineHeight: 22,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
-    },
-    secondaryButton: {
-        flex: 1,
-        height: 54,
-        borderRadius: 12,
-        backgroundColor: colors.surfaceTint,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    secondaryButtonText: {
-        marginLeft: 8,
-        color: '#374151',
-        fontSize: 17,
-        lineHeight: 22,
-        fontFamily: fonts.bodySemiBold,
-        fontWeight: '600',
     },
     sectionHeader: {
         marginTop: 22,

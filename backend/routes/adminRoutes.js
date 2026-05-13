@@ -17,6 +17,35 @@ const {
   endOfMonth,
 } = require("date-fns");
 
+const toCleanString = (value) =>
+  typeof value === "string" && value.trim() ? value.trim() : undefined;
+
+const buildFullName = (firstName, lastName) =>
+  [toCleanString(firstName), toCleanString(lastName)].filter(Boolean).join(" ");
+
+const calculateAge = (dateOfBirth) => {
+  if (!dateOfBirth) return undefined;
+  const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime())) return undefined;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age -= 1;
+  }
+  return age;
+};
+
+const calculateBmi = (height, weight) => {
+  const numericHeight = Number(height);
+  const numericWeight = Number(weight);
+  if (!numericHeight || !numericWeight) return undefined;
+  return parseFloat((numericWeight / (numericHeight / 100) ** 2).toFixed(2));
+};
+
 // ============================================
 // DASHBOARD STATS – FULL REAL DATA
 // ============================================
@@ -883,11 +912,39 @@ router.post("/patients", protect, authorize("admin"), async (req, res) => {
 // UPDATE patient
 router.put("/patients/:id", protect, authorize("admin"), async (req, res) => {
   try {
-    const updates = req.body;
+    const updates = { ...req.body };
     delete updates._id;
     delete updates.patientId;
     delete updates.user;
     delete updates.createdAt;
+
+    const existingPatient = await Patient.findById(req.params.id);
+    if (!existingPatient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found",
+      });
+    }
+
+    const firstName = updates.firstName ?? existingPatient.firstName;
+    const lastName = updates.lastName ?? existingPatient.lastName;
+    const fullName = buildFullName(firstName, lastName);
+    if (fullName) {
+      updates.fullName = fullName;
+    }
+
+    const age = calculateAge(updates.dateOfBirth ?? existingPatient.dateOfBirth);
+    if (Number.isFinite(age)) {
+      updates.age = age;
+    }
+
+    const bmi = calculateBmi(
+      updates.height ?? existingPatient.height,
+      updates.weight ?? existingPatient.weight,
+    );
+    if (Number.isFinite(bmi)) {
+      updates.bmi = bmi;
+    }
 
     const patient = await Patient.findByIdAndUpdate(
       req.params.id,
@@ -899,6 +956,13 @@ router.put("/patients/:id", protect, authorize("admin"), async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Patient not found",
+      });
+    }
+
+    if (patient.user) {
+      await User.findByIdAndUpdate(patient.user, {
+        name: patient.fullName,
+        email: patient.email,
       });
     }
 
@@ -1283,12 +1347,27 @@ router.post("/doctors", protect, authorize("admin"), async (req, res) => {
 // UPDATE doctor
 router.put("/doctors/:id", protect, authorize("admin"), async (req, res) => {
   try {
-    const updates = req.body;
+    const updates = { ...req.body };
     delete updates._id;
     delete updates.doctorId;
     delete updates.user;
     delete updates.createdAt;
     delete updates.ratings;
+
+    const existingDoctor = await Doctor.findById(req.params.id);
+    if (!existingDoctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    const firstName = updates.firstName ?? existingDoctor.firstName;
+    const lastName = updates.lastName ?? existingDoctor.lastName;
+    const fullName = buildFullName(firstName, lastName);
+    if (fullName) {
+      updates.fullName = fullName;
+    }
 
     const doctor = await Doctor.findByIdAndUpdate(
       req.params.id,
@@ -1300,6 +1379,13 @@ router.put("/doctors/:id", protect, authorize("admin"), async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Doctor not found",
+      });
+    }
+
+    if (doctor.user) {
+      await User.findByIdAndUpdate(doctor.user, {
+        name: doctor.fullName,
+        email: doctor.email,
       });
     }
 

@@ -72,7 +72,6 @@ export default function PatientTabsLayout() {
             <Tabs.Screen name="create-reminder" options={{ href: null }}/>
             <Tabs.Screen name="add-vitals" options={{ href: null }}/>
             <Tabs.Screen name="appointment/[appointmentId]" options={{ href: null }}/>
-            <Tabs.Screen name="video" options={{ href: null }}/>
             <Tabs.Screen name="result/[resultId]" options={{ href: null }}/>
             <Tabs.Screen name="prescriptions" options={{ href: null }}/>
             <Tabs.Screen name="prescription/[prescriptionId]" options={{ href: null }}/>
