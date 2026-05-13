@@ -100,14 +100,9 @@ export function AppointmentDetailScreen() {
                     <View style={styles.profileWrap}>
                         <View style={styles.avatarWrap}>
                             <AppIcon color="#64748B" name="person" size={74} />
-                            <View style={styles.onlineDot} />
                         </View>
                         <Text style={styles.doctorName}>{appointment.doctorName}</Text>
                         <Text style={styles.specialtyText}>Senior {appointment.department}</Text>
-                        <View style={styles.locationRow}>
-                            <AppIcon color={palette.muted} name="location" size={16} />
-                            <Text style={styles.locationText}>CliniX Medical Center, NY</Text>
-                        </View>
                     </View>
 
                     <View style={styles.dateCard}>
@@ -122,29 +117,9 @@ export function AppointmentDetailScreen() {
                         </View>
                     </View>
 
-                    <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="Join online consultation"
-                        onPress={() => router.push('/(app)/(patient)/video')}
-                        style={({ pressed }) => [
-                            styles.primaryAction,
-                            pressed && { backgroundColor: palette.primaryPressed },
-                        ]}
-                    >
-                        <AppIcon color="#FFFFFF" name="videocam" size={22} />
-                        <Text style={styles.primaryActionText}>Join Online Consultation</Text>
-                    </Pressable>
-
                     <Text style={styles.sectionTitle}>Reason for Visit</Text>
                     <View style={styles.reasonCard}>
                         <Text style={styles.reasonText}>{reasonText}</Text>
-                    </View>
-
-                    <View style={styles.mapMock}>
-                        <View style={styles.mapWater} />
-                        <View style={styles.mapRoadA} />
-                        <View style={styles.mapRoadB} />
-                        <Text style={styles.mapText}>New York</Text>
                     </View>
 
                     <Pressable
@@ -226,17 +201,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         position: 'relative',
     },
-    onlineDot: {
-        position: 'absolute',
-        right: 12,
-        bottom: 18,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#22C55E',
-        borderWidth: 3,
-        borderColor: '#FFFFFF',
-    },
     doctorName: {
         marginTop: 16,
         color: palette.text,
@@ -252,18 +216,6 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         fontFamily: fonts.bodySemiBold,
         fontWeight: '600',
-    },
-    locationRow: {
-        marginTop: 6,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    locationText: {
-        marginLeft: 6,
-        color: palette.muted,
-        fontSize: 15,
-        lineHeight: 20,
-        fontFamily: fonts.bodyRegular,
     },
     dateCard: {
         marginTop: 20,
@@ -296,28 +248,6 @@ const styles = StyleSheet.create({
         lineHeight: 22,
         fontFamily: fonts.bodyMedium,
     },
-    primaryAction: {
-        marginTop: 18,
-        height: 58,
-        borderRadius: 16,
-        backgroundColor: palette.primary,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#1D4ED8',
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 5 },
-        elevation: 6,
-    },
-    primaryActionText: {
-        marginLeft: 10,
-        color: '#FFFFFF',
-        fontSize: 17,
-        lineHeight: 22,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
-    },
     sectionTitle: {
         marginTop: 22,
         color: palette.text,
@@ -339,46 +269,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         lineHeight: 30,
         fontFamily: fonts.bodyRegular,
-    },
-    mapMock: {
-        marginTop: 18,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#D1D5DB',
-        backgroundColor: '#E2E8F0',
-        height: 154,
-        overflow: 'hidden',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    mapWater: {
-        position: 'absolute',
-        left: '42%',
-        width: 90,
-        height: '100%',
-        backgroundColor: '#93C5FD',
-        opacity: 0.7,
-    },
-    mapRoadA: {
-        position: 'absolute',
-        width: '120%',
-        height: 4,
-        backgroundColor: '#CBD5E1',
-        transform: [{ rotate: '-10deg' }],
-    },
-    mapRoadB: {
-        position: 'absolute',
-        width: '120%',
-        height: 4,
-        backgroundColor: '#E2E8F0',
-        transform: [{ rotate: '18deg' }],
-    },
-    mapText: {
-        color: '#334155',
-        fontSize: 36,
-        lineHeight: 42,
-        fontFamily: fonts.bodyBold,
-        fontWeight: '700',
     },
     secondaryAction: {
         marginTop: 18,

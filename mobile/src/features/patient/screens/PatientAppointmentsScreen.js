@@ -4,6 +4,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fonts } from '@/src/core/theme/tokens';
 import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
+import {
+    isCancelledAppointment,
+    isPastAppointment,
+    isUpcomingAppointment,
+    sortAppointmentsAscending,
+} from '@/src/features/appointments/utils/appointmentDates';
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
 
@@ -49,11 +55,6 @@ const doctorAvatarStyle = (doctorName) => {
     return { backgroundColor: '#DDE7F8' };
 };
 
-const isPastAppointment = (appointment) => {
-    const date = new Date(appointment.date);
-    return !Number.isNaN(date.getTime()) && date.getTime() < Date.now() && appointment.status !== 'cancelled';
-};
-
 const formatDateLabel = (isoDate) => {
     const date = new Date(isoDate);
     if (Number.isNaN(date.getTime())) {
@@ -72,15 +73,16 @@ export function PatientAppointmentsScreen() {
     const [activeTab, setActiveTab] = useState('upcoming');
 
     const filteredAppointments = useMemo(() => {
-        const items = appointmentsQuery.data ?? [];
+        const items = sortAppointmentsAscending(appointmentsQuery.data ?? []);
+        const now = new Date();
 
         if (activeTab === 'cancelled') {
-            return items.filter((item) => item.status === 'cancelled');
+            return items.filter((item) => isCancelledAppointment(item));
         }
         if (activeTab === 'past') {
-            return items.filter((item) => isPastAppointment(item) || item.status === 'completed');
+            return items.filter((item) => isPastAppointment(item, now));
         }
-        return items.filter((item) => !isPastAppointment(item) && item.status !== 'cancelled');
+        return items.filter((item) => isUpcomingAppointment(item, now));
     }, [activeTab, appointmentsQuery.data]);
 
     if (appointmentsQuery.isLoading) {

@@ -3,6 +3,7 @@ import { mockAIChat, mockDraftClinicalText, mockExplainResult } from '@/src/mock
 import { cancelMockAppointment, createMockAppointment, getMockAppointments, updateMockAppointment, } from '@/src/mocks/appointments';
 import { mockForgotPassword, mockLogin, mockRegister, mockUpdateProfile } from '@/src/mocks/auth';
 import { addMockChatMessage, getMockChatMessages, getMockThreadId } from '@/src/mocks/chats';
+import { getMockDoctors } from '@/src/mocks/doctors';
 import { mockNotifications } from '@/src/mocks/notifications';
 import { addMockConsultationNote, addMockLabRequest, addMockPrescription, getMockDoctorAlerts, getMockDoctorPatientDetail, getMockDoctorPatients, getMockLabResults, getMockMedicalSummary, getMockPatientProfile, getMockPrescriptions, } from '@/src/mocks/records';
 const LATENCY_MS = 180;
@@ -332,6 +333,12 @@ async function handlePatientAndDoctorRoutes(context, pathParams) {
         return {
             success: true,
             appointments: getMockAppointments('doctor').map(toBackendAppointment),
+        };
+    }
+    if (method === 'GET' && path === '/doctors') {
+        return {
+            success: true,
+            doctors: getMockDoctors(),
         };
     }
     if (method === 'POST' && path === '/appointments') {

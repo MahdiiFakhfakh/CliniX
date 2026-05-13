@@ -1,4 +1,5 @@
 import { config } from '@/src/core/config/env';
+import { sortAppointmentsAscending } from '@/src/features/appointments/utils/appointmentDates';
 import { cancelMockAppointment, createMockAppointment, getMockAppointments, updateMockAppointment, } from '@/src/mocks/appointments';
 import { apiRequest } from '@/src/services/api/client';
 const isAppointmentStatus = (value) => {
@@ -41,7 +42,7 @@ export async function fetchAppointments(role) {
             }
             return getMockAppointments(role);
         }
-        return response.appointments.map((item) => mapAppointment(item, role)).slice(0, 12);
+        return sortAppointmentsAscending(response.appointments.map((item) => mapAppointment(item, role)));
     }
     catch (error) {
         if (!config.enableMockFallback) {

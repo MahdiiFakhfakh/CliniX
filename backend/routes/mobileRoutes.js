@@ -100,6 +100,7 @@ const mapAppointmentRecord = (appointment) => {
       fullName: asFullName(patient, "Unknown Patient"),
     },
     doctor: {
+      _id: doctor._id ? doctor._id.toString() : undefined,
       firstName: toSafeString(doctor.firstName),
       lastName: toSafeString(doctor.lastName),
       fullName: asFullName(doctor, "Unknown Doctor"),
@@ -107,6 +108,26 @@ const mapAppointmentRecord = (appointment) => {
     },
   };
 };
+
+const mapDoctorForMobile = (doctor) => ({
+  _id: doctor._id.toString(),
+  doctorId: toSafeString(doctor.doctorId),
+  firstName: toSafeString(doctor.firstName),
+  lastName: toSafeString(doctor.lastName),
+  fullName: asFullName(doctor, "Unknown Doctor"),
+  email: toSafeString(doctor.email),
+  phone: toSafeString(doctor.phone),
+  specialization: toSafeString(doctor.specialization, toSafeString(doctor.department, "General Medicine")),
+  department: toSafeString(doctor.department, toSafeString(doctor.specialization, "General Medicine")),
+  qualifications: toArray(doctor.qualifications).map((item) => toSafeString(item)).filter(Boolean),
+  hospital: toSafeString(doctor.hospital, "CliniX"),
+  bio: toSafeString(doctor.bio),
+  experience: Number.isFinite(doctor.experience) ? doctor.experience : 0,
+  status: toSafeString(doctor.status, "available"),
+  rating: Number.isFinite(doctor.ratings?.average) && doctor.ratings.average > 0 ? doctor.ratings.average : 4.5,
+  totalReviews: Number.isFinite(doctor.ratings?.totalReviews) ? doctor.ratings.totalReviews : 0,
+  consultationFee: Number.isFinite(doctor.consultationFee) ? doctor.consultationFee : 0,
+});
 
 const computeAge = (dateOfBirth) => {
   if (!dateOfBirth) return null;
@@ -354,6 +375,23 @@ router.get("/patients/me/appointments", protect, authorize("patient", "admin"), 
   }
 });
 
+router.get("/doctors", protect, authorize("patient", "admin"), async (req, res) => {
+  try {
+    const includePending = req.user.role === "admin" && req.query.includePending === "true";
+    const query = includePending ? {} : { status: { $ne: "pending" } };
+
+    const doctors = await Doctor.find(query).sort({ fullName: 1, firstName: 1, lastName: 1 });
+
+    res.json({
+      success: true,
+      doctors: doctors.map(mapDoctorForMobile),
+    });
+  } catch (error) {
+    console.error("GET /doctors failed:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch doctors" });
+  }
+});
+
 router.post("/appointments", protect, authorize("patient", "admin"), async (req, res) => {
   try {
     const patient = await getEffectivePatient(req.user);
@@ -361,28 +399,32 @@ router.post("/appointments", protect, authorize("patient", "admin"), async (req,
       return res.status(404).json({ success: false, message: "Patient profile not found" });
     }
 
+    const doctorId = toSafeString(req.body.doctorId);
     const doctorName = toSafeString(req.body.doctorName);
     const department = toSafeString(req.body.department);
     const reason = toSafeString(req.body.reason, "Consultation");
     const date = req.body.date ? new Date(req.body.date) : null;
     const time = toSafeString(req.body.time, "09:00");
 
-    if (!doctorName || !date || Number.isNaN(date.getTime())) {
+    if ((!doctorId && !doctorName) || !date || Number.isNaN(date.getTime())) {
       return res.status(400).json({ success: false, message: "Doctor and valid date are required" });
     }
 
-    const doctor = await Doctor.findOne({
-      $or: [
-        { fullName: doctorName },
-        {
-          $and: [
-            { firstName: { $regex: doctorName.split(" ")[0], $options: "i" } },
-            { lastName: { $regex: doctorName.split(" ").slice(1).join(" "), $options: "i" } },
-          ],
-        },
-        ...(department ? [{ specialization: { $regex: department, $options: "i" } }] : []),
-      ],
-    });
+    const canUseDoctorId = /^[0-9a-fA-F]{24}$/.test(doctorId);
+    const doctor =
+      (canUseDoctorId ? await Doctor.findById(doctorId) : null) ||
+      (await Doctor.findOne({
+        $or: [
+          { fullName: doctorName },
+          {
+            $and: [
+              { firstName: { $regex: doctorName.split(" ")[0], $options: "i" } },
+              { lastName: { $regex: doctorName.split(" ").slice(1).join(" "), $options: "i" } },
+            ],
+          },
+          ...(department ? [{ specialization: { $regex: department, $options: "i" } }] : []),
+        ],
+      }));
 
     if (!doctor) {
       return res.status(404).json({ success: false, message: "Doctor not found" });

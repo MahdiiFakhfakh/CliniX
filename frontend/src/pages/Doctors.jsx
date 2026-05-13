@@ -47,6 +47,9 @@ const Doctors = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editDoctor, setEditDoctor] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     available: 0,
@@ -55,6 +58,15 @@ const Doctors = () => {
   });
 
   const navigate = useNavigate();
+
+  const toListText = (value) =>
+    Array.isArray(value) ? value.filter(Boolean).join(", ") : value || "";
+
+  const fromListText = (value) =>
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
 
   // Fetch doctors on component mount
   useEffect(() => {
@@ -222,6 +234,68 @@ const Doctors = () => {
     } catch (error) {
       console.error("Failed to delete doctor:", error);
       toast.error("Failed to remove doctor");
+    }
+  };
+
+  const openEditDoctor = (doctor) => {
+    setEditDoctor({
+      ...doctor,
+      qualificationsText: toListText(doctor.qualifications),
+      workingStart: doctor.workingHours?.start || "",
+      workingEnd: doctor.workingHours?.end || "",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditDoctorChange = (field, value) => {
+    setEditDoctor((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveDoctor = async (event) => {
+    event.preventDefault();
+    if (!editDoctor?._id) return;
+
+    try {
+      setSavingEdit(true);
+      const token = localStorage.getItem("token");
+      const payload = {
+        firstName: editDoctor.firstName,
+        lastName: editDoctor.lastName,
+        email: editDoctor.email,
+        phone: editDoctor.phone,
+        specialization: editDoctor.specialization,
+        department: editDoctor.department,
+        licenseNumber: editDoctor.licenseNumber,
+        qualifications: fromListText(editDoctor.qualificationsText || ""),
+        experience: Number(editDoctor.experience) || 0,
+        consultationFee: Number(editDoctor.consultationFee) || 0,
+        status: editDoctor.status,
+        bio: editDoctor.bio,
+        notes: editDoctor.notes,
+        workingHours: {
+          start: editDoctor.workingStart,
+          end: editDoctor.workingEnd,
+        },
+      };
+
+      await axios.put(
+        `http://localhost:5000/api/admin/doctors/${editDoctor._id}`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      toast.success("Doctor details updated");
+      setShowEditModal(false);
+      setEditDoctor(null);
+      await fetchDoctors();
+      if (selectedDoctor?._id === editDoctor._id) {
+        await fetchDoctorDetails(editDoctor._id);
+      }
+    } catch (error) {
+      console.error("Failed to update doctor:", error);
+      toast.error(error.response?.data?.message || "Failed to update doctor");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -715,14 +789,11 @@ const Doctors = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleStatusChange(
-                    doctor._id,
-                    doctor.status === "available" ? "on_leave" : "available",
-                  );
+                  openEditDoctor(doctor);
                 }}
                 className="h-8 rounded-md bg-slate-100 px-2 text-[11px] font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700"
               >
-                {doctor.status === "available" ? "Set Leave" : "Set Available"}
+                Edit
               </button>
               <button
                 onClick={(e) => {
@@ -876,7 +947,7 @@ const Doctors = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Edit functionality
+                        openEditDoctor(doctor);
                       }}
                       className="text-green-600 hover:text-green-900 transition-colors"
                     >
@@ -1013,6 +1084,14 @@ const Doctors = () => {
               </select>
             </div>
 
+            <button
+              onClick={() => openEditDoctor(selectedDoctor)}
+              className="mb-6 w-full px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-semibold flex items-center justify-center gap-2"
+            >
+              <HiOutlinePencil className="w-5 h-5" />
+              Edit Doctor Details
+            </button>
+
             {/* Qualifications */}
             {selectedDoctor.qualifications?.length > 0 && (
               <div className="mb-6">
@@ -1042,6 +1121,254 @@ const Doctors = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const EditDoctorModal = () => {
+    if (!showEditModal || !editDoctor) return null;
+
+    const inputClass =
+      "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleSaveDoctor} className="p-6 space-y-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Edit Doctor Details
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Update profile, contact, clinical, and availability details.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  First Name
+                </span>
+                <input
+                  className={inputClass}
+                  value={editDoctor.firstName || ""}
+                  onChange={(e) =>
+                    handleEditDoctorChange("firstName", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Last Name
+                </span>
+                <input
+                  className={inputClass}
+                  value={editDoctor.lastName || ""}
+                  onChange={(e) =>
+                    handleEditDoctorChange("lastName", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Email</span>
+                <input
+                  type="email"
+                  className={inputClass}
+                  value={editDoctor.email || ""}
+                  onChange={(e) =>
+                    handleEditDoctorChange("email", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Phone</span>
+                <input
+                  className={inputClass}
+                  value={editDoctor.phone || ""}
+                  onChange={(e) =>
+                    handleEditDoctorChange("phone", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Specialization
+                </span>
+                <input
+                  className={inputClass}
+                  value={editDoctor.specialization || ""}
+                  onChange={(e) =>
+                    handleEditDoctorChange("specialization", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Department
+                </span>
+                <input
+                  className={inputClass}
+                  value={editDoctor.department || ""}
+                  onChange={(e) =>
+                    handleEditDoctorChange("department", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  License Number
+                </span>
+                <input
+                  className={inputClass}
+                  value={editDoctor.licenseNumber || ""}
+                  onChange={(e) =>
+                    handleEditDoctorChange("licenseNumber", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Status
+                </span>
+                <select
+                  className={inputClass}
+                  value={editDoctor.status || "available"}
+                  onChange={(e) =>
+                    handleEditDoctorChange("status", e.target.value)
+                  }
+                >
+                  <option value="pending">Pending</option>
+                  <option value="available">Available</option>
+                  <option value="on_leave">On Leave</option>
+                  <option value="unavailable">Unavailable</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Experience
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  className={inputClass}
+                  value={editDoctor.experience ?? 0}
+                  onChange={(e) =>
+                    handleEditDoctorChange("experience", e.target.value)
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Consultation Fee
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  className={inputClass}
+                  value={editDoctor.consultationFee ?? 0}
+                  onChange={(e) =>
+                    handleEditDoctorChange("consultationFee", e.target.value)
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Work Start
+                </span>
+                <input
+                  className={inputClass}
+                  placeholder="09:00"
+                  value={editDoctor.workingStart || ""}
+                  onChange={(e) =>
+                    handleEditDoctorChange("workingStart", e.target.value)
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Work End
+                </span>
+                <input
+                  className={inputClass}
+                  placeholder="17:00"
+                  value={editDoctor.workingEnd || ""}
+                  onChange={(e) =>
+                    handleEditDoctorChange("workingEnd", e.target.value)
+                  }
+                />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">
+                Qualifications
+              </span>
+              <input
+                className={inputClass}
+                placeholder="MD, FACC, MBBS"
+                value={editDoctor.qualificationsText || ""}
+                onChange={(e) =>
+                  handleEditDoctorChange("qualificationsText", e.target.value)
+                }
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Bio</span>
+              <textarea
+                rows={3}
+                className={inputClass}
+                value={editDoctor.bio || ""}
+                onChange={(e) => handleEditDoctorChange("bio", e.target.value)}
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Notes</span>
+              <textarea
+                rows={3}
+                className={inputClass}
+                value={editDoctor.notes || ""}
+                onChange={(e) =>
+                  handleEditDoctorChange("notes", e.target.value)
+                }
+              />
+            </label>
+
+            <div className="flex justify-end gap-3 border-t pt-5">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingEdit}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60"
+              >
+                {savingEdit ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     );
@@ -1151,6 +1478,7 @@ const Doctors = () => {
 
         {/* Doctor Details Modal */}
         <DoctorDetailsModal />
+        <EditDoctorModal />
       </div>
     </div>
   );

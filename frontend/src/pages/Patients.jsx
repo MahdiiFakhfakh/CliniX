@@ -30,6 +30,7 @@ import {
 const Patients = () => {
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
+  const [doctorOptions, setDoctorOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -44,6 +45,9 @@ const Patients = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPatient, setEditPatient] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -56,6 +60,24 @@ const Patients = () => {
   });
 
   const navigate = useNavigate();
+
+  const toDateInput = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+  };
+
+  const toNameListText = (items) =>
+    Array.isArray(items)
+      ? items.map((item) => item?.name || item).filter(Boolean).join(", ")
+      : "";
+
+  const toNamedRecords = (value, extra = {}) =>
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((name) => ({ name, ...extra }));
 
   const fetchPatients = useCallback(async () => {
     try {
@@ -215,11 +237,25 @@ const Patients = () => {
     }
   }, []);
 
+  const fetchDoctorOptions = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "http://localhost:5000/api/admin/doctors",
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setDoctorOptions(response.data.doctors || []);
+    } catch (error) {
+      console.error("Failed to fetch doctors for patient form:", error);
+    }
+  }, []);
+
   // Fetch patients on component mount
   useEffect(() => {
     fetchPatients();
     fetchStats();
-  }, [fetchPatients, fetchStats]);
+    fetchDoctorOptions();
+  }, [fetchPatients, fetchStats, fetchDoctorOptions]);
 
   const fetchPatientDetails = async (patientId) => {
     try {
@@ -308,6 +344,96 @@ const Patients = () => {
     } catch (error) {
       console.error("Failed to delete patient:", error);
       toast.error("Failed to delete patient");
+    }
+  };
+
+  const openEditPatient = (patient) => {
+    setEditPatient({
+      ...patient,
+      dateOfBirthInput: toDateInput(patient.dateOfBirth),
+      insuranceExpiryInput: toDateInput(patient.insurance?.expiryDate),
+      allergiesText: toNameListText(patient.allergies),
+      chronicConditionsText: toNameListText(patient.chronicConditions),
+      currentMedicationsText: toNameListText(patient.currentMedications),
+      address: patient.address || {},
+      emergencyContact: patient.emergencyContact || {},
+      insurance: patient.insurance || {},
+      primaryDoctorId: patient.primaryDoctor?._id || "",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditPatientChange = (field, value) => {
+    setEditPatient((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleNestedPatientChange = (section, field, value) => {
+    setEditPatient((prev) => ({
+      ...prev,
+      [section]: {
+        ...(prev?.[section] || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSavePatient = async (event) => {
+    event.preventDefault();
+    if (!editPatient?._id) return;
+
+    try {
+      setSavingEdit(true);
+      const token = localStorage.getItem("token");
+      const payload = {
+        firstName: editPatient.firstName,
+        lastName: editPatient.lastName,
+        email: editPatient.email,
+        phone: editPatient.phone,
+        dateOfBirth: editPatient.dateOfBirthInput,
+        gender: editPatient.gender,
+        bloodGroup: editPatient.bloodGroup,
+        status: editPatient.status,
+        height: editPatient.height ? Number(editPatient.height) : undefined,
+        weight: editPatient.weight ? Number(editPatient.weight) : undefined,
+        address: editPatient.address,
+        emergencyContact: editPatient.emergencyContact,
+        insurance: {
+          ...editPatient.insurance,
+          expiryDate: editPatient.insuranceExpiryInput || undefined,
+        },
+        allergies: toNamedRecords(editPatient.allergiesText || "", {
+          severity: "mild",
+        }),
+        chronicConditions: toNamedRecords(
+          editPatient.chronicConditionsText || "",
+          { status: "active" },
+        ),
+        currentMedications: toNamedRecords(
+          editPatient.currentMedicationsText || "",
+        ),
+        primaryDoctor: editPatient.primaryDoctorId || undefined,
+        notes: editPatient.notes,
+      };
+
+      await axios.put(
+        `http://localhost:5000/api/admin/patients/${editPatient._id}`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      toast.success("Patient details updated");
+      setShowEditModal(false);
+      setEditPatient(null);
+      await fetchPatients();
+      await fetchStats();
+      if (selectedPatient?._id === editPatient._id) {
+        await fetchPatientDetails(editPatient._id);
+      }
+    } catch (error) {
+      console.error("Failed to update patient:", error);
+      toast.error(error.response?.data?.message || "Failed to update patient");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -890,17 +1016,12 @@ const Patients = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleStatusChange(
-                    patient._id,
-                    patient.status === "active" ? "inactive" : "active",
-                  );
+                  openEditPatient(patient);
                 }}
                 className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-md bg-slate-100 px-1.5 text-[11px] font-bold text-slate-700 transition-all hover:bg-slate-200"
               >
                 <HiOutlinePencil className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">
-                  {patient.status === "active" ? "Deactivate" : "Activate"}
-                </span>
+                <span className="truncate">Edit</span>
               </button>
               <button
                 onClick={(e) => {
@@ -1061,7 +1182,7 @@ const Patients = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Edit functionality
+                        openEditPatient(patient);
                       }}
                       className="text-green-600 hover:text-green-900 transition-colors"
                     >
@@ -1465,6 +1586,14 @@ const Patients = () => {
               </div>
             </div>
 
+            <button
+              onClick={() => openEditPatient(selectedPatient)}
+              className="mt-6 w-full px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-semibold flex items-center justify-center gap-2"
+            >
+              <HiOutlinePencil className="w-5 h-5" />
+              Edit Patient Details
+            </button>
+
             {/* Notes */}
             {selectedPatient.notes && (
               <div className="mt-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
@@ -1477,6 +1606,385 @@ const Patients = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const EditPatientModal = () => {
+    if (!showEditModal || !editPatient) return null;
+
+    const inputClass =
+      "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleSavePatient} className="p-6 space-y-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Edit Patient Details
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Update profile, contact, medical, insurance, and notes.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  First Name
+                </span>
+                <input
+                  className={inputClass}
+                  value={editPatient.firstName || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange("firstName", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Last Name
+                </span>
+                <input
+                  className={inputClass}
+                  value={editPatient.lastName || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange("lastName", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Email</span>
+                <input
+                  type="email"
+                  className={inputClass}
+                  value={editPatient.email || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange("email", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Phone</span>
+                <input
+                  className={inputClass}
+                  value={editPatient.phone || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange("phone", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Date of Birth
+                </span>
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={editPatient.dateOfBirthInput || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange("dateOfBirthInput", e.target.value)
+                  }
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Gender
+                </span>
+                <select
+                  className={inputClass}
+                  value={editPatient.gender || "other"}
+                  onChange={(e) =>
+                    handleEditPatientChange("gender", e.target.value)
+                  }
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Blood Group
+                </span>
+                <select
+                  className={inputClass}
+                  value={editPatient.bloodGroup || "Unknown"}
+                  onChange={(e) =>
+                    handleEditPatientChange("bloodGroup", e.target.value)
+                  }
+                >
+                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"].map(
+                    (group) => (
+                      <option key={group} value={group}>
+                        {group}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Status
+                </span>
+                <select
+                  className={inputClass}
+                  value={editPatient.status || "active"}
+                  onChange={(e) =>
+                    handleEditPatientChange("status", e.target.value)
+                  }
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Primary Doctor
+                </span>
+                <select
+                  className={inputClass}
+                  value={editPatient.primaryDoctorId || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange("primaryDoctorId", e.target.value)
+                  }
+                >
+                  <option value="">No primary doctor</option>
+                  {doctorOptions.map((doctor) => (
+                    <option key={doctor._id} value={doctor._id}>
+                      {doctor.fullName} - {doctor.specialization}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Height cm
+                </span>
+                <input
+                  type="number"
+                  className={inputClass}
+                  value={editPatient.height || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange("height", e.target.value)
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Weight kg
+                </span>
+                <input
+                  type="number"
+                  className={inputClass}
+                  value={editPatient.weight || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange("weight", e.target.value)
+                  }
+                />
+              </label>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Address</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {["street", "city", "state", "country", "zipCode"].map(
+                  (field) => (
+                    <label className="block" key={field}>
+                      <span className="text-sm font-medium text-gray-700 capitalize">
+                        {field === "zipCode" ? "Zip Code" : field}
+                      </span>
+                      <input
+                        className={inputClass}
+                        value={editPatient.address?.[field] || ""}
+                        onChange={(e) =>
+                          handleNestedPatientChange(
+                            "address",
+                            field,
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </label>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">
+                Emergency Contact
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {["name", "relationship", "phone"].map((field) => (
+                  <label className="block" key={field}>
+                    <span className="text-sm font-medium text-gray-700 capitalize">
+                      {field}
+                    </span>
+                    <input
+                      className={inputClass}
+                      value={editPatient.emergencyContact?.[field] || ""}
+                      onChange={(e) =>
+                        handleNestedPatientChange(
+                          "emergencyContact",
+                          field,
+                          e.target.value,
+                        )
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Insurance</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700">
+                    Provider
+                  </span>
+                  <input
+                    className={inputClass}
+                    value={editPatient.insurance?.provider || ""}
+                    onChange={(e) =>
+                      handleNestedPatientChange(
+                        "insurance",
+                        "provider",
+                        e.target.value,
+                      )
+                    }
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700">
+                    Policy Number
+                  </span>
+                  <input
+                    className={inputClass}
+                    value={editPatient.insurance?.policyNumber || ""}
+                    onChange={(e) =>
+                      handleNestedPatientChange(
+                        "insurance",
+                        "policyNumber",
+                        e.target.value,
+                      )
+                    }
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700">
+                    Expiry Date
+                  </span>
+                  <input
+                    type="date"
+                    className={inputClass}
+                    value={editPatient.insuranceExpiryInput || ""}
+                    onChange={(e) =>
+                      handleEditPatientChange(
+                        "insuranceExpiryInput",
+                        e.target.value,
+                      )
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Allergies
+                </span>
+                <input
+                  className={inputClass}
+                  placeholder="Penicillin, Peanuts"
+                  value={editPatient.allergiesText || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange("allergiesText", e.target.value)
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Chronic Conditions
+                </span>
+                <input
+                  className={inputClass}
+                  placeholder="Diabetes, Hypertension"
+                  value={editPatient.chronicConditionsText || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange(
+                      "chronicConditionsText",
+                      e.target.value,
+                    )
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">
+                  Current Medications
+                </span>
+                <input
+                  className={inputClass}
+                  placeholder="Metformin, Aspirin"
+                  value={editPatient.currentMedicationsText || ""}
+                  onChange={(e) =>
+                    handleEditPatientChange(
+                      "currentMedicationsText",
+                      e.target.value,
+                    )
+                  }
+                />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Notes</span>
+              <textarea
+                rows={3}
+                className={inputClass}
+                value={editPatient.notes || ""}
+                onChange={(e) =>
+                  handleEditPatientChange("notes", e.target.value)
+                }
+              />
+            </label>
+
+            <div className="flex justify-end gap-3 border-t pt-5">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingEdit}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60"
+              >
+                {savingEdit ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     );
@@ -1591,6 +2099,7 @@ const Patients = () => {
 
         {/* Patient Details Modal */}
         <PatientDetailsModal />
+        <EditPatientModal />
       </div>
     </div>
   );

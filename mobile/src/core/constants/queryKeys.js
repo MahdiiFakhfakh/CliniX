@@ -2,6 +2,9 @@ export const queryKeys = {
     appointments: {
         list: (role) => ['appointments', role],
     },
+    doctors: {
+        list: ['doctors'],
+    },
     patient: {
         profile: ['patient-profile'],
         medicalSummary: ['patient-medical-summary'],
