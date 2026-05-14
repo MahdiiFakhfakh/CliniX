@@ -26,7 +26,6 @@ const ROLES = [
 const GENDERS = [
     { key: 'male', label: 'Male' },
     { key: 'female', label: 'Female' },
-    { key: 'other', label: 'Other' },
 ];
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'];

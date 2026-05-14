@@ -19,6 +19,7 @@ const ICON_MAP = {
     'chevron-forward': 'chevron-right',
     close: 'close',
     'close-circle': 'cancel',
+    edit: 'edit',
     'ellipsis-horizontal': 'more-horiz',
     'ellipsis-vertical': 'more-vert',
     'email-check-outline': 'mail-outline',

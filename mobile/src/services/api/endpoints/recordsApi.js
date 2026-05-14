@@ -37,9 +37,17 @@ const buildPatientDetail = (patient, detail = {}) => ({
         email: patient.email,
         emergencyContact: patient.emergencyContact?.phone ?? patient.emergencyContact,
     },
+    medicalRecord: detail.medicalRecord ?? {
+        bloodGroup: detail.summary?.bloodGroup ?? 'Unknown',
+        allergies: detail.summary?.allergies ?? [],
+        chronicConditions: detail.summary?.chronicConditions ?? [],
+        activeMedications: detail.summary?.activeMedications ?? [],
+        height: detail.profile?.height ?? null,
+        weight: detail.profile?.weight ?? null,
+        notes: detail.profile?.notes ?? '',
+    },
     history: detail.history ?? [],
     prescriptions: detail.prescriptions ?? [],
-    results: detail.results ?? [],
     vitals: detail.vitals ?? [],
 });
 
@@ -74,32 +82,6 @@ export async function fetchPrescriptions(patientId) {
         throw new Error(patientId ? 'Invalid doctor patient prescription response' : 'Invalid patient prescriptions response');
     }
     return response.prescriptions;
-}
-
-export async function fetchLabResults(patientId) {
-    const response = await apiRequest({
-        method: 'GET',
-        url: patientId ? `/patients/${patientId}` : '/patients/me/results',
-    });
-
-    if (!response.success) {
-        throw new Error(patientId ? 'Invalid doctor patient results response' : 'Invalid patient results response');
-    }
-
-    if (patientId) {
-        if (Array.isArray(response.detail?.results)) {
-            return response.detail.results;
-        }
-        if (Array.isArray(response.results)) {
-            return response.results;
-        }
-        throw new Error('Missing results in doctor patient response');
-    }
-
-    if (!Array.isArray(response.results)) {
-        throw new Error('Invalid patient results response');
-    }
-    return response.results;
 }
 
 export async function fetchDoctorAlerts() {

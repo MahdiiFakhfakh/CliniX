@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import AppIcon from '@/src/shared/components/AppIcon';
+import { ClinixLogo } from '@/src/shared/components/ClinixLogo';
 import {
     ActivityIndicator,
     Alert,
@@ -145,9 +146,7 @@ export function ForgotPasswordScreen() {
                         <Text style={styles.headerTitle}>Forgot Password</Text>
                     </View>
 
-                    <View style={styles.iconBox}>
-                        <AppIcon color={palette.primary} name="briefcase-plus" size={26} />
-                    </View>
+                    <ClinixLogo size="md" style={styles.iconBox} />
 
                     <Text style={styles.title}>Reset Password</Text>
                     <Text style={styles.description}>
@@ -274,12 +273,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     iconBox: {
-        width: 60,
-        height: 60,
-        borderRadius: 14,
-        backgroundColor: palette.primaryTint,
-        alignItems: 'center',
-        justifyContent: 'center',
         marginBottom: 24,
     },
     title: {

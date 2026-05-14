@@ -56,13 +56,11 @@ export default function PatientTabsLayout() {
             <Tabs.Screen name="records" options={{ href: null }}/>
             <Tabs.Screen name="profile" options={{ href: null }}/>
             <Tabs.Screen name="appointments" options={{ href: null }}/>
-            <Tabs.Screen name="results" options={{ href: null }}/>
             <Tabs.Screen name="reminders" options={{ href: null }}/>
             <Tabs.Screen name="book-appointment" options={{ href: null }}/>
             <Tabs.Screen name="create-reminder" options={{ href: null }}/>
             <Tabs.Screen name="add-vitals" options={{ href: null }}/>
             <Tabs.Screen name="appointment/[appointmentId]" options={{ href: null }}/>
-            <Tabs.Screen name="result/[resultId]" options={{ href: null }}/>
             <Tabs.Screen name="prescriptions" options={{ href: null }}/>
             <Tabs.Screen name="prescription/[prescriptionId]" options={{ href: null }}/>
             <Tabs.Screen name="clinix-ai" options={{ href: null }}/>

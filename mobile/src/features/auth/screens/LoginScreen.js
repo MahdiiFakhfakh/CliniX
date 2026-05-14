@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import AppIcon from '@/src/shared/components/AppIcon';
+import { ClinixLogo } from '@/src/shared/components/ClinixLogo';
 import {
     AccessibilityInfo,
     ActivityIndicator,
@@ -150,9 +151,7 @@ export function LoginScreen() {
                         </View>
 
                         <View style={styles.logoSection}>
-                            <View style={styles.logoCircle}>
-                                <AppIcon color={palette.primary} name="briefcase-plus" size={28} />
-                            </View>
+                            <ClinixLogo size="lg" style={styles.logoCircle} />
                             <Text style={styles.brandName}>CliniX</Text>
                         </View>
 
@@ -358,12 +357,6 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     logoCircle: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
-        backgroundColor: palette.accentTint,
-        justifyContent: 'center',
-        alignItems: 'center',
         marginBottom: 16,
     },
     brandName: {

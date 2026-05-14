@@ -28,10 +28,10 @@ const defaultCautionByRole = {
 
 const patientPromptCards = [
     {
-        id: 'result',
-        icon: 'science',
-        label: 'Explain a result',
-        prompt: 'Explain my latest result in simple terms and tell me what questions to ask my doctor.',
+        id: 'symptoms',
+        icon: 'help-circle',
+        label: 'Symptom guidance',
+        prompt: 'Help me understand these symptoms and what questions I should ask my doctor.',
     },
     {
         id: 'medication',
@@ -393,7 +393,7 @@ export function ClinixAIChatScreen({ role, title, subtitle }) {
                             placeholder={
                                 role === 'doctor'
                                     ? 'Ask for note or prescription help...'
-                                    : 'Ask about results, medicine, or your next visit...'
+                                    : 'Ask about symptoms, medicine, or your next visit...'
                             }
                             placeholderTextColor={colors.textMuted}
                             style={[styles.composerInput, promptError && styles.errorBorder]}

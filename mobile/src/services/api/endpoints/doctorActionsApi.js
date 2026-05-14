@@ -21,14 +21,14 @@ export async function createPrescription(payload) {
     }
     return response.prescription;
 }
-export async function requestLabOrImaging(payload) {
+export async function updatePatientMedicalRecord(payload) {
     const response = await apiRequest({
-        method: 'POST',
-        url: `/patients/${payload.patientId}/orders`,
+        method: 'PATCH',
+        url: `/patients/${payload.patientId}/medical-record`,
         data: payload,
     });
-    if (!response.success || !response.result) {
-        throw new Error('Invalid create order response');
+    if (!response.success || !response.medicalRecord) {
+        throw new Error('Invalid update medical record response');
     }
-    return response.result;
+    return response.medicalRecord;
 }

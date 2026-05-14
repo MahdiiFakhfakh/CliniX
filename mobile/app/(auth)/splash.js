@@ -2,7 +2,8 @@ import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { roleHomePaths } from '@/src/core/navigation/paths';
-import { colors, radius, spacing, textStyles, typography } from '@/src/core/theme/tokens';
+import { colors, spacing, textStyles, typography } from '@/src/core/theme/tokens';
+import { ClinixLogo } from '@/src/shared/components/ClinixLogo';
 import { useAuthStore } from '@/src/store/authStore';
 export default function SplashRoute() {
     const router = useRouter();
@@ -18,9 +19,7 @@ export default function SplashRoute() {
         return () => clearTimeout(timeout);
     }, [router, session]);
     return (<View style={styles.container}>
-      <View style={styles.logoCircle}>
-        <Text style={styles.logoText}>C</Text>
-      </View>
+      <ClinixLogo size="xl" style={styles.logoCircle} />
       <Text style={styles.title}>CliniX Mobile</Text>
       <Text style={styles.subtitle}>Secure hospital workflows for patient and doctor care.</Text>
     </View>);
@@ -34,19 +33,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.lg,
     },
     logoCircle: {
-        alignItems: 'center',
-        backgroundColor: colors.primary,
-        borderRadius: radius.full,
-        height: 96,
-        justifyContent: 'center',
         marginBottom: spacing.lg,
-        width: 96,
-    },
-    logoText: {
-        color: colors.surface,
-        fontSize: 44,
-        fontFamily: textStyles.display.fontFamily,
-        fontWeight: '800',
     },
     title: {
         color: colors.text,

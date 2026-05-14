@@ -78,7 +78,7 @@ export function AppointmentDetailScreen() {
     const reasonText =
         appointment.reason && appointment.reason.trim().length > 0
             ? appointment.reason
-            : 'Follow-up consultation regarding recent lab results.';
+            : 'Follow-up consultation regarding recent health concerns.';
 
     return (
         <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>

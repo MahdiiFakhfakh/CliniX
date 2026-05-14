@@ -3,7 +3,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius, shadows, spacing, typography } from '@/src/core/theme/tokens';
-import { remindersStore } from '@/src/features/patient/remindersStore';
+import { usePatientMedicalSummaryQuery } from '@/src/features/patient/hooks/usePatientMedicalSummaryQuery';
+import { usePatientProfileQuery } from '@/src/features/patient/hooks/usePatientProfileQuery';
+import { buildPatientCareSeed, remindersStore } from '@/src/features/patient/remindersStore';
+import { useAuthStore } from '@/src/store/authStore';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const TAB_OPTIONS = [
@@ -71,13 +74,41 @@ function ReminderCard({ item, onPrimaryAction, onSkip }) {
 export function HealthRemindersScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const session = useAuthStore((state) => state.session);
+    const profileQuery = usePatientProfileQuery();
+    const summaryQuery = usePatientMedicalSummaryQuery();
     const [activeTab, setActiveTab] = useState('today');
     const [reminders, setReminders] = useState(remindersStore.get());
+    const patientKey = profileQuery.data?.id ?? session?.user.id ?? 'guest';
+    const ownerLabel = profileQuery.data?.fullName?.split(' ')[0]
+        ? `${profileQuery.data.fullName.split(' ')[0]}'s`
+        : 'your';
+    const careSeed = useMemo(() => buildPatientCareSeed(summaryQuery.data), [summaryQuery.data]);
+    const careFocus = useMemo(() => {
+        const meds = Array.isArray(summaryQuery.data?.activeMedications) ? summaryQuery.data.activeMedications.length : 0;
+        const conditions = Array.isArray(summaryQuery.data?.chronicConditions) ? summaryQuery.data.chronicConditions.length : 0;
+        if (meds > 0 && conditions > 0) return `${meds} medication${meds === 1 ? '' : 's'} and ${conditions} condition${conditions === 1 ? '' : 's'}`;
+        if (meds > 0) return `${meds} medication${meds === 1 ? '' : 's'}`;
+        if (conditions > 0) return `${conditions} condition${conditions === 1 ? '' : 's'}`;
+        return 'your personal reminders';
+    }, [summaryQuery.data]);
 
     useEffect(() => {
-        void remindersStore.hydrate();
-        return remindersStore.subscribe(setReminders);
-    }, []);
+        if (profileQuery.isLoading || summaryQuery.isLoading) return undefined;
+
+        let mounted = true;
+        const syncReminders = (next) => {
+            if (mounted) setReminders(next);
+        };
+
+        const unsubscribe = remindersStore.subscribe(syncReminders);
+        void remindersStore.hydrate(patientKey, careSeed).then(syncReminders);
+
+        return () => {
+            mounted = false;
+            unsubscribe();
+        };
+    }, [careSeed, patientKey, profileQuery.isLoading, summaryQuery.isLoading]);
 
     const morningItems = useMemo(() => filterByTab(reminders.morning, activeTab), [activeTab, reminders.morning]);
     const afternoonItems = useMemo(() => filterByTab(reminders.afternoon, activeTab), [activeTab, reminders.afternoon]);
@@ -148,7 +179,9 @@ export function HealthRemindersScreen() {
                         </View>
 
                         <Text style={styles.heroTitle}>Care</Text>
-                        <Text style={styles.heroSubtitle}>Track daily medication, vitals, hydration, and care tasks in one place.</Text>
+                        <Text style={styles.heroSubtitle}>
+                            {`Track ${ownerLabel} care plan: ${careFocus}.`}
+                        </Text>
 
                         <View style={styles.heroStatsRow}>
                             <View style={styles.heroStat}>

@@ -12,9 +12,6 @@ export const queryKeys = {
     prescriptions: {
         list: (patientId) => ['prescriptions', patientId ?? 'self'],
     },
-    results: {
-        list: (patientId) => ['results', patientId ?? 'self'],
-    },
     doctor: {
         alerts: ['doctor-alerts'],
         patients: ['doctor-patients'],

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
@@ -12,7 +12,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius, shadows, spacing, typography } from '@/src/core/theme/tokens';
-import { remindersStore } from '@/src/features/patient/remindersStore';
+import { usePatientMedicalSummaryQuery } from '@/src/features/patient/hooks/usePatientMedicalSummaryQuery';
+import { usePatientProfileQuery } from '@/src/features/patient/hooks/usePatientProfileQuery';
+import { buildPatientCareSeed, remindersStore } from '@/src/features/patient/remindersStore';
+import { useAuthStore } from '@/src/store/authStore';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const TYPES = [
@@ -30,12 +33,22 @@ const SLOTS = [
 export function CreateReminderScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const session = useAuthStore((state) => state.session);
+    const profileQuery = usePatientProfileQuery();
+    const summaryQuery = usePatientMedicalSummaryQuery();
     const [title, setTitle] = useState('');
     const [note, setNote] = useState('');
     const [type, setType] = useState('vitamin');
     const [slot, setSlot] = useState('morning');
     const [time, setTime] = useState('');
     const [error, setError] = useState('');
+    const patientKey = profileQuery.data?.id ?? session?.user.id ?? 'guest';
+    const careSeed = useMemo(() => buildPatientCareSeed(summaryQuery.data), [summaryQuery.data]);
+
+    useEffect(() => {
+        if (profileQuery.isLoading || summaryQuery.isLoading) return;
+        void remindersStore.hydrate(patientKey, careSeed);
+    }, [careSeed, patientKey, profileQuery.isLoading, summaryQuery.isLoading]);
 
     const handleSave = () => {
         const trimmed = title.trim();

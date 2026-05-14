@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, radius } from '@/src/core/theme/tokens';
 import AppIcon from '@/src/shared/components/AppIcon';
+import { ClinixLogo } from '@/src/shared/components/ClinixLogo';
 
 const PAGE_TITLES = {
     '/schedule': 'Schedule',
@@ -12,7 +13,6 @@ const PAGE_TITLES = {
     '/profile': 'Profile',
     '/preferences': 'Settings',
     '/notifications': 'Notifications',
-    '/clinix-ai': 'CliniX AI',
 };
 
 const getPageTitle = (pathname) => {
@@ -29,8 +29,9 @@ const ROLE_CONFIG = {
         tabs: [
             { label: 'Home', route: '/(app)/(patient)/home', matchers: ['/home', '/dashboard'] },
             { label: 'Appts', route: '/(app)/(patient)/appointments', matchers: ['/appointments', '/appointment', '/book-appointment'] },
-            { label: 'Records', route: '/(app)/(patient)/records', matchers: ['/records', '/results', '/result', '/prescriptions', '/prescription'] },
+            { label: 'Records', route: '/(app)/(patient)/records', matchers: ['/records', '/prescriptions', '/prescription'] },
             { label: 'Care', route: '/(app)/(patient)/reminders', matchers: ['/reminders', '/create-reminder', '/add-vitals'] },
+            { label: 'AI', route: '/(app)/(patient)/clinix-ai', matchers: ['/clinix-ai'] },
         ],
     },
     doctor: {
@@ -87,9 +88,7 @@ export function RoleTopBar({ role = 'patient' }) {
                     </View>
                 ) : (
                     <View style={styles.brandRow}>
-                        <View style={styles.brandBadge}>
-                            <Text style={styles.brandText}>CLX</Text>
-                        </View>
+                        <ClinixLogo size="sm" />
                         <Text numberOfLines={1} style={styles.title}>
                             {config.title}
                         </Text>
@@ -170,21 +169,6 @@ const styles = StyleSheet.create({
         backgroundColor: colors.surfaceTint,
         borderWidth: 1,
         borderColor: colors.border,
-    },
-    brandBadge: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: colors.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    brandText: {
-        color: '#FFFFFF',
-        fontFamily: fonts.bodyBold,
-        fontSize: 11,
-        fontWeight: '700',
-        letterSpacing: 0.8,
     },
     title: {
         color: colors.primary,

@@ -7,7 +7,7 @@ import { useDoctorPatientDetailQuery } from '@/src/features/doctor/hooks/useDoct
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
 
-const tabs = ['History', 'Prescriptions', 'Results', 'Vitals'];
+const tabs = ['History', 'Prescriptions', 'Vitals'];
 
 const STATUS_STYLE = {
     active: { bg: colors.successSoft, text: colors.success, border: colors.successBorder },
@@ -61,16 +61,6 @@ export function DoctorPatientDetailScreen() {
             }));
         }
 
-        if (activeTab === 'Results') {
-            return (detail.results ?? []).map((result) => ({
-                id: result.id,
-                title: result.name,
-                body: result.summary,
-                meta: `${result.kind ?? ''} - ${result.status ?? ''}`,
-                status: null,
-            }));
-        }
-
         return (detail.vitals ?? []).map((vital) => ({
             id: vital.id,
             title: vital.label,
@@ -109,46 +99,6 @@ export function DoctorPatientDetailScreen() {
             </SafeAreaView>
         );
     }
-
-    const legacyContent = (() => {
-        if (activeTab === 'History') {
-            return (detail.history ?? []).map((entry, index) => ({
-                id: `history-${index}`,
-                title: `Clinical Note ${index + 1}`,
-                body: entry,
-                meta: null,
-                status: null,
-            }));
-        }
-
-        if (activeTab === 'Prescriptions') {
-            return (detail.prescriptions ?? []).map((item) => ({
-                id: item.id,
-                title: item.medication,
-                body: `${item.dosage}  ·  ${item.frequency}  ·  ${item.duration}`,
-                meta: `Prescribed by ${item.prescribedBy ?? 'Doctor'}`,
-                status: item.status,
-            }));
-        }
-
-        if (activeTab === 'Results') {
-            return (detail.results ?? []).map((result) => ({
-                id: result.id,
-                title: result.name,
-                body: result.summary,
-                meta: `${result.kind ?? ''}  ·  ${result.status ?? ''}`,
-                status: null,
-            }));
-        }
-
-        return (detail.vitals ?? []).map((vital) => ({
-            id: vital.id,
-            title: vital.label,
-            body: vital.value,
-            meta: formatDate(vital.recordedAt),
-            status: null,
-        }));
-    })();
 
     const { profile } = detail;
     const initials = getInitials(profile.fullName);
@@ -247,6 +197,22 @@ export function DoctorPatientDetailScreen() {
                     <View style={styles.contentCard}>
                         <View style={styles.sectionHeaderRow}>
                             <Text style={styles.sectionTitle}>{activeTab}</Text>
+                            {activeTab === 'History' ? (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Edit medical record"
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: '/(app)/(doctor)/patient/[patientId]/medical-record',
+                                            params: { patientId },
+                                        })
+                                    }
+                                    style={styles.addButton}
+                                >
+                                    <AppIcon color="#FFFFFF" name="edit" size={15} />
+                                    <Text style={styles.addButtonText}>Edit</Text>
+                                </Pressable>
+                            ) : null}
                             {activeTab === 'Prescriptions' ? (
                                 <Pressable
                                     accessibilityRole="button"

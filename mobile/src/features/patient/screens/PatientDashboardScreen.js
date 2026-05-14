@@ -5,13 +5,16 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fonts } from '@/src/core/theme/tokens';
 import { useAppointmentsQuery } from '@/src/features/appointments/hooks/useAppointmentsQuery';
 import { isUpcomingAppointment, sortAppointmentsAscending } from '@/src/features/appointments/utils/appointmentDates';
-import { remindersStore } from '@/src/features/patient/remindersStore';
+import { usePatientMedicalSummaryQuery } from '@/src/features/patient/hooks/usePatientMedicalSummaryQuery';
+import { usePatientProfileQuery } from '@/src/features/patient/hooks/usePatientProfileQuery';
+import { buildPatientCareSeed, remindersStore } from '@/src/features/patient/remindersStore';
+import { useAuthStore } from '@/src/store/authStore';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const QUICK_ACTIONS = [
     { id: 'book', label: 'Book Appt', icon: 'add-circle', path: '/(app)/(patient)/book-appointment' },
-    { id: 'vitals', label: 'Detailed Vitals', icon: 'stats-chart', path: '/(app)/(patient)/results' },
     { id: 'reminders', label: 'Reminders', icon: 'notifications', path: '/(app)/(patient)/reminders' },
+    { id: 'ai', label: 'CliniX AI', icon: 'sparkles', path: '/(app)/(patient)/clinix-ai' },
 ];
 
 const formatDateLabel = (isoDate) => {
@@ -44,16 +47,33 @@ export function PatientHomeScreen() {
     const router = useRouter();
     const appointmentsQuery = useAppointmentsQuery('patient');
     const insets = useSafeAreaInsets();
+    const session = useAuthStore((state) => state.session);
+    const profileQuery = usePatientProfileQuery();
+    const summaryQuery = usePatientMedicalSummaryQuery();
 
     const [reminders, setReminders] = useState(remindersStore.get());
     const [showAddReminder, setShowAddReminder] = useState(false);
     const [reminderTitle, setReminderTitle] = useState('');
     const [reminderTime, setReminderTime] = useState('');
+    const patientKey = profileQuery.data?.id ?? session?.user.id ?? 'guest';
+    const careSeed = useMemo(() => buildPatientCareSeed(summaryQuery.data), [summaryQuery.data]);
 
     useEffect(() => {
-        void remindersStore.hydrate();
-        return remindersStore.subscribe(setReminders);
-    }, []);
+        if (profileQuery.isLoading || summaryQuery.isLoading) return undefined;
+
+        let mounted = true;
+        const syncReminders = (next) => {
+            if (mounted) setReminders(next);
+        };
+
+        const unsubscribe = remindersStore.subscribe(syncReminders);
+        void remindersStore.hydrate(patientKey, careSeed).then(syncReminders);
+
+        return () => {
+            mounted = false;
+            unsubscribe();
+        };
+    }, [careSeed, patientKey, profileQuery.isLoading, summaryQuery.isLoading]);
 
     const nextAppointment = useMemo(() => {
         const upcomingAppointments = sortAppointmentsAscending(

@@ -1,13 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/src/core/constants/queryKeys';
-import { requestLabOrImaging } from '@/src/services/api/endpoints/doctorActionsApi';
-export function useRequestLabMutation(patientId) {
+import { updatePatientMedicalRecord } from '@/src/services/api/endpoints/doctorActionsApi';
+
+export function useUpdatePatientMedicalRecordMutation(patientId) {
     const queryClient = useQueryClient();
+
     return useMutation({
-        mutationFn: requestLabOrImaging,
+        mutationFn: updatePatientMedicalRecord,
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: queryKeys.doctor.patientDetail(patientId) });
-            await queryClient.invalidateQueries({ queryKey: queryKeys.results.list(patientId) });
+            await queryClient.invalidateQueries({ queryKey: queryKeys.doctor.patients });
         },
     });
 }
