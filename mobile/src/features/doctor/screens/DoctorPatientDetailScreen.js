@@ -34,6 +34,51 @@ export function DoctorPatientDetailScreen() {
     const patientId = typeof params.patientId === 'string' ? params.patientId : '';
     const detailQuery = useDoctorPatientDetailQuery(patientId);
     const [activeTab, setActiveTab] = useState('History');
+    const detail = detailQuery.data;
+
+    const content = useMemo(() => {
+        if (!detail) {
+            return [];
+        }
+
+        if (activeTab === 'History') {
+            return (detail.history ?? []).map((entry, index) => ({
+                id: `history-${index}`,
+                title: `Clinical Note ${index + 1}`,
+                body: entry,
+                meta: null,
+                status: null,
+            }));
+        }
+
+        if (activeTab === 'Prescriptions') {
+            return (detail.prescriptions ?? []).map((item) => ({
+                id: item.id,
+                title: item.medication,
+                body: `${item.dosage} - ${item.frequency} - ${item.duration}`,
+                meta: `Prescribed by ${item.prescribedBy ?? 'Doctor'}`,
+                status: item.status,
+            }));
+        }
+
+        if (activeTab === 'Results') {
+            return (detail.results ?? []).map((result) => ({
+                id: result.id,
+                title: result.name,
+                body: result.summary,
+                meta: `${result.kind ?? ''} - ${result.status ?? ''}`,
+                status: null,
+            }));
+        }
+
+        return (detail.vitals ?? []).map((vital) => ({
+            id: vital.id,
+            title: vital.label,
+            body: vital.value,
+            meta: formatDate(vital.recordedAt),
+            status: null,
+        }));
+    }, [activeTab, detail]);
 
     if (!patientId) {
         return (
@@ -54,8 +99,6 @@ export function DoctorPatientDetailScreen() {
         );
     }
 
-    const detail = detailQuery.data;
-
     if (!detail || !detail.profile) {
         return (
             <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
@@ -67,7 +110,7 @@ export function DoctorPatientDetailScreen() {
         );
     }
 
-    const content = useMemo(() => {
+    const legacyContent = (() => {
         if (activeTab === 'History') {
             return (detail.history ?? []).map((entry, index) => ({
                 id: `history-${index}`,
@@ -105,7 +148,7 @@ export function DoctorPatientDetailScreen() {
             meta: formatDate(vital.recordedAt),
             status: null,
         }));
-    }, [activeTab, detail.history, detail.prescriptions, detail.results, detail.vitals]);
+    })();
 
     const { profile } = detail;
     const initials = getInitials(profile.fullName);

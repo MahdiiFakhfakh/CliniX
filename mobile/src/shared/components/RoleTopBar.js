@@ -13,7 +13,6 @@ const PAGE_TITLES = {
     '/preferences': 'Settings',
     '/notifications': 'Notifications',
     '/clinix-ai': 'CliniX AI',
-    '/chat': 'Messages',
 };
 
 const getPageTitle = (pathname) => {
@@ -26,7 +25,6 @@ const getPageTitle = (pathname) => {
 const ROLE_CONFIG = {
     patient: {
         title: 'Patient Hub',
-        searchRoute: '/(app)/(patient)/records',
         profileRoute: '/(app)/(patient)/profile',
         tabs: [
             { label: 'Home', route: '/(app)/(patient)/home', matchers: ['/home', '/dashboard'] },
@@ -37,15 +35,23 @@ const ROLE_CONFIG = {
     },
     doctor: {
         title: 'CliniX Doctor',
-        searchRoute: '/(app)/(doctor)/patients',
         profileRoute: '/(app)/(doctor)/profile',
-        tabs: [],
+        tabs: [
+            { label: 'Home', route: '/(app)/(doctor)/dashboard', matchers: ['/dashboard'] },
+            { label: 'Schedule', route: '/(app)/(doctor)/schedule', matchers: ['/schedule', '/appointments'] },
+            { label: 'Patients', route: '/(app)/(doctor)/patients', matchers: ['/patients', '/patient'] },
+            { label: 'Alerts', route: '/(app)/(doctor)/notifications', matchers: ['/notifications'] },
+        ],
     },
     admin: {
         title: 'Admin Desk',
-        searchRoute: '/(app)/(doctor)/patients',
         profileRoute: '/(app)/(doctor)/profile',
-        tabs: [],
+        tabs: [
+            { label: 'Home', route: '/(app)/(doctor)/dashboard', matchers: ['/dashboard'] },
+            { label: 'Schedule', route: '/(app)/(doctor)/schedule', matchers: ['/schedule', '/appointments'] },
+            { label: 'Patients', route: '/(app)/(doctor)/patients', matchers: ['/patients', '/patient'] },
+            { label: 'Alerts', route: '/(app)/(doctor)/notifications', matchers: ['/notifications'] },
+        ],
     },
 };
 
@@ -92,15 +98,6 @@ export function RoleTopBar({ role = 'patient' }) {
 
                 {/* Actions */}
                 <View style={styles.actionRow}>
-                    <Pressable
-                        accessibilityLabel="Search"
-                        accessibilityRole="button"
-                        hitSlop={10}
-                        onPress={() => router.push(config.searchRoute)}
-                        style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.6 }]}
-                    >
-                        <AppIcon color={colors.textMuted} name="search-outline" size={22} />
-                    </Pressable>
                     <Pressable
                         accessibilityLabel="Open profile"
                         accessibilityRole="button"
@@ -199,13 +196,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-    },
-    iconButton: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 20,
     },
     profileButton: {
         width: 40,

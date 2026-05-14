@@ -78,8 +78,6 @@ export function PrivacySafetyScreen() {
     const setProtectAccount = usePreferencesStore((s) => s.setProtectAccount);
     const photoTaggingEnabled = usePreferencesStore((s) => s.photoTaggingEnabled);
     const setPhotoTaggingEnabled = usePreferencesStore((s) => s.setPhotoTaggingEnabled);
-    const directMessagesEnabled = usePreferencesStore((s) => s.directMessagesEnabled);
-    const setDirectMessagesEnabled = usePreferencesStore((s) => s.setDirectMessagesEnabled);
     const discoverabilityEnabled = usePreferencesStore((s) => s.discoverabilityEnabled);
     const setDiscoverabilityEnabled = usePreferencesStore((s) => s.setDiscoverabilityEnabled);
 
@@ -130,18 +128,6 @@ export function PrivacySafetyScreen() {
                         description="Allow others to tag you in photos."
                         value={photoTaggingEnabled}
                         onValueChange={setPhotoTaggingEnabled}
-                    />
-                </Section>
-
-                <Section title="Messaging">
-                    <ToggleRow
-                        icon="chatbubble-ellipses-outline"
-                        iconBg={colors.successSoft}
-                        iconColor={colors.success}
-                        title="Direct Messages"
-                        description="Allow other users to send you messages."
-                        value={directMessagesEnabled}
-                        onValueChange={setDirectMessagesEnabled}
                     />
                 </Section>
 

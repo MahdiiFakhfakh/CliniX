@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { config } from '@/src/core/config/env';
-import { asApiClientError, mockApiRequest } from '@/src/services/api/mockServer';
 export class ApiClientError extends Error {
     statusCode;
     constructor(message, statusCode) {
@@ -47,19 +46,6 @@ apiClient.interceptors.response.use((response) => response, (error) => {
     return Promise.reject(new ApiClientError(message, statusCode));
 });
 export async function apiRequest(requestConfig) {
-     console.log('apiRequest:', requestConfig.url, 'token:', sessionToken ? 'YES' : 'NO', 'baseURL:', config.apiBaseUrl);
-    if (config.enableMockServer) {
-        try {
-            return await mockApiRequest(requestConfig, sessionToken);
-        }
-        catch (error) {
-            const mockError = asApiClientError(error);
-            if (mockError.statusCode === 401 && onUnauthorized) {
-                onUnauthorized();
-            }
-            throw new ApiClientError(mockError.message, mockError.statusCode);
-        }
-    }
     const response = await apiClient.request(requestConfig);
     return response.data;
 }

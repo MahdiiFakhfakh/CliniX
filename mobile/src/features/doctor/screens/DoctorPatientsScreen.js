@@ -2,35 +2,50 @@ import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius, spacing, typography } from '@/src/core/theme/tokens';
+import { colors, fonts, radius, shadows, spacing, typography } from '@/src/core/theme/tokens';
 import { useDoctorPatientsQuery } from '@/src/features/doctor/hooks/useDoctorPatientsQuery';
 import { LoadingView } from '@/src/shared/components/LoadingView';
 import AppIcon from '@/src/shared/components/AppIcon';
 
 const FILTERS = [
-    { key: 'all', label: 'All Patients' },
+    { key: 'all', label: 'All' },
     { key: 'high', label: 'High Risk' },
     { key: 'medium', label: 'Medium Risk' },
     { key: 'low', label: 'Low Risk' },
 ];
 
 const riskStyle = {
-    high: { bg: colors.dangerSoft, text: colors.danger, border: colors.dangerBorder, label: 'HIGH' },
-    medium: { bg: colors.warningSoft, text: colors.warningText, border: '#F5D77A', label: 'MED' },
-    low: { bg: colors.successSoft, text: colors.success, border: colors.successBorder, label: 'LOW' },
+    high: { bg: colors.dangerSoft, text: colors.danger, border: colors.dangerBorder, label: 'High' },
+    medium: { bg: colors.warningSoft, text: colors.warningText, border: '#F5D77A', label: 'Medium' },
+    low: { bg: colors.successSoft, text: colors.success, border: colors.successBorder, label: 'Low' },
 };
 
 const formatDate = (isoDate) => {
     const date = new Date(isoDate);
-    if (Number.isNaN(date.getTime())) {
-        return 'N/A';
-    }
+    if (Number.isNaN(date.getTime())) return 'N/A';
     return new Intl.DateTimeFormat('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
     }).format(date);
 };
+
+const getInitials = (name) =>
+    String(name ?? 'Patient')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('') || 'PT';
+
+function StatItem({ label, value }) {
+    return (
+        <View style={styles.heroStat}>
+            <Text style={styles.heroStatValue}>{value}</Text>
+            <Text style={styles.heroStatLabel}>{label}</Text>
+        </View>
+    );
+}
 
 export function DoctorPatientsScreen() {
     const router = useRouter();
@@ -40,6 +55,8 @@ export function DoctorPatientsScreen() {
     const [searchQuery, setSearchQuery] = useState('');
 
     const patients = patientsQuery.data ?? [];
+    const highRiskCount = patients.filter((patient) => patient.riskLevel === 'high').length;
+    const mediumRiskCount = patients.filter((patient) => patient.riskLevel === 'medium').length;
 
     const filteredPatients = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -57,7 +74,7 @@ export function DoctorPatientsScreen() {
     if (patientsQuery.isLoading) {
         return (
             <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
-                <LoadingView label="Loading patient list…" />
+                <LoadingView label="Loading patient list..." />
             </SafeAreaView>
         );
     }
@@ -65,97 +82,139 @@ export function DoctorPatientsScreen() {
     return (
         <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
             <View style={styles.container}>
-                <View style={styles.headerRow}>
-                    <Text style={styles.headerTitle}>My Patients</Text>
-                    <Text style={styles.headerSub}>{filteredPatients.length} found</Text>
-                </View>
-
-                <View style={styles.searchRow}>
-                    <AppIcon color={colors.textMuted} name="search-outline" size={20} />
-                    <TextInput
-                        accessibilityLabel="Search patients"
-                        autoCapitalize="none"
-                        onChangeText={setSearchQuery}
-                        placeholder="Search by name, age, or condition"
-                        placeholderTextColor="#6B7280"
-                        style={styles.searchInput}
-                        value={searchQuery}
-                    />
-                </View>
-
                 <ScrollView
-                    horizontal
-                    style={styles.filtersScroller}
-                    contentContainerStyle={styles.filtersRow}
-                    showsHorizontalScrollIndicator={false}
-                >
-                    {FILTERS.map((filter) => {
-                        const active = activeFilter === filter.key;
-                        return (
-                            <Pressable
-                                key={filter.key}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Filter ${filter.label}`}
-                                onPress={() => setActiveFilter(filter.key)}
-                                style={[styles.filterChip, active && styles.filterChipActive]}
-                            >
-                                <Text style={[styles.filterText, active && styles.filterTextActive]}>{filter.label}</Text>
-                            </Pressable>
-                        );
-                    })}
-                </ScrollView>
-
-                <ScrollView
-                    style={styles.listScroll}
-                    contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 + insets.bottom }]}
-                    refreshControl={<RefreshControl onRefresh={() => void patientsQuery.refetch()} refreshing={patientsQuery.isRefetching} />}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+                    refreshControl={<RefreshControl onRefresh={() => void patientsQuery.refetch()} refreshing={patientsQuery.isRefetching} tintColor={colors.primary} />}
+                    keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
+                    <View style={styles.heroCard}>
+                        <View style={styles.heroTopRow}>
+                            <View style={styles.heroIcon}>
+                                <AppIcon color="#FFFFFF" name="people" size={26} />
+                            </View>
+                            <View style={styles.heroBadge}>
+                                <AppIcon color={colors.primary} name="verified-user" size={15} />
+                                <Text style={styles.heroBadgeText}>Care panel</Text>
+                            </View>
+                        </View>
+
+                        <Text style={styles.heroTitle}>Patients</Text>
+                        <Text style={styles.heroSubtitle}>Review assigned patients, risk levels, and recent care activity.</Text>
+
+                        <View style={styles.heroStatsRow}>
+                            <StatItem label="Total" value={patients.length} />
+                            <View style={styles.heroStatDivider} />
+                            <StatItem label="High Risk" value={highRiskCount} />
+                            <View style={styles.heroStatDivider} />
+                            <StatItem label="Medium" value={mediumRiskCount} />
+                        </View>
+                    </View>
+
+                    <View style={styles.searchCard}>
+                        <View style={styles.searchRow}>
+                            <AppIcon color={colors.textMuted} name="search-outline" size={22} />
+                            <TextInput
+                                accessibilityLabel="Search patients"
+                                autoCapitalize="none"
+                                onChangeText={setSearchQuery}
+                                placeholder="Search name, age, or condition"
+                                placeholderTextColor={colors.textMuted}
+                                style={styles.searchInput}
+                                value={searchQuery}
+                            />
+                            {searchQuery ? (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Clear patient search"
+                                    onPress={() => setSearchQuery('')}
+                                    style={styles.clearSearchButton}
+                                >
+                                    <AppIcon color={colors.textMuted} name="close" size={18} />
+                                </Pressable>
+                            ) : null}
+                        </View>
+
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
+                            {FILTERS.map((filter) => {
+                                const active = activeFilter === filter.key;
+                                return (
+                                    <Pressable
+                                        key={filter.key}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Filter ${filter.label}`}
+                                        onPress={() => setActiveFilter(filter.key)}
+                                        style={[styles.filterChip, active && styles.filterChipActive]}
+                                    >
+                                        <Text style={[styles.filterText, active && styles.filterTextActive]}>{filter.label}</Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
+
+                    <View style={styles.resultsHeader}>
+                        <View>
+                            <Text style={styles.sectionTitle}>Patient list</Text>
+                            <Text style={styles.resultsMeta}>{filteredPatients.length} patient{filteredPatients.length === 1 ? '' : 's'} found</Text>
+                        </View>
+                        <View style={styles.sortPill}>
+                            <AppIcon color={colors.primary} name="folder-open" size={14} />
+                            <Text style={styles.sortPillText}>Files</Text>
+                        </View>
+                    </View>
+
                     {filteredPatients.length === 0 ? (
                         <View style={styles.emptyCard}>
-                            <Text style={styles.emptyText}>No patients matched your filter.</Text>
+                            <View style={styles.emptyIcon}>
+                                <AppIcon color={colors.primary} name="people-outline" size={28} />
+                            </View>
+                            <Text style={styles.emptyTitle}>No patients found</Text>
+                            <Text style={styles.emptyText}>Try another filter or clear the search field.</Text>
                         </View>
                     ) : (
                         filteredPatients.map((patient) => {
                             const risk = riskStyle[patient.riskLevel] ?? riskStyle.low;
                             return (
-                                <View key={patient.id} style={styles.card}>
-                                    <View style={styles.cardTop}>
-                                        <View style={[styles.avatar, { backgroundColor: riskStyle[patient.riskLevel]?.bg ?? colors.surfaceTint }]}>
-                                            <Text style={{ fontSize: 15, fontFamily: fonts.bodyBold, fontWeight: '700', color: riskStyle[patient.riskLevel]?.text ?? colors.textMuted }}>
-                                                {(patient.fullName ?? '').split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')}
-                                            </Text>
+                                <Pressable
+                                    key={patient.id}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Open ${patient.fullName} file`}
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: '/(app)/(doctor)/patient/[patientId]',
+                                            params: { patientId: patient.id },
+                                        })
+                                    }
+                                    style={({ pressed }) => [styles.patientCard, pressed && styles.patientCardPressed]}
+                                >
+                                    <View style={styles.cardTopRow}>
+                                        <View style={[styles.avatar, { backgroundColor: risk.bg }]}>
+                                            <Text style={[styles.avatarText, { color: risk.text }]}>{getInitials(patient.fullName)}</Text>
                                         </View>
                                         <View style={styles.cardTextWrap}>
-                                            <Text style={styles.name}>{patient.fullName}</Text>
-                                            <Text style={styles.meta}>
-                                                {patient.age} yrs  |  {patient.condition}
-                                            </Text>
-                                            <Text style={styles.meta}>Last visit: {formatDate(patient.lastVisit)}</Text>
-                                        </View>
-                                        <View style={[styles.riskPill, { backgroundColor: risk.bg, borderColor: risk.border }]}>
-                                            <Text style={[styles.riskText, { color: risk.text }]}>
-                                                {risk.label}
-                                            </Text>
+                                            <View style={styles.nameRow}>
+                                                <Text numberOfLines={1} style={styles.name}>{patient.fullName}</Text>
+                                                <View style={[styles.riskPill, { backgroundColor: risk.bg, borderColor: risk.border }]}>
+                                                    <Text style={[styles.riskText, { color: risk.text }]}>{risk.label}</Text>
+                                                </View>
+                                            </View>
+                                            <Text style={styles.condition}>{patient.condition}</Text>
+                                            <Text style={styles.meta}>{patient.age} yrs | Last visit {formatDate(patient.lastVisit)}</Text>
                                         </View>
                                     </View>
 
-                                    <View style={styles.actionsRow}>
-                                        <Pressable
-                                            accessibilityRole="button"
-                                            accessibilityLabel={`Open ${patient.fullName} file`}
-                                            onPress={() =>
-                                                router.push({
-                                                    pathname: '/(app)/(doctor)/patient/[patientId]',
-                                                    params: { patientId: patient.id },
-                                                })
-                                            }
-                                            style={styles.primaryButton}
-                                        >
-                                            <Text style={styles.primaryButtonText}>Open Patient File</Text>
-                                        </Pressable>
+                                    <View style={styles.metaGrid}>
+                                        <View style={styles.metaBox}>
+                                            <AppIcon color={colors.primary} name="folder-open" size={17} />
+                                            <Text style={styles.metaBoxText}>Open File</Text>
+                                        </View>
+                                        <View style={styles.metaBox}>
+                                            <AppIcon color={risk.text} name={risk.label === 'High' ? 'alert-circle' : 'checkmark-circle'} size={17} />
+                                            <Text style={styles.metaBoxText}>{risk.label} priority</Text>
+                                        </View>
                                     </View>
-                                </View>
+                                </Pressable>
                             );
                         })
                     )}
@@ -173,30 +232,108 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
+    },
+    scrollContent: {
         paddingHorizontal: spacing.md,
+        paddingTop: spacing.md,
+        gap: spacing.md,
     },
-    headerRow: {
-        paddingTop: spacing.xs,
-        marginBottom: spacing.sm,
+    heroCard: {
+        borderRadius: radius.lg,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.md,
+        ...shadows.card,
+    },
+    heroTopRow: {
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        alignItems: 'baseline',
+        marginBottom: spacing.md,
     },
-    headerTitle: {
-        color: colors.text,
-        fontSize: typography.h3,
+    heroIcon: {
+        width: 52,
+        height: 52,
+        borderRadius: 17,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroBadge: {
+        minHeight: 34,
+        borderRadius: radius.full,
+        backgroundColor: colors.primarySoft,
+        borderWidth: 1,
+        borderColor: colors.infoBorder,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: spacing.sm,
+    },
+    heroBadgeText: {
+        color: colors.primary,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    headerSub: {
+    heroTitle: {
+        color: colors.text,
+        fontSize: 30,
+        lineHeight: 36,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    heroSubtitle: {
+        marginTop: spacing.xs,
         color: colors.textMuted,
-        fontSize: typography.bodySmall,
+        fontSize: typography.body,
+        lineHeight: 22,
+        fontFamily: fonts.bodyRegular,
+    },
+    heroStatsRow: {
+        marginTop: spacing.md,
+        borderRadius: radius.md,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingVertical: spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    heroStat: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    heroStatValue: {
+        color: colors.text,
+        fontSize: 22,
+        lineHeight: 27,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    heroStatLabel: {
+        color: colors.textMuted,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyMedium,
     },
+    heroStatDivider: {
+        width: 1,
+        height: 36,
+        backgroundColor: colors.border,
+    },
+    searchCard: {
+        borderRadius: radius.md,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: spacing.sm,
+        gap: spacing.sm,
+    },
     searchRow: {
-        height: 50,
+        minHeight: 52,
         borderRadius: radius.sm,
-        backgroundColor: colors.surfaceTint,
+        backgroundColor: colors.background,
         borderWidth: 1,
         borderColor: colors.border,
         paddingHorizontal: spacing.sm,
@@ -208,23 +345,26 @@ const styles = StyleSheet.create({
         marginLeft: spacing.xs,
         color: colors.text,
         fontSize: typography.body,
+        lineHeight: 20,
         fontFamily: fonts.bodyRegular,
     },
-    filtersRow: {
-        paddingTop: spacing.sm,
-        paddingBottom: spacing.xs,
-        gap: spacing.xs,
+    clearSearchButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    filtersScroller: {
-        maxHeight: 60,
-        marginBottom: spacing.xxs,
+    filtersRow: {
+        gap: spacing.xs,
+        paddingRight: spacing.xs,
     },
     filterChip: {
-        height: 38,
+        minHeight: 38,
         borderRadius: radius.full,
-        backgroundColor: colors.surface,
         borderWidth: 1,
         borderColor: colors.border,
+        backgroundColor: colors.surface,
         paddingHorizontal: spacing.sm,
         alignItems: 'center',
         justifyContent: 'center',
@@ -242,51 +382,98 @@ const styles = StyleSheet.create({
     filterTextActive: {
         color: '#FFFFFF',
     },
-    listScroll: {
-        flex: 1,
-    },
-    scrollContent: {
-        paddingTop: spacing.xxs,
-        gap: spacing.xs,
-    },
-    card: {
-        backgroundColor: colors.surface,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: colors.border,
-        padding: spacing.sm,
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    cardTop: {
+    resultsHeader: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-    },
-    avatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: colors.surfaceTint,
         alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: spacing.sm,
+        justifyContent: 'space-between',
+        gap: spacing.sm,
     },
-    cardTextWrap: {
-        flex: 1,
-    },
-    name: {
+    sectionTitle: {
         color: colors.text,
-        fontSize: typography.bodyLarge,
+        fontSize: typography.heading,
+        lineHeight: 25,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    meta: {
-        marginTop: 2,
+    resultsMeta: {
         color: colors.textMuted,
         fontSize: typography.bodySmall,
+        lineHeight: 18,
+        fontFamily: fonts.bodyRegular,
+    },
+    sortPill: {
+        minHeight: 34,
+        borderRadius: radius.full,
+        backgroundColor: colors.primarySoft,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: spacing.sm,
+    },
+    sortPillText: {
+        color: colors.primary,
+        fontSize: typography.caption,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    patientCard: {
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.surface,
+        padding: spacing.sm,
+        ...shadows.card,
+    },
+    patientCardPressed: {
+        opacity: 0.9,
+    },
+    cardTopRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: spacing.sm,
+    },
+    avatar: {
+        width: 60,
+        height: 60,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    avatarText: {
+        fontSize: 17,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    cardTextWrap: {
+        flex: 1,
+        minWidth: 0,
+    },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.xs,
+    },
+    name: {
+        flex: 1,
+        color: colors.text,
+        fontSize: typography.bodyLarge,
+        lineHeight: 22,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+    },
+    condition: {
+        marginTop: 2,
+        color: colors.primary,
+        fontSize: typography.body,
+        lineHeight: 20,
+        fontFamily: fonts.bodySemiBold,
+        fontWeight: '600',
+    },
+    meta: {
+        marginTop: 4,
+        color: colors.textMuted,
+        fontSize: typography.bodySmall,
+        lineHeight: 18,
         fontFamily: fonts.bodyRegular,
     },
     riskPill: {
@@ -296,24 +483,31 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.xs,
     },
     riskText: {
-        fontSize: typography.caption,
-        letterSpacing: 0.4,
+        fontSize: 10,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
-    actionsRow: {
+    metaGrid: {
         marginTop: spacing.sm,
+        flexDirection: 'row',
+        gap: spacing.xs,
     },
-    primaryButton: {
-        height: 46,
+    metaBox: {
+        flex: 1,
+        minHeight: 42,
         borderRadius: radius.sm,
-        backgroundColor: colors.primary,
+        backgroundColor: colors.background,
+        borderWidth: 1,
+        borderColor: colors.border,
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        gap: 6,
+        paddingHorizontal: spacing.xs,
     },
-    primaryButtonText: {
-        color: '#FFFFFF',
-        fontSize: typography.body,
+    metaBoxText: {
+        flex: 1,
+        color: colors.text,
+        fontSize: typography.caption,
         fontFamily: fonts.bodyBold,
         fontWeight: '700',
     },
@@ -322,12 +516,30 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.border,
         backgroundColor: colors.surface,
-        padding: spacing.md,
+        padding: spacing.lg,
+        alignItems: 'center',
+        gap: spacing.xs,
+    },
+    emptyIcon: {
+        width: 58,
+        height: 58,
+        borderRadius: 20,
+        backgroundColor: colors.primarySoft,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyTitle: {
+        color: colors.text,
+        fontSize: typography.bodyLarge,
+        fontFamily: fonts.bodyBold,
+        fontWeight: '700',
+        textAlign: 'center',
     },
     emptyText: {
         color: colors.textMuted,
         fontSize: typography.body,
-        textAlign: 'center',
+        lineHeight: 21,
         fontFamily: fonts.bodyRegular,
+        textAlign: 'center',
     },
 });

@@ -13,7 +13,6 @@ const router = express.Router();
 
 const noteStore = new Map();
 const resultStore = new Map();
-const threadStore = new Map();
 
 const APPOINTMENT_STATUSES = new Set([
   "scheduled",
@@ -263,20 +262,6 @@ const createVitalSnapshot = (seedDate) => {
   ];
 };
 
-const ensureThread = (threadId, title, seedMessages = []) => {
-  if (!threadStore.has(threadId)) {
-    threadStore.set(threadId, {
-      id: threadId,
-      title,
-      messages: seedMessages,
-    });
-  }
-
-  return threadStore.get(threadId);
-};
-
-const toChatSenderRole = (role) => (role === "admin" ? "doctor" : role);
-
 const getPatientByUserId = (userId) =>
   Patient.findOne({ user: userId }).populate("primaryDoctor", "fullName firstName lastName specialization");
 
@@ -475,17 +460,21 @@ router.post("/appointments", protect, authorize("patient", "admin"), async (req,
   }
 });
 
-router.patch("/appointments/:id", protect, authorize("patient", "admin"), async (req, res) => {
+router.patch("/appointments/:id", protect, authorize("patient", "doctor", "admin"), async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id)
       .populate("patient", "user firstName lastName fullName")
-      .populate("doctor", "firstName lastName fullName specialization department");
+      .populate("doctor", "user firstName lastName fullName specialization department");
 
     if (!appointment) {
       return res.status(404).json({ success: false, message: "Appointment not found" });
     }
 
     if (req.user.role === "patient" && appointment.patient?.user?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized to modify this appointment" });
+    }
+
+    if (req.user.role === "doctor" && appointment.doctor?.user?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: "Not authorized to modify this appointment" });
     }
 
@@ -506,6 +495,9 @@ router.patch("/appointments/:id", protect, authorize("patient", "admin"), async 
     }
 
     if (req.body.status && APPOINTMENT_STATUSES.has(req.body.status)) {
+      if (req.user.role === "patient" && req.body.status !== "cancelled") {
+        return res.status(403).json({ success: false, message: "Only doctors can change appointment status" });
+      }
       appointment.status = req.body.status;
     }
 
@@ -858,126 +850,6 @@ router.post("/patients/:id/orders", protect, authorize("doctor", "admin"), async
   } catch (error) {
     console.error("POST /patients/:id/orders failed:", error);
     res.status(500).json({ success: false, message: "Failed to create lab/imaging order" });
-  }
-});
-
-router.get("/threads", protect, authorize("patient", "doctor", "admin"), async (req, res) => {
-  try {
-    const requestedRole = toSafeString(req.query.role).toLowerCase();
-    const mobileRole = resolveMobileRole(requestedRole, req.user.role);
-
-    if (mobileRole === "patient") {
-      const patient = await getEffectivePatient(req.user);
-      if (!patient) {
-        return res.status(404).json({ success: false, message: "Patient profile not found" });
-      }
-
-      const threadId = "thread-patient-doctor";
-      const doctorName = asFullName(patient.primaryDoctor, "Care Team");
-      const thread = ensureThread(threadId, doctorName, [
-        {
-          id: randomUUID(),
-          threadId,
-          senderRole: "doctor",
-          senderName: doctorName,
-          body: "Hello, please share any symptom updates before your next visit.",
-          sentAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-          encrypted: true,
-        },
-      ]);
-
-      return res.json({
-        success: true,
-        threads: [
-          {
-            id: thread.id,
-            title: thread.title,
-            unreadCount: 0,
-            lastMessagePreview: thread.messages[thread.messages.length - 1]?.body || "",
-            lastMessageAt: thread.messages[thread.messages.length - 1]?.sentAt || new Date().toISOString(),
-          },
-        ],
-      });
-    }
-
-    const doctor = await getEffectiveDoctor(req.user);
-    if (!doctor) {
-      return res.status(404).json({ success: false, message: "Doctor profile not found" });
-    }
-
-    const threadId = "thread-doctor-patients";
-    const thread = ensureThread(threadId, "Patient Messages", [
-      {
-        id: randomUUID(),
-        threadId,
-        senderRole: "patient",
-        senderName: "Patient",
-        body: "Could we review my medication instructions?",
-        sentAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        encrypted: true,
-      },
-    ]);
-
-    return res.json({
-      success: true,
-      threads: [
-        {
-          id: thread.id,
-          title: thread.title,
-          unreadCount: thread.messages.filter((item) => item.senderRole === "patient").length,
-          lastMessagePreview: thread.messages[thread.messages.length - 1]?.body || "",
-          lastMessageAt: thread.messages[thread.messages.length - 1]?.sentAt || new Date().toISOString(),
-        },
-      ],
-    });
-  } catch (error) {
-    console.error("GET /threads failed:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch threads" });
-  }
-});
-
-router.get("/threads/:id/messages", protect, authorize("patient", "doctor", "admin"), async (req, res) => {
-  try {
-    const thread = ensureThread(req.params.id, "Care Team");
-
-    res.json({
-      success: true,
-      messages: thread.messages.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt)),
-    });
-  } catch (error) {
-    console.error("GET /threads/:id/messages failed:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch messages" });
-  }
-});
-
-router.post("/threads/:id/messages", protect, authorize("patient", "doctor", "admin"), async (req, res) => {
-  try {
-    const thread = ensureThread(req.params.id, "Care Team");
-    const senderRole = toChatSenderRole(req.user.role);
-
-    const message = {
-      id: randomUUID(),
-      threadId: thread.id,
-      senderRole,
-      senderName: toSafeString(req.body.senderName, senderRole === "doctor" ? "Doctor" : "Patient"),
-      body: toSafeString(req.body.body, ""),
-      sentAt: new Date().toISOString(),
-      encrypted: true,
-    };
-
-    if (!message.body) {
-      return res.status(400).json({ success: false, message: "Message body is required" });
-    }
-
-    thread.messages.push(message);
-
-    res.status(201).json({
-      success: true,
-      message,
-    });
-  } catch (error) {
-    console.error("POST /threads/:id/messages failed:", error);
-    res.status(500).json({ success: false, message: "Failed to send message" });
   }
 });
 

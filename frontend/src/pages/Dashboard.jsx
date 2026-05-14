@@ -53,58 +53,7 @@ const Dashboard = () => {
         return response.data;
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
-        // Return mock data for development
-        return {
-          stats: {
-            totalPatients: 156,
-            totalDoctors: 24,
-            totalAppointments: 432,
-            todayAppointments: 18,
-            pendingAppointments: 12,
-            completedAppointments: 312,
-            cancelledAppointments: 28,
-          },
-          recentAppointments: [
-            {
-              _id: "1",
-              patient: {
-                firstName: "John",
-                lastName: "Doe",
-                patientId: "PAT1001",
-              },
-              doctor: {
-                firstName: "Robert",
-                lastName: "Smith",
-                specialization: "Cardiology",
-              },
-              date: new Date().toISOString(),
-              time: "10:30",
-              status: "completed",
-            },
-            {
-              _id: "2",
-              patient: {
-                firstName: "Jane",
-                lastName: "Smith",
-                patientId: "PAT1002",
-              },
-              doctor: {
-                firstName: "Sarah",
-                lastName: "Johnson",
-                specialization: "Pediatrics",
-              },
-              date: new Date().toISOString(),
-              time: "11:45",
-              status: "scheduled",
-            },
-            // ... more mock
-          ],
-          // Mock chart data
-          last7Days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-          appointmentsPerDay: [12, 19, 15, 17, 14, 13, 18],
-          patientGrowth: [120, 125, 132, 140, 148, 156],
-          growthLabels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-        };
+        throw error;
       }
     },
   });
@@ -201,19 +150,11 @@ const Dashboard = () => {
 
   // Chart data for appointments per day
   const appointmentsChartData = {
-    labels: data?.last7Days || [
-      "Mon",
-      "Tue",
-      "Wed",
-      "Thu",
-      "Fri",
-      "Sat",
-      "Sun",
-    ],
+    labels: data?.last7Days || [],
     datasets: [
       {
         label: "Appointments",
-        data: data?.appointmentsPerDay || [12, 19, 15, 17, 14, 13, 18],
+        data: data?.appointmentsPerDay || [],
         backgroundColor: "rgba(59, 130, 246, 0.2)",
         borderColor: "rgba(59, 130, 246, 1)",
         borderWidth: 2,
@@ -230,11 +171,11 @@ const Dashboard = () => {
 
   // Chart data for patient growth
   const patientGrowthData = {
-    labels: data?.growthLabels || ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    labels: data?.growthLabels || [],
     datasets: [
       {
         label: "Patients",
-        data: data?.patientGrowth || [120, 125, 132, 140, 148, 156],
+        data: data?.patientGrowth || [],
         backgroundColor: "rgba(16, 185, 129, 0.2)",
         borderColor: "rgba(16, 185, 129, 1)",
         borderWidth: 2,

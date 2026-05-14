@@ -40,7 +40,5 @@ const resolveApiBaseUrl = () => {
 
 export const config = {
     apiBaseUrl: resolveApiBaseUrl(),
-    enableMockServer: (process.env.EXPO_PUBLIC_ENABLE_MOCK_SERVER ?? 'false') === 'true',
-    enableMockFallback: (process.env.EXPO_PUBLIC_ENABLE_MOCK_FALLBACK ?? 'false') === 'true',
     appName: 'CliniX Mobile',
 };

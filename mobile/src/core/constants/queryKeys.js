@@ -15,16 +15,10 @@ export const queryKeys = {
     results: {
         list: (patientId) => ['results', patientId ?? 'self'],
     },
-    chat: {
-        thread: (role) => ['chat-thread', role],
-    },
     doctor: {
         alerts: ['doctor-alerts'],
         patients: ['doctor-patients'],
         patientDetail: (patientId) => ['doctor-patient-detail', patientId],
-    },
-    nursePatients: {
-        list: ['nurse-patients'],
     },
     notifications: {
         list: ['notifications'],

@@ -14,7 +14,6 @@ import AppIcon from '@/src/shared/components/AppIcon';
 const ROLE_LABELS = {
     doctor: 'Doctor',
     patient: 'Patient',
-    nurse: 'Nurse',
     admin: 'Administrator',
 };
 

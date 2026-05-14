@@ -1,6 +1,5 @@
-import { config } from '@/src/core/config/env';
-import { getMockDoctorAlerts, getMockDoctorPatientDetail, getMockDoctorPatients, getMockLabResults, getMockMedicalSummary, getMockPatientProfile, getMockPrescriptions, } from '@/src/mocks/records';
 import { apiRequest } from '@/src/services/api/client';
+
 const mapRiskFromStatus = (status) => {
     if (status === 'inactive') return 'high';
     if (status === 'pending') return 'medium';
@@ -20,216 +19,131 @@ const calcAge = (dateOfBirth) => {
 
 const cleanPhone = (phone) =>
     !phone || phone === '00000000' ? null : phone;
-const ensureFallbackEnabled = (message) => {
-    if (!config.enableMockFallback) {
-        throw new Error(message);
-    }
-};
+
+const fullNameFromPatient = (patient) =>
+    (patient.fullName ?? `${patient.firstName ?? ''} ${patient.lastName ?? ''}`.trim()) ||
+    'Unknown Patient';
+
+const buildPatientDetail = (patient, detail = {}) => ({
+    ...detail,
+    profile: detail.profile ?? {
+        id: patient._id,
+        patientId: patient.patientId,
+        fullName: fullNameFromPatient(patient),
+        age: patient.age ?? calcAge(patient.dateOfBirth) ?? null,
+        gender: patient.gender,
+        dateOfBirth: patient.dateOfBirth,
+        phone: cleanPhone(patient.phone),
+        email: patient.email,
+        emergencyContact: patient.emergencyContact?.phone ?? patient.emergencyContact,
+    },
+    history: detail.history ?? [],
+    prescriptions: detail.prescriptions ?? [],
+    results: detail.results ?? [],
+    vitals: detail.vitals ?? [],
+});
+
 export async function fetchPatientProfile() {
-    try {
-        const response = await apiRequest({
-            method: 'GET',
-            url: '/patients/me',
-        });
-        if (!response.success || !response.patient) {
-            ensureFallbackEnabled('Invalid patient profile response');
-            return getMockPatientProfile();
-        }
-        return response.patient;
+    const response = await apiRequest({
+        method: 'GET',
+        url: '/patients/me',
+    });
+    if (!response.success || !response.patient) {
+        throw new Error('Invalid patient profile response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return getMockPatientProfile();
-    }
+    return response.patient;
 }
+
 export async function fetchPatientMedicalSummary() {
-    try {
-        const response = await apiRequest({
-            method: 'GET',
-            url: '/patients/me',
-        });
-        if (!response.success || !response.summary) {
-            ensureFallbackEnabled('Invalid medical summary response');
-            return getMockMedicalSummary();
-        }
-        return response.summary;
+    const response = await apiRequest({
+        method: 'GET',
+        url: '/patients/me',
+    });
+    if (!response.success || !response.summary) {
+        throw new Error('Invalid medical summary response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return getMockMedicalSummary();
-    }
+    return response.summary;
 }
+
 export async function fetchPrescriptions(patientId) {
-    if (patientId) {
-        try {
-            const response = await apiRequest({
-                method: 'GET',
-                url: `/patients/${patientId}/prescriptions`,
-            });
-            if (!response.success || !Array.isArray(response.prescriptions)) {
-                ensureFallbackEnabled('Invalid doctor patient prescription response');
-                return getMockPrescriptions(patientId);
-            }
-            return response.prescriptions;
-        }
-        catch (error) {
-            if (!config.enableMockFallback) {
-                throw error;
-            }
-            return getMockPrescriptions(patientId);
-        }
+    const response = await apiRequest({
+        method: 'GET',
+        url: patientId ? `/patients/${patientId}/prescriptions` : '/patients/me/prescriptions',
+    });
+    if (!response.success || !Array.isArray(response.prescriptions)) {
+        throw new Error(patientId ? 'Invalid doctor patient prescription response' : 'Invalid patient prescriptions response');
     }
-    try {
-        const response = await apiRequest({
-            method: 'GET',
-            url: '/patients/me/prescriptions',
-        });
-        if (!response.success || !Array.isArray(response.prescriptions)) {
-            ensureFallbackEnabled('Invalid patient prescriptions response');
-            return getMockPrescriptions();
-        }
-        return response.prescriptions;
-    }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return getMockPrescriptions();
-    }
+    return response.prescriptions;
 }
+
 export async function fetchLabResults(patientId) {
+    const response = await apiRequest({
+        method: 'GET',
+        url: patientId ? `/patients/${patientId}` : '/patients/me/results',
+    });
+
+    if (!response.success) {
+        throw new Error(patientId ? 'Invalid doctor patient results response' : 'Invalid patient results response');
+    }
+
     if (patientId) {
-        try {
-            const response = await apiRequest({
-                method: 'GET',
-                url: `/patients/${patientId}`,
-            });
-            if (!response.success) {
-                ensureFallbackEnabled('Invalid doctor patient results response');
-                return getMockLabResults(patientId);
-            }
-            if (Array.isArray(response.detail?.results)) {
-                return response.detail.results;
-            }
-            if (Array.isArray(response.results)) {
-                return response.results;
-            }
-            ensureFallbackEnabled('Missing results in doctor patient response');
-            return getMockLabResults(patientId);
+        if (Array.isArray(response.detail?.results)) {
+            return response.detail.results;
         }
-        catch (error) {
-            if (!config.enableMockFallback) {
-                throw error;
-            }
-            return getMockLabResults(patientId);
+        if (Array.isArray(response.results)) {
+            return response.results;
         }
+        throw new Error('Missing results in doctor patient response');
     }
-    try {
-        const response = await apiRequest({
-            method: 'GET',
-            url: '/patients/me/results',
-        });
-        if (!response.success || !response.results) {
-            ensureFallbackEnabled('Invalid patient results response');
-            return getMockLabResults();
-        }
-        return response.results;
+
+    if (!Array.isArray(response.results)) {
+        throw new Error('Invalid patient results response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return getMockLabResults();
-    }
+    return response.results;
 }
+
 export async function fetchDoctorAlerts() {
-    try {
-        const response = await apiRequest({
-            method: 'GET',
-            url: '/doctor/alerts',
-        });
-        if (!response.success || !response.alerts) {
-            ensureFallbackEnabled('Invalid doctor alerts response');
-            return getMockDoctorAlerts();
-        }
-        return response.alerts;
+    const response = await apiRequest({
+        method: 'GET',
+        url: '/doctor/alerts',
+    });
+    if (!response.success || !Array.isArray(response.alerts)) {
+        throw new Error('Invalid doctor alerts response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return getMockDoctorAlerts();
-    }
+    return response.alerts;
 }
+
 export async function fetchDoctorPatients() {
-    try {
-        const response = await apiRequest({
-            method: 'GET',
-            url: '/doctors/me/patients',
-        });
-        if (!response.success || !Array.isArray(response.patients) || response.patients.length === 0) {
-            ensureFallbackEnabled('Invalid doctor patients response');
-            return getMockDoctorPatients();
-        }
-        return response.patients.map((item) => ({
-            id: item._id,
-            fullName: (item.fullName ?? `${item.firstName ?? ''} ${item.lastName ?? ''}`.trim()) || 'Unknown Patient',
-            age: item.age ?? calcAge(item.dateOfBirth) ?? 0,
-            condition: item.condition ?? item.medicalHistory?.[0]?.condition ?? 'General care',
-            riskLevel: mapRiskFromStatus(item.status),
-            lastVisit: item.updatedAt ?? item.createdAt ?? new Date().toISOString(),
-        }));
+    const response = await apiRequest({
+        method: 'GET',
+        url: '/doctors/me/patients',
+    });
+    if (!response.success || !Array.isArray(response.patients)) {
+        throw new Error('Invalid doctor patients response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return getMockDoctorPatients();
-    }
+    return response.patients.map((item) => ({
+        id: item._id,
+        fullName: fullNameFromPatient(item),
+        age: item.age ?? calcAge(item.dateOfBirth) ?? 0,
+        condition: item.condition ?? item.medicalHistory?.[0]?.condition ?? 'General care',
+        riskLevel: mapRiskFromStatus(item.status),
+        lastVisit: item.updatedAt ?? item.createdAt ?? new Date().toISOString(),
+    }));
 }
+
 export async function fetchDoctorPatientDetail(patientId) {
-    try {
-        const response = await apiRequest({
-            method: 'GET',
-            url: `/patients/${patientId}`,
-        });
-        if (!response.success) {
-            ensureFallbackEnabled('Invalid doctor patient detail response');
-            return getMockDoctorPatientDetail(patientId);
-        }
-        if (response.detail?.profile) {
-            return response.detail;
-        }
-        if (!response.patient) {
-            ensureFallbackEnabled('Missing patient detail response payload');
-            return getMockDoctorPatientDetail(patientId);
-        }
-        const fallback = getMockDoctorPatientDetail(patientId);
-        const profile = {
-            ...fallback.profile,
-            id: response.patient._id,
-            patientId: response.patient.patientId ?? fallback.profile.patientId,
-            fullName: (response.patient.fullName ??
-                `${response.patient.firstName ?? ''} ${response.patient.lastName ?? ''}`.trim()) ||
-                fallback.profile.fullName,
-            age: response.patient.age ?? calcAge(response.patient.dateOfBirth) ?? fallback.profile.age,
-            gender: response.patient.gender ?? fallback.profile.gender,
-            phone: cleanPhone(response.patient.phone) ?? fallback.profile.phone,
-            email: response.patient.email ?? fallback.profile.email,
-        };
-        return {
-            ...fallback,
-            profile,
-        };
+    const response = await apiRequest({
+        method: 'GET',
+        url: `/patients/${patientId}`,
+    });
+    if (!response.success) {
+        throw new Error('Invalid doctor patient detail response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return getMockDoctorPatientDetail(patientId);
+    if (response.detail?.profile) {
+        return buildPatientDetail(response.detail.profile, response.detail);
     }
+    if (!response.patient) {
+        throw new Error('Missing patient detail response payload');
+    }
+    return buildPatientDetail(response.patient, response.detail);
 }

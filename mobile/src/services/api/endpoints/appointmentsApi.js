@@ -1,6 +1,4 @@
-import { config } from '@/src/core/config/env';
 import { sortAppointmentsAscending } from '@/src/features/appointments/utils/appointmentDates';
-import { cancelMockAppointment, createMockAppointment, getMockAppointments, updateMockAppointment, } from '@/src/mocks/appointments';
 import { apiRequest } from '@/src/services/api/client';
 const isAppointmentStatus = (value) => {
     return (value === 'scheduled' ||
@@ -31,93 +29,50 @@ const mapAppointment = (item, role) => {
 };
 export async function fetchAppointments(role) {
     const url = role === 'doctor' ? '/doctors/me/schedule' : '/patients/me/appointments';
-    try {
-        const response = await apiRequest({
-            method: 'GET',
-            url,
-        });
-        if (!response.success || !Array.isArray(response.appointments)) {
-            if (!config.enableMockFallback) {
-                throw new Error('Invalid appointments response');
-            }
-            return getMockAppointments(role);
-        }
-        return sortAppointmentsAscending(response.appointments.map((item) => mapAppointment(item, role)));
+    const response = await apiRequest({
+        method: 'GET',
+        url,
+    });
+    if (!response.success || !Array.isArray(response.appointments)) {
+        throw new Error('Invalid appointments response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return getMockAppointments(role);
-    }
+    return sortAppointmentsAscending(response.appointments.map((item) => mapAppointment(item, role)));
 }
 export async function bookAppointment(payload) {
-    try {
-        const response = await apiRequest({
-            method: 'POST',
-            url: '/appointments',
-            data: payload,
-        });
-        if (!response.success || !response.appointment) {
-            if (!config.enableMockFallback) {
-                throw new Error('Invalid book appointment response');
-            }
-            return createMockAppointment(payload);
-        }
-        return mapAppointment(response.appointment, 'patient');
+    const response = await apiRequest({
+        method: 'POST',
+        url: '/appointments',
+        data: payload,
+    });
+    if (!response.success || !response.appointment) {
+        throw new Error('Invalid book appointment response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return createMockAppointment(payload);
-    }
+    return mapAppointment(response.appointment, 'patient');
 }
 export async function updateAppointment(payload) {
-    try {
-        const response = await apiRequest({
-            method: 'PATCH',
-            url: `/appointments/${payload.id}`,
-            data: {
-                date: payload.date,
-                time: payload.time,
-                reason: payload.reason,
-            },
-        });
-        if (!response.success || !response.appointment) {
-            if (!config.enableMockFallback) {
-                throw new Error('Invalid update appointment response');
-            }
-            return updateMockAppointment(payload);
-        }
-        return mapAppointment(response.appointment, 'patient');
+    const response = await apiRequest({
+        method: 'PATCH',
+        url: `/appointments/${payload.id}`,
+        data: {
+            date: payload.date,
+            time: payload.time,
+            reason: payload.reason,
+            status: payload.status,
+        },
+    });
+    if (!response.success || !response.appointment) {
+        throw new Error('Invalid update appointment response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return updateMockAppointment(payload);
-    }
+    return mapAppointment(response.appointment, 'patient');
 }
 export async function cancelAppointment(appointmentId) {
-    try {
-        const response = await apiRequest({
-            method: 'PATCH',
-            url: `/appointments/${appointmentId}`,
-            data: { status: 'cancelled' },
-        });
-        if (!response.success || !response.appointment) {
-            if (!config.enableMockFallback) {
-                throw new Error('Invalid cancel appointment response');
-            }
-            return cancelMockAppointment(appointmentId);
-        }
-        return mapAppointment(response.appointment, 'patient');
+    const response = await apiRequest({
+        method: 'PATCH',
+        url: `/appointments/${appointmentId}`,
+        data: { status: 'cancelled' },
+    });
+    if (!response.success || !response.appointment) {
+        throw new Error('Invalid cancel appointment response');
     }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return cancelMockAppointment(appointmentId);
-    }
+    return mapAppointment(response.appointment, 'patient');
 }

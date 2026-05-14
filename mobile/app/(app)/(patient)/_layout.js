@@ -48,10 +48,6 @@ export default function PatientTabsLayout() {
                 title: 'Home',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="home-outline"/>,
             }}/>
-            <Tabs.Screen name="chat" options={{
-                title: 'Messages',
-                tabBarIcon: ({ color }) => <TabIcon color={color} name="chatbubble-outline"/>,
-            }}/>
             <Tabs.Screen name="preferences" options={{
                 title: 'Settings',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="ellipsis-horizontal"/>,

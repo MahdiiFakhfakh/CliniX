@@ -9,7 +9,6 @@ import AppIcon from '@/src/shared/components/AppIcon';
 
 const ROLE_META = {
     doctor:  { label: 'Doctor',  bg: colors.primarySoft, fg: colors.primary },
-    nurse:   { label: 'Nurse',   bg: colors.successSoft, fg: colors.success },
     patient: { label: 'Patient', bg: colors.primarySoft, fg: colors.primaryMid },
     admin:   { label: 'Admin',   bg: colors.surfaceTint, fg: colors.primary },
 };

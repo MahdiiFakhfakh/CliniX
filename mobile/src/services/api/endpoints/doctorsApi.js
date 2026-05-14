@@ -1,5 +1,3 @@
-import { config } from '@/src/core/config/env';
-import { getMockDoctors } from '@/src/mocks/doctors';
 import { apiRequest } from '@/src/services/api/client';
 
 const mapDoctor = (item) => {
@@ -27,25 +25,14 @@ const mapDoctor = (item) => {
 };
 
 export async function fetchDoctors() {
-    try {
-        const response = await apiRequest({
-            method: 'GET',
-            url: '/doctors',
-        });
+    const response = await apiRequest({
+        method: 'GET',
+        url: '/doctors',
+    });
 
-        if (!response.success || !Array.isArray(response.doctors)) {
-            if (!config.enableMockFallback) {
-                throw new Error('Invalid doctors response');
-            }
-            return getMockDoctors().map(mapDoctor);
-        }
+    if (!response.success || !Array.isArray(response.doctors)) {
+        throw new Error('Invalid doctors response');
+    }
 
-        return response.doctors.map(mapDoctor);
-    }
-    catch (error) {
-        if (!config.enableMockFallback) {
-            throw error;
-        }
-        return getMockDoctors().map(mapDoctor);
-    }
+    return response.doctors.map(mapDoctor);
 }

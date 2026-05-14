@@ -338,7 +338,9 @@ const Login = () => {
             </div>
 
             <div className="mt-6 flex items-center justify-between text-xs font-semibold text-slate-400">
-              <span>&copy; {new Date().getFullYear()} CliniX Health System</span>
+              <span>
+                &copy; {new Date().getFullYear()} CliniX Health System
+              </span>
               <span>Protected workspace</span>
             </div>
           </div>

@@ -50,26 +50,19 @@ export default function DoctorTabsLayout() {
                 title: 'Home',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="home-outline"/>,
             }}/>
-            <Tabs.Screen name="notifications" options={{
-                title: 'Notifications',
-                tabBarIcon: ({ color }) => <TabIcon color={color} name="notifications-outline"/>,
-            }}/>
             <Tabs.Screen name="preferences" options={{
                 title: 'Settings',
                 tabBarIcon: ({ color }) => <TabIcon color={color} name="ellipsis-horizontal"/>,
             }}/>
-            <Tabs.Screen name="messages" options={{ href: null }}/>
-
             <Tabs.Screen name="schedule" options={{ href: null }}/>
             <Tabs.Screen name="patients" options={{ href: null }}/>
             <Tabs.Screen name="appointments" options={{ href: null }}/>
+            <Tabs.Screen name="notifications" options={{ href: null }}/>
             <Tabs.Screen name="profile" options={{ href: null }}/>
             <Tabs.Screen name="patient/[patientId]" options={{ href: null, headerShown: false }}/>
             <Tabs.Screen name="patient/[patientId]/note" options={{ href: null, headerShown: false }}/>
             <Tabs.Screen name="patient/[patientId]/prescription" options={{ href: null, headerShown: false }}/>
             <Tabs.Screen name="patient/[patientId]/lab-request" options={{ href: null, headerShown: false }}/>
-            <Tabs.Screen name="chat" options={{ href: null }}/>
-            <Tabs.Screen name="clinix-ai" options={{ href: null }}/>
         </Tabs>
     );
 }

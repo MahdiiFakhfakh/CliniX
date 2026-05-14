@@ -10,7 +10,6 @@ import AppIcon from '@/src/shared/components/AppIcon';
 
 const QUICK_ACTIONS = [
     { id: 'book', label: 'Book Appt', icon: 'add-circle', path: '/(app)/(patient)/book-appointment' },
-    { id: 'chat', label: 'Health Chat', icon: 'chatbubble-ellipses', path: '/(app)/(patient)/chat' },
     { id: 'vitals', label: 'Detailed Vitals', icon: 'stats-chart', path: '/(app)/(patient)/results' },
     { id: 'reminders', label: 'Reminders', icon: 'notifications', path: '/(app)/(patient)/reminders' },
 ];
